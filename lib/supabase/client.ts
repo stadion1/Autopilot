@@ -1,0 +1,381 @@
+/**
+ * Supabase client and typed DB helpers.
+ *
+ * All database access goes through this file.
+ * Never import @supabase/supabase-js directly elsewhere.
+ */
+
+import { createClient } from '@supabase/supabase-js'
+import {
+  AnalysisResult,
+  AnalysisStatus,
+  CarListing,
+  ConfidenceResult,
+  DealScores,
+  PriceRange,
+  Risk,
+  Verdict,
+} from '../../types'
+
+// ─── Client ──────────────────────────────────────────────────────────────────
+
+const supabaseUrl  = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseKey  = process.env.SUPABASE_SERVICE_ROLE_KEY!   // server-only key
+
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY')
+}
+
+export const supabase = createClient(supabaseUrl, supabaseKey)
+
+// ─── Types matching the DB schema ────────────────────────────────────────────
+
+interface AnalysisRow {
+  id: string
+  created_at: string
+  source_url: string
+  source_site: string
+  status: AnalysisStatus
+  error?: string
+
+  // Car fields
+  brand?: string
+  model?: string
+  variant?: string
+  year?: number
+  price_sek?: number
+  mileage_km?: number
+  fuel_type?: string
+  transmission?: string
+  horsepower?: number
+  color?: string
+  location?: string
+  description?: string
+  images?: string[]
+  seller_type?: string
+  raw_html?: string
+
+  // Scores
+  deal_score?: number
+  price_score?: number
+  reliability_score?: number
+  ownership_score?: number
+  mileage_score?: number
+  resale_score?: number
+
+  // Confidence
+  confidence_score?: number
+  confidence_tier?: string
+  confidence_reasons?: string[]
+
+  // Pricing
+  fair_price_low?: number
+  fair_price_median?: number
+  fair_price_high?: number
+  price_delta_pct?: number
+
+  // Analysis
+  pros?: string[]
+  cons?: string[]
+  risks?: Risk[]
+  verdict?: Verdict
+  ai_summary?: string
+  scoring_version?: string
+  data_sources?: string[]
+}
+
+// ─── Cache lookup ─────────────────────────────────────────────────────────────
+
+/**
+ * Check if we've analyzed this URL recently.
+ * Returns the analysis ID if a fresh (< 24h) completed analysis exists.
+ */
+export async function getCachedAnalysis(url: string): Promise<string | null> {
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+
+  const { data } = await supabase
+    .from('analyses')
+    .select('id')
+    .eq('source_url', url)
+    .eq('status', 'done')
+    .gte('created_at', cutoff)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single()
+
+  return data?.id ?? null
+}
+
+// ─── Create & update ─────────────────────────────────────────────────────────
+
+export async function createPendingAnalysis(
+  url: string,
+  site: string
+): Promise<string> {
+  const { data, error } = await supabase
+    .from('analyses')
+    .insert({ source_url: url, source_site: site, status: 'pending' })
+    .select('id')
+    .single()
+
+  if (error || !data) throw new Error(`Failed to create analysis: ${error?.message}`)
+  return data.id
+}
+
+export async function markProcessing(id: string): Promise<void> {
+  await supabase.from('analyses').update({ status: 'processing' }).eq('id', id)
+}
+
+export async function saveCarData(id: string, car: Partial<CarListing>, rawHtml?: string): Promise<void> {
+  await supabase.from('analyses').update({
+    brand:        car.brand,
+    model:        car.model,
+    variant:      car.variant,
+    year:         car.year,
+    price_sek:    car.price_sek,
+    mileage_km:   car.mileage_km,
+    fuel_type:    car.fuel_type,
+    transmission: car.transmission,
+    horsepower:   car.horsepower,
+    color:        car.color,
+    location:     car.location,
+    description:  car.description,
+    images:       car.images,
+    seller_type:  car.seller_type,
+    raw_html:     rawHtml,
+  }).eq('id', id)
+}
+
+export async function saveAnalysisResult(
+  id: string,
+  scores: DealScores,
+  confidence: ConfidenceResult,
+  pricing: PriceRange,
+  pros: string[],
+  cons: string[],
+  risks: Risk[],
+  verdict: Verdict,
+  aiSummary: string,
+  scoringVersion: string,
+  dataSources: string[]
+): Promise<void> {
+  const { error } = await supabase.from('analyses').update({
+    deal_score:           scores.deal,
+    price_score:          scores.price,
+    reliability_score:    scores.reliability,
+    ownership_score:      scores.ownership,
+    mileage_score:        scores.mileage,
+    resale_score:         scores.resale,
+    confidence_score:     confidence.score,
+    confidence_tier:      confidence.tier,
+    confidence_reasons:   confidence.reasons,
+    fair_price_low:       pricing.low,
+    fair_price_median:    pricing.median,
+    fair_price_high:      pricing.high,
+    price_delta_pct:      pricing.delta_pct,
+    pros,
+    cons,
+    risks,
+    verdict,
+    ai_summary:           aiSummary,
+    scoring_version:      scoringVersion,
+    data_sources:         dataSources,
+    status:               'done',
+  }).eq('id', id)
+
+  if (error) throw new Error(`Failed to save analysis: ${error.message}`)
+}
+
+export async function markError(id: string, error: string): Promise<void> {
+  await supabase.from('analyses').update({ status: 'error', error }).eq('id', id)
+}
+
+// ─── Fetch for results page ───────────────────────────────────────────────────
+
+export async function getAnalysis(id: string): Promise<AnalysisResult | null> {
+  const { data, error } = await supabase
+    .from('analyses')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (error || !data) return null
+
+  const row = data as AnalysisRow
+  if (row.status !== 'done') return null
+
+  return {
+    id: row.id,
+    car: {
+      brand:        row.brand ?? '',
+      model:        row.model ?? '',
+      variant:      row.variant,
+      year:         row.year ?? 0,
+      price_sek:    row.price_sek ?? 0,
+      mileage_km:   row.mileage_km ?? 0,
+      fuel_type:    (row.fuel_type as any) ?? 'Bensin',
+      transmission: (row.transmission as any) ?? 'Manuell',
+      horsepower:   row.horsepower,
+      color:        row.color,
+      location:     row.location,
+      description:  row.description,
+      images:       row.images,
+      seller_type:  (row.seller_type as any) ?? 'private',
+      source_url:   row.source_url,
+      source_site:  (row.source_site as any),
+    },
+    scores: {
+      deal:        row.deal_score ?? 0,
+      price:       row.price_score ?? 0,
+      reliability: row.reliability_score ?? 0,
+      ownership:   row.ownership_score ?? 0,
+      mileage:     row.mileage_score ?? 0,
+      resale:      row.resale_score ?? 0,
+    },
+    confidence: {
+      score:   row.confidence_score ?? 50,
+      tier:    (row.confidence_tier as any) ?? 'medium',
+      reasons: row.confidence_reasons ?? [],
+    },
+    pricing: {
+      low:           row.fair_price_low ?? 0,
+      median:        row.fair_price_median ?? 0,
+      high:          row.fair_price_high ?? 0,
+      delta_pct:     row.price_delta_pct ?? 0,
+      interpretation: formatDeltaInterpretation(row.price_delta_pct ?? 0),
+    },
+    pros:      row.pros ?? [],
+    cons:      row.cons ?? [],
+    risks:     row.risks ?? [],
+    verdict:   row.verdict ?? 'Okej affär',
+    ai_summary: row.ai_summary ?? '',
+    meta: {
+      analyzed_at:     row.created_at,
+      scoring_version: row.scoring_version ?? '1.0.0',
+      data_sources:    row.data_sources ?? ['static_reference_v1'],
+      cached:          false,
+    },
+  }
+}
+
+function formatDeltaInterpretation(delta: number): string {
+  const abs = Math.abs(delta).toFixed(1)
+  if (delta < -0.01) return `Priset är ungefär ${abs}% över estimerat median`
+  if (delta > 0.01)  return `Priset är ungefär ${abs}% under estimerat median`
+  return 'Priset är i linje med estimerat median'
+}
+
+// ─── Feedback ─────────────────────────────────────────────────────────────────
+
+export async function saveFeedback(
+  analysisId: string,
+  data: {
+    was_accurate?: boolean
+    actual_sale_price?: number
+    feedback_type?: string
+    notes?: string
+  }
+): Promise<void> {
+  await supabase.from('analysis_feedback').insert({
+    analysis_id: analysisId,
+    ...data,
+  })
+}
+
+// ─── Market data queries ──────────────────────────────────────────────────────
+
+export async function getMarketMedian(
+  brand: string,
+  model: string,
+  year: number
+): Promise<{ median: number; sample_size: number } | null> {
+  const { data } = await supabase.rpc('get_market_median', { p_brand: brand, p_model: model, p_year: year })
+  return data ?? null
+}
+
+// ─── Live model reference lookup ──────────────────────────────────────────────
+// Queries the seeded model_references table in Supabase.
+// Falls back to TypeScript static data if the query fails or returns nothing.
+// This becomes the primary source once Phase 2 market data is live.
+
+export interface LiveModelRef {
+  base_price_sek:           number
+  depreciation_rate:        number
+  avg_mil_per_year:         number
+  price_per_1000_extra_mil: number
+  reliability_base:         number
+  resale_base:              number
+  notes:                    string | null
+}
+
+export async function getLiveModelReference(
+  brand: string,
+  model: string,
+  year: number,
+): Promise<LiveModelRef | null> {
+  try {
+    // Try exact match first (brand + model + year within range)
+    const { data: exact } = await supabase
+      .from('model_references')
+      .select('base_price_sek, depreciation_rate, avg_mil_per_year, price_per_1000_extra_mil, reliability_base, resale_base, notes')
+      .ilike('brand', brand)
+      .ilike('model', model)
+      .lte('year_from', year)
+      .gte('year_to', year)
+      .limit(1)
+      .single()
+
+    if (exact) return exact as LiveModelRef
+
+    // Fallback: brand + model without year constraint
+    const { data: brandModel } = await supabase
+      .from('model_references')
+      .select('base_price_sek, depreciation_rate, avg_mil_per_year, price_per_1000_extra_mil, reliability_base, resale_base, notes')
+      .ilike('brand', brand)
+      .ilike('model', model)
+      .order('year_to', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (brandModel) return brandModel as LiveModelRef
+
+    return null
+  } catch {
+    // Network error or table not seeded yet — scoring engine falls back to static data
+    return null
+  }
+}
+
+// ─── Live known issues lookup ─────────────────────────────────────────────────
+// Returns model- and year-specific known issues from the database.
+// Falls back gracefully to empty array on error.
+
+export interface LiveKnownIssue {
+  rule_id:     string
+  severity:    'high' | 'medium' | 'low'
+  title:       string
+  description: string
+}
+
+export async function getLiveKnownIssues(
+  brand: string,
+  model: string,
+  year: number,
+  fuelType: string,
+): Promise<LiveKnownIssue[]> {
+  try {
+    const { data, error } = await supabase
+      .from('known_issues')
+      .select('rule_id, severity, title, description')
+      .ilike('brand', brand)
+      .or(`model.ilike.${model},model.is.null`)
+      .or(`year_from.lte.${year},year_from.is.null`)
+      .or(`year_to.gte.${year},year_to.is.null`)
+      .or(`fuel_type.ilike.${fuelType},fuel_type.is.null`)
+
+    if (error || !data) return []
+    return data as LiveKnownIssue[]
+  } catch {
+    return []
+  }
+}

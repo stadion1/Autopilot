@@ -1,0 +1,576 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import styles from './page.module.css'
+import type { AnalysisResult } from '../../../types'
+
+/* ── Loading state ── */
+const LOAD_STEPS = [
+  'Hämtar annonsdata',
+  'Normaliserar fordonsinformation',
+  'Jämför med marknadsdata',
+  'AI-analys och riskbedömning',
+]
+
+function LoadingView() {
+  const [step, setStep] = useState(0)
+
+  useEffect(() => {
+    const intervals = [1200, 2600, 4000]
+    const timers = intervals.map((ms, i) =>
+      setTimeout(() => setStep(i + 1), ms)
+    )
+    return () => timers.forEach(clearTimeout)
+  }, [])
+
+  return (
+    <div className={styles.loadingView}>
+      <div className={styles.loadingSpinner} aria-label="Analyserar" />
+      <h2 className={`${styles.loadingTitle} serif`}>Analyserar annonsen</h2>
+      <p className={styles.loadingSubtitle}>Det tar vanligtvis 10–20 sekunder</p>
+      <ul className={styles.stepList} role="list">
+        {LOAD_STEPS.map((label, i) => (
+          <li
+            key={i}
+            className={`${styles.stepItem}
+              ${i === step ? styles.stepActive : ''}
+              ${i < step ? styles.stepDone : ''}`}
+          >
+            <span className={styles.stepDot} aria-hidden>
+              {i < step ? (
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="3">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              ) : null}
+            </span>
+            {label}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+/* ── Main page ── */
+export default function AnalysisPage() {
+  const { id } = useParams<{ id: string }>()
+  const router = useRouter()
+  const [data, setData] = useState<AnalysisResult | null>(null)
+  const [status, setStatus] = useState<'loading' | 'done' | 'error'>('loading')
+  const [errorMsg, setErrorMsg] = useState('')
+
+  useEffect(() => {
+    if (!id) return
+    let cancelled = false
+
+    async function poll() {
+      for (let attempt = 0; attempt < 30; attempt++) {
+        if (cancelled) return
+        try {
+          const res = await fetch(`/api/analysis/${id}`)
+          if (!res.ok) {
+            if (res.status === 404) {
+              await new Promise(r => setTimeout(r, 2000))
+              continue
+            }
+            throw new Error('Server error')
+          }
+          const json = await res.json()
+          if (json.status === 'done') {
+            if (!cancelled) { setData(json); setStatus('done') }
+            return
+          }
+          if (json.status === 'error') {
+            if (!cancelled) { setErrorMsg(json.error ?? 'Analys misslyckades'); setStatus('error') }
+            return
+          }
+          await new Promise(r => setTimeout(r, 1500))
+        } catch (e) {
+          if (!cancelled) { setErrorMsg('Kunde inte hämta analys'); setStatus('error') }
+          return
+        }
+      }
+      if (!cancelled) { setErrorMsg('Analysen tog för lång tid'); setStatus('error') }
+    }
+
+    poll()
+    return () => { cancelled = true }
+  }, [id])
+
+  if (status === 'loading') return (
+    <main className={styles.page}>
+      <LoadingView />
+    </main>
+  )
+
+  if (status === 'error') return (
+    <main className={styles.page}>
+      <div className={styles.errorView}>
+        <div className={styles.errorIcon}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="1.5">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </div>
+        <h2 className="serif">Något gick fel</h2>
+        <p>{errorMsg}</p>
+        <button className="btn btn-primary" onClick={() => router.push('/')}>
+          Försök igen
+        </button>
+      </div>
+    </main>
+  )
+
+  if (!data) return null
+
+  const { car, scores, confidence, pricing, pros, cons, risks, verdict, ai_summary, meta } = data
+  const mileageMil = Math.round(car.mileage_km / 10)
+
+  return (
+    <main className={styles.page}>
+      <div className={styles.container}>
+
+        {/* ── Back ── */}
+        <button
+          className={`${styles.backBtn} anim-fade-in`}
+          onClick={() => router.push('/')}
+          aria-label="Tillbaka till startsidan"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2" aria-hidden>
+            <path d="M19 12H5M12 5l-7 7 7 7"/>
+          </svg>
+          Ny analys
+        </button>
+
+        {/* ── Car header ── */}
+        <header className={`${styles.carHeader} card anim-fade-up`}>
+          <div className={styles.carImageWrap}>
+            {car.images?.[0] ? (
+              <img src={car.images[0]} alt={`${car.brand} ${car.model}`}
+                className={styles.carImage} />
+            ) : (
+              <div className={styles.carImagePlaceholder} aria-hidden>
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="1">
+                  <path d="M5 11l1.5-4.5h11L19 11"/>
+                  <path d="M3 11h18v7H3z" rx="1"/>
+                  <circle cx="7" cy="18" r="1.5"/>
+                  <circle cx="17" cy="18" r="1.5"/>
+                  <path d="M5 11h14"/>
+                </svg>
+              </div>
+            )}
+          </div>
+
+          <div className={styles.carInfo}>
+            <div className={styles.carSource}>
+              <span className="tag tag-gray">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2" aria-hidden>
+                  <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
+                  <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+                </svg>
+                {car.source_site}
+              </span>
+              {car.location && (
+                <span className="tag tag-gray">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2" aria-hidden>
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+                    <circle cx="12" cy="10" r="3"/>
+                  </svg>
+                  {car.location}
+                </span>
+              )}
+            </div>
+
+            <h1 className={`${styles.carTitle} serif`}>
+              {car.brand} {car.model}
+              {car.variant && <span className={styles.carVariant}> {car.variant}</span>}
+            </h1>
+
+            <div className={styles.carSpecs}>
+              {[
+                { label: 'Årsmodell', value: car.year },
+                { label: 'Mil',       value: mileageMil.toLocaleString('sv-SE') },
+                { label: 'Drivmedel', value: car.fuel_type },
+                { label: 'Växellåda', value: car.transmission },
+                car.horsepower && { label: 'Effekt', value: `${car.horsepower} hk` },
+              ].filter(Boolean).map((s: any) => (
+                <div key={s.label} className={styles.specItem}>
+                  <span className={styles.specLabel}>{s.label}</span>
+                  <span className={styles.specValue}>{s.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className={styles.carPriceSide}>
+            <span className={styles.priceLabel}>Begärt pris</span>
+            <span className={styles.priceValue}>
+              {car.price_sek.toLocaleString('sv-SE')} kr
+            </span>
+            <VerdictBadge verdict={verdict} />
+          </div>
+        </header>
+
+        {/* ── Score row ── */}
+        <div className={`${styles.scoreRow} anim-fade-up delay-1`}>
+          <ScoreRing score={scores.deal} verdict={verdict} />
+          <SubScores scores={scores} />
+          <ConfidenceCard confidence={confidence} />
+        </div>
+
+        {/* ── Price range ── */}
+        <div className={`anim-fade-up delay-2`}>
+          <PriceRangeCard car={car} pricing={pricing} />
+        </div>
+
+        {/* ── Pros / Cons ── */}
+        <div className={`${styles.prosConsRow} anim-fade-up delay-3`}>
+          <ProsCard pros={pros} />
+          <ConsCard cons={cons} />
+        </div>
+
+        {/* ── Risks ── */}
+        {risks.length > 0 && (
+          <div className={`anim-fade-up delay-4`}>
+            <RisksCard risks={risks} />
+          </div>
+        )}
+
+        {/* ── AI Summary ── */}
+        <div className={`anim-fade-up delay-5`}>
+          <AISummaryCard summary={ai_summary} verdict={verdict} />
+        </div>
+
+        {/* ── Actions ── */}
+        <div className={`${styles.actions} anim-fade-up delay-6`}>
+          <a href={car.source_url} target="_blank" rel="noopener noreferrer"
+            className="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" aria-hidden>
+              <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+              <polyline points="15 3 21 3 21 9"/>
+              <line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>
+            Öppna annons
+          </a>
+          <button className="btn btn-ghost" onClick={() => router.push('/')}>
+            Analysera annan bil
+          </button>
+        </div>
+
+        {/* ── Disclaimer ── */}
+        <Disclaimer meta={meta} confidence={confidence} />
+
+      </div>
+    </main>
+  )
+}
+
+/* ─── Sub-components ──────────────────────────────────────────────────────── */
+
+function VerdictBadge({ verdict }: { verdict: string }) {
+  const cls = verdict === 'Bra affär' ? 'tag-green'
+            : verdict === 'Okej affär' ? 'tag-amber'
+            : 'tag-red'
+  return <span className={`tag ${cls} ${styles.verdictBadge}`}>{verdict}</span>
+}
+
+function ScoreRing({ score, verdict }: { score: number; verdict: string }) {
+  const r = 42
+  const circ = 2 * Math.PI * r
+  const offset = circ - (score / 100) * circ
+  const color = verdict === 'Bra affär' ? 'var(--accent)'
+              : verdict === 'Okej affär' ? 'var(--amber)'
+              : 'var(--red)'
+
+  return (
+    <div className={`${styles.scoreRingCard} card`}>
+      <span className="section-label">Deal score</span>
+      <div className={styles.ringWrap}>
+        <svg width="100" height="100" viewBox="0 0 100 100" role="img"
+          aria-label={`Deal score: ${score} av 100`}>
+          <circle cx="50" cy="50" r={r} fill="none"
+            stroke="var(--surface-3)" strokeWidth="7"/>
+          <circle cx="50" cy="50" r={r} fill="none"
+            stroke={color} strokeWidth="7"
+            strokeDasharray={circ}
+            strokeDashoffset={offset}
+            strokeLinecap="round"
+            transform="rotate(-90 50 50)"
+            style={{ transition: 'stroke-dashoffset 1.2s var(--ease-out)',
+                     animation: 'ringDraw 1.2s var(--ease-out) both' }}
+          />
+        </svg>
+        <div className={styles.ringCenter}>
+          <span className={styles.ringScore} style={{ color }}>{score}</span>
+          <span className={styles.ringMax}>/100</span>
+        </div>
+      </div>
+      <VerdictBadge verdict={verdict} />
+    </div>
+  )
+}
+
+function SubScores({ scores }: { scores: any }) {
+  const items = [
+    { label: 'Pris',           value: scores.price,        w: '30%' },
+    { label: 'Tillförlitlighet', value: scores.reliability, w: '25%' },
+    { label: 'Ägandekostnad',  value: scores.ownership,    w: '20%' },
+    { label: 'Mätarställning', value: scores.mileage,      w: '15%' },
+    { label: 'Andrahandsvärde', value: scores.resale,      w: '10%' },
+  ]
+  return (
+    <div className={`${styles.subScoreCard} card`}>
+      <span className="section-label">Delbetyg</span>
+      <ul className={styles.subScoreList} role="list">
+        {items.map(({ label, value, w }) => {
+          const color = value >= 75 ? 'var(--accent)'
+                      : value >= 55 ? 'var(--amber)'
+                      : 'var(--red)'
+          return (
+            <li key={label} className={styles.subScoreItem}>
+              <div className={styles.subScoreHeader}>
+                <span className={styles.subScoreName}>
+                  {label}
+                  <span className={styles.subScoreWeight}>{w}</span>
+                </span>
+                <span className={styles.subScoreVal} style={{ color }}>{value}</span>
+              </div>
+              <div className={styles.barTrack} role="progressbar"
+                aria-valuenow={value} aria-valuemin={0} aria-valuemax={100}>
+                <div className={styles.barFill}
+                  style={{ width: `${value}%`, background: color,
+                           transformOrigin: 'left',
+                           animation: 'barGrow 0.9s var(--ease-out) both' }} />
+              </div>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
+function ConfidenceCard({ confidence }: { confidence: any }) {
+  const color = confidence.tier === 'high'   ? 'var(--accent)'
+              : confidence.tier === 'medium' ? 'var(--amber)'
+              : 'var(--red)'
+  const label = confidence.tier === 'high'   ? 'Hög konfidens'
+              : confidence.tier === 'medium' ? 'Medel konfidens'
+              : 'Låg konfidens'
+
+  return (
+    <div className={`${styles.confidenceCard} card`}>
+      <span className="section-label">Konfidens</span>
+      <div className={styles.confScore} style={{ color }}>
+        {confidence.score}
+        <span className={styles.confMax}>/100</span>
+      </div>
+      <span className={`tag ${confidence.tier === 'high' ? 'tag-green' : confidence.tier === 'medium' ? 'tag-amber' : 'tag-red'}`}
+        style={{ marginBottom: '0.75rem' }}>
+        {label}
+      </span>
+      {confidence.reasons.length > 0 && (
+        <ul className={styles.confReasons} role="list">
+          {confidence.reasons.map((r: string, i: number) => (
+            <li key={i} className={styles.confReason}>
+              <span className={styles.confBullet} aria-hidden>—</span>
+              {r}
+            </li>
+          ))}
+        </ul>
+      )}
+      {confidence.reasons.length === 0 && (
+        <p className={styles.confGood}>
+          Tillräckligt med data för en tillförlitlig bedömning.
+        </p>
+      )}
+    </div>
+  )
+}
+
+function PriceRangeCard({ car, pricing }: { car: any; pricing: any }) {
+  const { low, median, high, delta_pct, interpretation } = pricing
+  const listingPct = Math.max(2, Math.min(98,
+    ((car.price_sek - low) / Math.max(1, high - low)) * 100
+  ))
+  const medianPct = 62
+  const isGood = delta_pct > 0.02
+
+  return (
+    <div className={`${styles.priceCard} card`}>
+      <div className={styles.priceCardHeader}>
+        <span className="section-label">Prisanalys</span>
+        <span className={`tag ${isGood ? 'tag-green' : delta_pct < -0.02 ? 'tag-amber' : 'tag-gray'}`}>
+          {interpretation}
+        </span>
+      </div>
+
+      {/* Track */}
+      <div className={styles.priceTrackWrap} aria-hidden>
+        <div className={styles.priceTrack}>
+          <div className={styles.priceFill}
+            style={{ width: `${listingPct}%`,
+                     background: isGood ? 'var(--accent-bg)' : 'var(--amber-bg)' }} />
+          {/* Listing marker */}
+          <div className={styles.priceMarker}
+            style={{ left: `${listingPct}%`, background: 'var(--ink-1)' }} />
+          {/* Median marker */}
+          <div className={styles.priceMarker}
+            style={{ left: `${medianPct}%`, background: 'var(--ink-4)',
+                     width: '2px', borderRadius: '1px' }} />
+        </div>
+        <div className={styles.priceTrackLabels}>
+          <span>Lägst på marknaden</span>
+          <span>Median</span>
+          <span>Högst på marknaden</span>
+        </div>
+      </div>
+
+      {/* Numbers */}
+      <div className={styles.priceGrid}>
+        <PriceCell label="Annonserat" value={car.price_sek}
+          highlight={isGood ? 'green' : 'amber'} />
+        <PriceCell label="Estimerat intervall"
+          value={`${(low/1000).toFixed(0)} 000 – ${(high/1000).toFixed(0)} 000`}
+          suffix="kr" neutral />
+        <PriceCell label="Marknadsmedian" value={median} dimmed />
+      </div>
+    </div>
+  )
+}
+
+function PriceCell({ label, value, suffix = 'kr', highlight, neutral, dimmed }: any) {
+  const color = highlight === 'green' ? 'var(--accent)'
+              : highlight === 'amber' ? 'var(--amber)'
+              : dimmed ? 'var(--ink-3)'
+              : 'var(--ink-1)'
+  return (
+    <div className={styles.priceCell}>
+      <span className={styles.priceCellLabel}>{label}</span>
+      <span className={styles.priceCellValue} style={{ color }}>
+        {typeof value === 'number' ? value.toLocaleString('sv-SE') : value}
+        {' '}<span className={styles.priceCellSuffix}>{suffix}</span>
+      </span>
+    </div>
+  )
+}
+
+function ProsCard({ pros }: { pros: string[] }) {
+  return (
+    <div className={`${styles.pcCard} card`} data-type="pros">
+      <div className={styles.pcHeader}>
+        <span className={styles.pcDot} data-type="pros" aria-hidden />
+        <span className="section-label" style={{ color: 'var(--accent)' }}>Fördelar</span>
+      </div>
+      <ul className={styles.pcList} role="list">
+        {pros.map((p, i) => (
+          <li key={i} className={styles.pcItem}>
+            <span className={styles.pcBullet} data-type="pros" aria-hidden />
+            {p}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function ConsCard({ cons }: { cons: string[] }) {
+  return (
+    <div className={`${styles.pcCard} card`} data-type="cons">
+      <div className={styles.pcHeader}>
+        <span className={styles.pcDot} data-type="cons" aria-hidden />
+        <span className="section-label" style={{ color: 'var(--amber)' }}>Nackdelar</span>
+      </div>
+      <ul className={styles.pcList} role="list">
+        {cons.map((c, i) => (
+          <li key={i} className={styles.pcItem}>
+            <span className={styles.pcBullet} data-type="cons" aria-hidden />
+            {c}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function RisksCard({ risks }: { risks: any[] }) {
+  const levelConfig = {
+    high:   { label: 'Hög',  cls: 'tag-red',   dot: 'var(--red)' },
+    medium: { label: 'Medel', cls: 'tag-amber', dot: 'var(--amber)' },
+    low:    { label: 'Låg',  cls: 'tag-green',  dot: 'var(--accent-light)' },
+  } as const
+
+  return (
+    <div className={`${styles.risksCard} card`}>
+      <span className="section-label">Riskanalys</span>
+      <ul className={styles.riskList} role="list">
+        {risks.map((r, i) => {
+          const cfg = levelConfig[r.level as keyof typeof levelConfig]
+          return (
+            <li key={i} className={styles.riskItem}>
+              <span className={`tag ${cfg.cls}`} style={{ flexShrink: 0, marginTop: '1px' }}>
+                {cfg.label}
+              </span>
+              <div className={styles.riskText}>
+                <strong>{r.title}</strong>
+                <span> {r.description}</span>
+              </div>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
+function AISummaryCard({ summary, verdict }: { summary: string; verdict: string }) {
+  return (
+    <div className={styles.aiCard}>
+      <div className={styles.aiCardInner}>
+        <div className={styles.aiBadge}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2" aria-hidden>
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+            <path d="M2 17l10 5 10-5"/>
+            <path d="M2 12l10 5 10-5"/>
+          </svg>
+          AI-sammanfattning
+        </div>
+        <blockquote className={styles.aiText}>{summary}</blockquote>
+        <div className={styles.aiVerdict}>
+          <span className={styles.aiVerdictLabel}>Vår bedömning:</span>
+          <VerdictBadge verdict={verdict} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Disclaimer({ meta, confidence }: { meta: any; confidence: any }) {
+  return (
+    <footer className={styles.disclaimer}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" strokeWidth="1.5" style={{ flexShrink: 0, marginTop: '1px' }}
+        aria-hidden>
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <div>
+        <strong>Obs:</strong> Prisestimat är baserade på tillgänglig marknadsdata
+        (konfidens {confidence.score}/100) och skall inte tolkas som exakta värderingar.
+        Genomför alltid en oberoende besiktning och granska servicehandlingar före köp.
+        Analysmotor v{meta.scoring_version} · {new Date(meta.analyzed_at).toLocaleDateString('sv-SE')}.
+      </div>
+    </footer>
+  )
+}

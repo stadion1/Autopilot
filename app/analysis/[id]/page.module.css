@@ -1,0 +1,710 @@
+/* ── Page shell ── */
+.page {
+  min-height: 100vh;
+  padding-top: 56px;
+  padding-bottom: 6rem;
+  background: var(--white);
+}
+
+.container {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+/* ── Loading ── */
+.loadingView {
+  max-width: 440px;
+  margin: 8vh auto 0;
+  text-align: center;
+  padding: 0 1.5rem;
+}
+
+.loadingSpinner {
+  width: 44px; height: 44px;
+  border: 2px solid var(--border-mid);
+  border-top-color: var(--ink-1);
+  border-radius: 50%;
+  animation: spin 0.85s linear infinite;
+  margin: 0 auto 2rem;
+}
+
+.loadingTitle {
+  font-size: 1.4rem;
+  font-weight: 500;
+  margin-bottom: 0.4rem;
+  letter-spacing: -0.02em;
+}
+
+.loadingSubtitle {
+  font-size: 13px;
+  color: var(--ink-4);
+  font-weight: 300;
+  margin-bottom: 2rem;
+}
+
+.stepList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+  text-align: left;
+}
+
+.stepItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--ink-4);
+  transition: all 0.3s var(--ease-out);
+}
+
+.stepActive {
+  color: var(--ink-1);
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
+
+.stepDone {
+  color: var(--accent);
+  border-color: var(--accent-bg-2);
+  background: var(--accent-bg);
+}
+
+.stepDot {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--surface-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.3s;
+}
+
+.stepActive .stepDot {
+  background: var(--ink-1);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.stepDone .stepDot {
+  background: var(--accent);
+  color: white;
+}
+
+/* ── Error ── */
+.errorView {
+  max-width: 380px;
+  margin: 10vh auto 0;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.errorIcon {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: var(--red-bg);
+  color: var(--red);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.errorView p {
+  font-size: 14px;
+  color: var(--ink-3);
+  font-weight: 300;
+}
+
+/* ── Back button ── */
+.backBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--ink-3);
+  cursor: pointer;
+  padding: 6px 0;
+  margin-bottom: 1.5rem;
+  transition: color 0.15s;
+}
+
+.backBtn:hover { color: var(--ink-1); }
+
+/* ── Car header ── */
+.carHeader {
+  display: flex;
+  gap: 1.25rem;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  padding: 1.25rem;
+}
+
+.carImageWrap {
+  width: 140px;
+  height: 100px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--surface-2);
+}
+
+.carImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.carImagePlaceholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-5);
+}
+
+.carInfo { flex: 1; min-width: 0; }
+
+.carSource {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.carTitle {
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin-bottom: 0.75rem;
+}
+
+.carVariant {
+  font-weight: 400;
+  color: var(--ink-3);
+  font-style: italic;
+}
+
+.carSpecs {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.specItem {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.specLabel {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+
+.specValue {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--ink-1);
+}
+
+.carPriceSide {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.priceLabel {
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+
+.priceValue {
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  color: var(--ink-1);
+  white-space: nowrap;
+}
+
+.verdictBadge {
+  font-size: 12px;
+}
+
+/* ── Score row ── */
+.scoreRow {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Score ring card */
+.scoreRingCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.25rem 1.5rem;
+  min-width: 148px;
+}
+
+.ringWrap {
+  position: relative;
+  width: 100px; height: 100px;
+}
+
+.ringCenter {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.ringScore {
+  font-size: 2rem;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  animation: scoreCount 0.6s var(--ease-spring) both 0.4s;
+}
+
+.ringMax {
+  font-size: 12px;
+  color: var(--ink-4);
+  font-weight: 300;
+}
+
+/* Sub scores */
+.subScoreCard {
+  padding: 1.25rem;
+}
+
+.subScoreList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 0.75rem;
+  list-style: none;
+}
+
+.subScoreItem {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.subScoreHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.subScoreName {
+  font-size: 13px;
+  color: var(--ink-2);
+  font-weight: 300;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.subScoreWeight {
+  font-size: 10px;
+  color: var(--ink-5);
+  letter-spacing: 0.04em;
+}
+
+.subScoreVal {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  min-width: 28px;
+  text-align: right;
+}
+
+.barTrack {
+  height: 3px;
+  background: var(--surface-3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  border-radius: 2px;
+}
+
+/* Confidence */
+.confidenceCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.25rem;
+  min-width: 148px;
+}
+
+.confScore {
+  font-size: 2rem;
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  margin: 0.25rem 0;
+}
+
+.confMax {
+  font-size: 12px;
+  color: var(--ink-4);
+  font-weight: 300;
+}
+
+.confReasons {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.confReason {
+  font-size: 12px;
+  color: var(--ink-3);
+  font-weight: 300;
+  line-height: 1.4;
+  display: flex;
+  gap: 5px;
+}
+
+.confBullet {
+  color: var(--ink-5);
+  flex-shrink: 0;
+}
+
+.confGood {
+  font-size: 12px;
+  color: var(--accent);
+  font-weight: 300;
+}
+
+/* ── Price card ── */
+.priceCard {
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.priceCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.priceTrackWrap {
+  margin-bottom: 1.25rem;
+}
+
+.priceTrack {
+  height: 6px;
+  background: var(--surface-3);
+  border-radius: 3px;
+  position: relative;
+  margin-bottom: 8px;
+}
+
+.priceFill {
+  position: absolute;
+  top: 0; left: 0;
+  height: 100%;
+  border-radius: 3px;
+  transition: width 1s var(--ease-out);
+}
+
+.priceMarker {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--surface);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  transition: left 1s var(--ease-out);
+}
+
+.priceTrackLabels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--ink-5);
+  letter-spacing: 0.02em;
+}
+
+.priceGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.priceCell {
+  background: var(--surface-2);
+  padding: 0.875rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.priceCellLabel {
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+
+.priceCellValue {
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.priceCellSuffix {
+  font-size: 12px;
+  font-weight: 300;
+  color: var(--ink-3);
+}
+
+/* ── Pros / Cons ── */
+.prosConsRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.pcCard {
+  padding: 1.25rem;
+}
+
+.pcCard[data-type="pros"] { border-top: 2px solid var(--accent); }
+.pcCard[data-type="cons"] { border-top: 2px solid var(--amber); }
+
+.pcHeader {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 1rem;
+}
+
+.pcDot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.pcDot[data-type="pros"] { background: var(--accent); }
+.pcDot[data-type="cons"] { background: var(--amber); }
+
+.pcList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  list-style: none;
+}
+
+.pcItem {
+  display: flex;
+  gap: 9px;
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+
+.pcBullet {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+.pcBullet[data-type="pros"] { background: var(--accent); }
+.pcBullet[data-type="cons"] { background: var(--amber); }
+
+/* ── Risks ── */
+.risksCard {
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.riskList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 0.875rem;
+  list-style: none;
+}
+
+.riskItem {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+  align-items: flex-start;
+  border: 1px solid var(--border);
+}
+
+.riskText {
+  font-size: 13px;
+  color: var(--ink-2);
+  font-weight: 300;
+  line-height: 1.5;
+}
+
+.riskText strong {
+  font-weight: 500;
+  color: var(--ink-1);
+}
+
+/* ── AI Summary ── */
+.aiCard {
+  margin-bottom: 1rem;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--ink-1);
+}
+
+.aiCardInner {
+  padding: 1.75rem;
+  position: relative;
+  overflow: hidden;
+}
+
+/* subtle circle decoration */
+.aiCardInner::after {
+  content: '';
+  position: absolute;
+  top: -60px; right: -60px;
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.02);
+  pointer-events: none;
+}
+
+.aiBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.45);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px;
+  padding: 3px 10px;
+  margin-bottom: 1rem;
+}
+
+.aiText {
+  font-size: 15px;
+  font-weight: 300;
+  color: rgba(255,255,255,0.82);
+  line-height: 1.8;
+  margin-bottom: 1.25rem;
+  font-style: normal;
+  border: none;
+  padding: 0;
+  white-space: pre-wrap;
+}
+
+.aiVerdict {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.aiVerdictLabel {
+  font-size: 12px;
+  color: rgba(255,255,255,0.4);
+  font-weight: 300;
+  letter-spacing: 0.04em;
+}
+
+/* ── Actions ── */
+.actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+}
+
+/* ── Disclaimer ── */
+.disclaimer {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 1rem 1.25rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 300;
+  color: var(--ink-4);
+  line-height: 1.6;
+}
+
+.disclaimer strong {
+  font-weight: 500;
+  color: var(--ink-3);
+}
+
+/* ── Responsive ── */
+@media (max-width: 680px) {
+  .scoreRow {
+    grid-template-columns: 1fr;
+  }
+  .scoreRingCard { flex-direction: row; gap: 1rem; }
+  .carHeader { flex-direction: column; }
+  .carPriceSide { align-items: flex-start; }
+  .carImageWrap { width: 100%; height: 180px; }
+  .prosConsRow { grid-template-columns: 1fr; }
+  .priceGrid { grid-template-columns: 1fr; }
+  .confidenceCard { min-width: unset; }
+}
+
+@media (max-width: 440px) {
+  .container { padding: 1.25rem 1rem; }
+  .priceValue { font-size: 1.25rem; }
+}
