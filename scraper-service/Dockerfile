@@ -38,7 +38,7 @@ WORKDIR /app
 
 # Kopiera package.json och installera beroenden
 COPY package.json ./
-RUN npm install --production
+RUN npm install
 
 # Kopiera källkod
 COPY *.ts ./
@@ -46,6 +46,7 @@ COPY tsconfig.json ./
 
 # Kompilera TypeScript
 RUN npx tsc
+RUN npm prune --production
 
 # Railway sätter PORT automatiskt
 EXPOSE 3001
