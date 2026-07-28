@@ -46,6 +46,8 @@ COPY tsconfig.json ./
 
 # Kompilera TypeScript
 RUN npx tsc
+
+# Ta bort devDependencies efter kompilering för att hålla imagen liten
 RUN npm prune --production
 
 # Railway sätter PORT automatiskt
