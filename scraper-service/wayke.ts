@@ -15,7 +15,7 @@
 
 import { Page } from 'playwright'
 import { CarListing, FuelType, ScraperResult, Transmission } from './types'
-import { humanDelay } from '../scraper/stealth'
+import { humanDelay } from './stealth'
 
 // ─── API method (preferred — no scraping needed) ─────────────────────────────
 
