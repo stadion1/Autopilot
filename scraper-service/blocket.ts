@@ -36,6 +36,10 @@ interface BlocketNextData {
 function extractFromNextData(raw: string): Partial<CarListing> | null {
   try {
     const data = JSON.parse(raw)
+    
+    // Logga strukturen så vi kan debugga
+    console.log('NEXT_DATA keys:', JSON.stringify(Object.keys(data?.props?.pageProps ?? {})))
+    console.log('NEXT_DATA sample:', JSON.stringify(data?.props?.pageProps).slice(0, 500))
 
     // Försök nytt /mobility/item/-format först
     const item = data?.props?.pageProps?.item
