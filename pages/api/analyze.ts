@@ -26,11 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method !== 'POST') return res.status(405).end()
 
   const { url } = req.body
-  export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') return res.status(405).end()
-
-  const { url } = req.body
-  
+    
   console.log('=== ANALYZE START ===')
   console.log('URL:', url)
   console.log('SCRAPER_SERVICE_URL:', process.env.SCRAPER_SERVICE_URL)
