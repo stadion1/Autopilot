@@ -1,6 +1,6 @@
 import { Page } from 'playwright'
 import { ScraperResult } from './types'
-import { humanDelay } from '../scraper/stealth'
+import { humanDelay } from './stealth'
 
 export async function parseBytbil(page: Page, url: string): Promise<ScraperResult> {
   try {
