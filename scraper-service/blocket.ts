@@ -82,49 +82,40 @@ export async function parseBlocket(_: unknown, url: string): Promise<ScraperResu
     const getParam = (...keys: string[]) =>
       keys.map(k => params[k]).find(v => v !== undefined) ?? ''
 
-    const mileageRaw = getParam('mätarställning', 'miltal', 'mileage')
-    const yearRaw    = getParam('modellår', 'årsmodell', 'year')
-    const fuelRaw    = getParam('drivmedel', 'bränsle', 'fuel')
-    const gearRaw    = getParam('växellåda', 'transmission', 'gearbox')
-    const hpRaw      = getParam('hästkrafter', 'effekt', 'horsepower')
-    const colorRaw   = getParam('färg', 'color')
+   // Parsa pris — "499 900 kr" → 499900
+const parsePrice = (raw?: string) => {
+  if (!raw) return undefined
+  const num = parseInt(raw.replace(/\s/g, '').replace(/[^\d]/g, ''))
+  return isNaN(num) ? undefined : num
+}
 
-    const priceAmount = ad.price?.amount ?? ad.price?.value ?? ad.currentPrice
+// Parsa miltal — "4 365 mil" → 43650 km
+const parseMileageStr = (raw?: string) => {
+  if (!raw) return undefined
+  const num = parseInt(raw.replace(/\s/g, '').replace(/[^\d]/g, ''))
+  return isNaN(num) ? undefined : num * 10
+}
 
-    // Miltal — konvertera mil till km om nödvändigt
-    const parseMileage = (raw: string) => {
-      const num = parseInt(raw.replace(/\s/g, '').replace(/\D/g, ''))
-      if (isNaN(num)) return undefined
-      return raw.toLowerCase().includes('mil') || num < 5000 ? num * 10 : num
-    }
+const specs = ad.specifications ?? {}
 
-    const titleParsed = parseTitle(
-      ad.subject ?? ad.heading ?? ad.title ?? ''
-    )
-
-    // Försök också plocka brand/model direkt från ad-objektet
-    const brand = ad.brand ?? ad.make ?? titleParsed.brand
-    const model = ad.model ?? titleParsed.model
-    const variant = ad.variant ?? ad.trim ?? titleParsed.variant
-
-    const data: Partial<CarListing> = {
-      brand,
-      model,
-      variant,
-      price_sek:    priceAmount ? parseInt(String(priceAmount).replace(/\D/g, '')) : undefined,
-      mileage_km:   parseMileage(mileageRaw),
-      year:         yearRaw ? parseInt(yearRaw.replace(/\D/g, '')) : undefined,
-      fuel_type:    parseFuelType(fuelRaw || ad.fuelType),
-      transmission: parseTransmission(gearRaw || ad.gearbox),
-      horsepower:   hpRaw ? parseInt(hpRaw.replace(/\D/g, '')) || undefined : undefined,
-      color:        colorRaw || ad.color || undefined,
-      location:     ad.location?.name ?? ad.location,
-      seller_type:  ad.store?.type === 'store' || ad.dealer ? 'dealer' : 'private',
-      description:  ad.body ?? ad.description,
-      images:       ad.images?.slice(0, 6).map((i: any) => i.url ?? i.src ?? i).filter((i: any) => typeof i === 'string'),
-      source_url:   url,
-      source_site:  'blocket',
-    }
+const data: Partial<CarListing> = {
+  brand:        specs['Märke'] ?? ad.title?.split(' ')[0],
+  model:        specs['Modell'] ?? ad.title?.split(' ')[1],
+  variant:      ad.subtitle ?? undefined,
+  year:         ad.model_year ? parseInt(ad.model_year) : undefined,
+  price_sek:    parsePrice(ad.price),
+  mileage_km:   parseMileageStr(ad.mileage),
+  fuel_type:    parseFuelType(ad.fuel ?? specs['Drivmedel']),
+  transmission: parseTransmission(ad.transmission ?? specs['Växellåda']),
+  horsepower:   specs['Effekt'] ? parseInt(specs['Effekt'].replace(/\D/g, '')) || undefined : undefined,
+  color:        specs['Färg'] ?? undefined,
+  location:     specs['Bilens plats'] ?? undefined,
+  seller_type:  ad.seller_type === 'dealer' ? 'dealer' : 'private',
+  description:  ad.description ?? undefined,
+  images:       ad.images?.slice(0, 6).map((i: any) => i.url ?? i.src ?? i).filter((i: any) => typeof i === 'string'),
+  source_url:   url,
+  source_site:  'blocket',
+}
 
     console.log('PARSED:', JSON.stringify({
       brand: data.brand, model: data.model, year: data.year,
