@@ -42,9 +42,13 @@ export function validateListingUrl(url: string): { valid: boolean; error?: strin
   const urlObj = new URL(url)
   const path = urlObj.pathname
 
-  if (site === 'blocket' && !path.includes('/annons/') && !path.includes('/bilar/')) {
-    return { valid: false, error: 'This looks like a search page. Please paste a specific listing URL.' }
-  }
+  if (site === 'blocket' && 
+    !path.includes('/annons/') && 
+    !path.includes('/bilar/') &&
+    !path.includes('/mobility/item/') &&
+    !path.includes('/item/')) {
+  return { valid: false, error: 'This looks like a search page. Please paste a specific listing URL.' }
+}
   if (site === 'wayke' && !path.includes('/bil/')) {
     return { valid: false, error: 'This looks like a search page. Please paste a specific listing URL.' }
   }
