@@ -29,9 +29,13 @@ export function validateListingUrl(url: string): {
   }
 
   const path = new URL(url).pathname
-  if (site === 'blocket' && !path.includes('/annons/') && !path.includes('/bilar/')) {
-    return { valid: false, error: 'Det ser ut som en söksida. Klistra in länken till en specifik annons.' }
-  }
+ if (site === 'blocket' && 
+    !path.includes('/annons/') && 
+    !path.includes('/bilar/') && 
+    !path.includes('/mobility/item/') &&
+    !path.includes('/item/')) {
+  return { valid: false, error: 'Det ser ut som en söksida. Klistra in länken till en specifik annons.' }
+}
   if (site === 'wayke' && !path.includes('/bil/')) {
     return { valid: false, error: 'Det ser ut som en söksida. Klistra in länken till en specifik annons.' }
   }
