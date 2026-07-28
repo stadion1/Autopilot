@@ -342,7 +342,7 @@ function calculatePricing(
 
 // ─── Risks ────────────────────────────────────────────────────────────────────
 
-function detectRisks(car: CarListing, modelNotes: string | undefined): Risk[] {
+function detectRisks(car: CarListing, modelNotes: string | undefined, avgMilPerYear: number): Risk[] {
   const risks: Risk[] = []
   const mil  = car.mileage_km / 10
   const age  = CURRENT_YEAR - car.year
@@ -371,11 +371,15 @@ function detectRisks(car: CarListing, modelNotes: string | undefined): Risk[] {
                  rule_id: 'no_service_history' })
   }
 
-  // High mileage
-  if (mil > 15000) {
+  // High mileage — relativt förväntad mätarställning för bilens ålder,
+  // samma ratio som scoreMileage() använder. En flat gräns (t.ex. 15 000 mil)
+  // skulle träffa nästan alla äldre bilar oavsett om de faktiskt kört mycket.
+  const expectedMil = Math.max(1, age) * avgMilPerYear
+  const mileageRatio = mil / expectedMil
+  if (mileageRatio >= 1.6) {
     risks.push({ level: 'medium',
                  title: 'Hög mätarställning',
-                 description: `${mil.toLocaleString('sv-SE')} mil. Oberoende besiktning rekommenderas.`,
+                 description: `${mil.toLocaleString('sv-SE')} mil är klart över förväntat för en ${age} år gammal bil (~${Math.round(expectedMil).toLocaleString('sv-SE')} mil). Oberoende besiktning rekommenderas.`,
                  rule_id: 'high_mileage' })
   }
 
@@ -510,7 +514,7 @@ export function scoreVehicle(car: CarListing): ScoringOutput {
     car, priceResult.usedMedian, ref.basePrice, ref.depreciation,
     ref.avgMilPerYear, ref.pricePer1000ExtraMil, confidence,
   )
-  const risks = detectRisks(car, ref.notes)
+  const risks = detectRisks(car, ref.notes, ref.avgMilPerYear)
   const pros  = generatePros(car, subScores, pricing, ref.avgMilPerYear)
   const cons  = generateCons(car, subScores, pricing)
 

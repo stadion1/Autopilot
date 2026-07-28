@@ -12,13 +12,14 @@ const LOAD_STEPS = [
   'Jämför med marknadsdata',
   'AI-analys och riskbedömning',
 ]
+const STEP_INTERVALS_MS = [1200, 2600, 4000]
+const MIN_LOADING_MS = STEP_INTERVALS_MS[STEP_INTERVALS_MS.length - 1] + 900
 
 function LoadingView() {
   const [step, setStep] = useState(0)
 
   useEffect(() => {
-    const intervals = [1200, 2600, 4000]
-    const timers = intervals.map((ms, i) =>
+    const timers = STEP_INTERVALS_MS.map((ms, i) =>
       setTimeout(() => setStep(i + 1), ms)
     )
     return () => timers.forEach(clearTimeout)
@@ -65,6 +66,14 @@ export default function AnalysisPage() {
   useEffect(() => {
     if (!id) return
     let cancelled = false
+    const startedAt = Date.now()
+
+    // Håll kvar laddningsvyn minst tills stegen (LOAD_STEPS) hunnit spelas
+    // upp, annars hoppar den direkt till resultatet när svaret är cachat.
+    function afterMinDuration(fn: () => void) {
+      const remaining = MIN_LOADING_MS - (Date.now() - startedAt)
+      setTimeout(() => { if (!cancelled) fn() }, Math.max(0, remaining))
+    }
 
     async function poll() {
       for (let attempt = 0; attempt < 30; attempt++) {
@@ -80,16 +89,16 @@ export default function AnalysisPage() {
           }
           const json = await res.json()
           if (json.status === 'done') {
-            if (!cancelled) { setData(json); setStatus('done') }
+            afterMinDuration(() => { setData(json); setStatus('done') })
             return
           }
           if (json.status === 'error') {
-            if (!cancelled) { setErrorMsg(json.error ?? 'Analys misslyckades'); setStatus('error') }
+            afterMinDuration(() => { setErrorMsg(json.error ?? 'Analys misslyckades'); setStatus('error') })
             return
           }
           await new Promise(r => setTimeout(r, 1500))
         } catch (e) {
-          if (!cancelled) { setErrorMsg('Kunde inte hämta analys'); setStatus('error') }
+          afterMinDuration(() => { setErrorMsg('Kunde inte hämta analys'); setStatus('error') })
           return
         }
       }
@@ -398,12 +407,24 @@ function ConfidenceCard({ confidence }: { confidence: any }) {
   )
 }
 
+// Track-domänen breddas kring [low, high] (den smala "rimligt pris"-zonen)
+// så att annonspriset får utrymme att röra sig proportionerligt — annars
+// hamnar prickan nästan alltid i ena kanten eftersom low/high bara ligger
+// ±7–16% ifrån varandra. Med padFactor=1.5 hamnar low/median/high alltid
+// på exakt 37.5/50/62.5%, oavsett konfidensintervallets bredd.
+const PRICE_TRACK_PAD_FACTOR = 1.5
+const PRICE_TRACK_LOW_PCT    = 37.5
+const PRICE_TRACK_MEDIAN_PCT = 50
+const PRICE_TRACK_HIGH_PCT   = 62.5
+
 function PriceRangeCard({ car, pricing }: { car: any; pricing: any }) {
   const { low, median, high, delta_pct, interpretation } = pricing
+  const bandWidth  = Math.max(1, high - low)
+  const domainLow  = low  - bandWidth * PRICE_TRACK_PAD_FACTOR
+  const domainHigh = high + bandWidth * PRICE_TRACK_PAD_FACTOR
   const listingPct = Math.max(2, Math.min(98,
-    ((car.price_sek - low) / Math.max(1, high - low)) * 100
+    ((car.price_sek - domainLow) / Math.max(1, domainHigh - domainLow)) * 100
   ))
-  const medianPct = 62
   const isGood = delta_pct > 0.02
 
   return (
@@ -416,23 +437,27 @@ function PriceRangeCard({ car, pricing }: { car: any; pricing: any }) {
       </div>
 
       {/* Track */}
-      <div className={styles.priceTrackWrap} aria-hidden>
-        <div className={styles.priceTrack}>
+      <div className={styles.priceTrackWrap}>
+        <div className={styles.priceTrack} aria-hidden>
+          <div className={styles.priceZone}
+            style={{ left: `${PRICE_TRACK_LOW_PCT}%`,
+                     width: `${PRICE_TRACK_HIGH_PCT - PRICE_TRACK_LOW_PCT}%` }} />
           <div className={styles.priceFill}
             style={{ width: `${listingPct}%`,
                      background: isGood ? 'var(--accent-bg)' : 'var(--amber-bg)' }} />
           {/* Listing marker */}
           <div className={styles.priceMarker}
-            style={{ left: `${listingPct}%`, background: 'var(--ink-1)' }} />
+            style={{ left: `${listingPct}%`, background: 'var(--ink-1)' }}
+            title={`Annonserat pris: ${car.price_sek.toLocaleString('sv-SE')} kr`} />
           {/* Median marker */}
-          <div className={styles.priceMarker}
-            style={{ left: `${medianPct}%`, background: 'var(--ink-4)',
-                     width: '2px', borderRadius: '1px' }} />
+          <div className={`${styles.priceMarker} ${styles.priceMarkerMedian}`}
+            style={{ left: `${PRICE_TRACK_MEDIAN_PCT}%` }}
+            title={`Marknadsmedian: ${median.toLocaleString('sv-SE')} kr`} />
         </div>
         <div className={styles.priceTrackLabels}>
-          <span>Lägst på marknaden</span>
-          <span>Median</span>
-          <span>Högst på marknaden</span>
+          <span style={{ left: `${PRICE_TRACK_LOW_PCT}%` }}>Lägst</span>
+          <span style={{ left: `${PRICE_TRACK_MEDIAN_PCT}%` }}>Median</span>
+          <span style={{ left: `${PRICE_TRACK_HIGH_PCT}%` }}>Högst</span>
         </div>
       </div>
 

@@ -436,6 +436,14 @@
   margin-bottom: 8px;
 }
 
+.priceZone {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--surface-3);
+}
+
 .priceFill {
   position: absolute;
   top: 0; left: 0;
@@ -455,12 +463,25 @@
   transition: left 1s var(--ease-out);
 }
 
+.priceMarkerMedian {
+  width: 2px;
+  height: 14px;
+  border-radius: 1px;
+  background: var(--ink-4);
+}
+
 .priceTrackLabels {
-  display: flex;
-  justify-content: space-between;
+  position: relative;
+  height: 14px;
   font-size: 11px;
   color: var(--ink-5);
   letter-spacing: 0.02em;
+}
+
+.priceTrackLabels span {
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
 }
 
 .priceGrid {
