@@ -1,14 +1,7 @@
 # ── Bilanalys Scraper Service ─────────────────────────────────────────────────
-# Kör på Railway. Installerar Chromium för Playwright.
-# Node 20 på Debian Bookworm — stabil bas för Playwright.
-
 FROM node:20-bookworm-slim
 
-# Systemberoenden för Chromium
 RUN apt-get update && apt-get install -y \
-    chromium \
-    fonts-liberation \
-    fonts-noto-color-emoji \
     libasound2 \
     libatk-bridge2.0-0 \
     libatk1.0-0 \
@@ -25,36 +18,26 @@ RUN apt-get update && apt-get install -y \
     libxkbcommon0 \
     libxrandr2 \
     xdg-utils \
+    wget \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
-# Säg åt Playwright att använda systemets Chromium
-# istället för att ladda ned en egen kopia
-ENV PLAYWRIGHT_BROWSERS_PATH=/usr/bin
-ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
-ENV CHROMIUM_PATH=/usr/bin/chromium
-
 WORKDIR /app
 
-# Kopiera package.json och installera beroenden
 COPY package.json ./
 RUN npm install
 
-# Kopiera källkod
+RUN npx playwright install chromium
+
 COPY *.ts ./
 COPY tsconfig.json ./
-
-# Kompilera TypeScript
 RUN npx tsc
-
-# Ta bort devDependencies efter kompilering för att hålla imagen liten
 RUN npm prune --production
 
-# Railway sätter PORT automatiskt
-EXPOSE 3001
-
-# Kör som icke-root för säkerhet
 RUN groupadd -r scraper && useradd -r -g scraper scraper
 USER scraper
 
+EXPOSE 3001
 CMD ["node", "dist/server.js"]
+
+
