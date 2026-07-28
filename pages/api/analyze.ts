@@ -31,6 +31,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   console.log('URL:', url)
   console.log('SCRAPER_SERVICE_URL:', process.env.SCRAPER_SERVICE_URL)
   console.log('SCRAPER_SECRET finns:', !!process.env.SCRAPER_SECRET)
+  console.log('SCRAPER_URL value:', process.env.SCRAPER_SERVICE_URL ?? 'SAKNAS')
   
   if (!url || typeof url !== 'string') {
     return res.status(400).json({ error: 'URL krävs' })
