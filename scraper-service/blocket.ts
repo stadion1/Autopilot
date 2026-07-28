@@ -56,7 +56,7 @@ export async function parseBlocket(_: unknown, url: string): Promise<ScraperResu
 
     console.log(`  Anropar blocket-api.se för annons ${adId}`)
 
-    const res = await fetch(`https://blocket-api.se/v1/ad/${adId}`, {
+    const res = await fetch(`https://blocket-api.se/v1/ad/car?id=${adId}`, {
       headers: {
         'Accept': 'application/json',
         'User-Agent': 'bilanalys/1.0',
