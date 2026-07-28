@@ -532,7 +532,7 @@ export function lookupModelReference(
  * Statistik över databasen — användbart för dashboards och debugging.
  */
 export function getReferenceStats() {
-  const brands = [...new Set(MODEL_REFERENCES.map(r => r.brand))].sort()
+  const brands = Array.from(new Set(MODEL_REFERENCES.map(r => r.brand))).sort()
   return {
     totalModels: MODEL_REFERENCES.length,
     brands: brands.length,
