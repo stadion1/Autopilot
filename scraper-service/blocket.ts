@@ -155,7 +155,21 @@ export async function parseBlocket(page: Page, url: string): Promise<ScraperResu
       waitUntil: 'domcontentloaded',
       timeout: 20000,
     })
-
+// Logga sidans faktiska innehåll
+const pageContent = await page.evaluate(() => {
+  const nextData = document.getElementById('__NEXT_DATA__')?.textContent
+  const scripts = Array.from(document.querySelectorAll('script'))
+    .map(s => s.textContent?.slice(0, 100))
+    .filter(Boolean)
+    .slice(0, 5)
+  return {
+    hasNextData: !!nextData,
+    nextDataSlice: nextData?.slice(0, 300),
+    title: document.title,
+    scripts
+  }
+})
+console.log('PAGE_DEBUG:', JSON.stringify(pageContent))
     // Small human-like pause after page load
     await humanDelay(600, 1400)
 
