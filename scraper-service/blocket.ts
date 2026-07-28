@@ -13,7 +13,7 @@
 
 import { Page } from 'playwright'
 import { CarListing, FuelType, ScraperResult, Transmission } from './types'
-import { humanDelay } from '../scraper/stealth'
+import { humanDelay } from './stealth'
 
 // ─── JSON extraction (primary method) ────────────────────────────────────────
 
