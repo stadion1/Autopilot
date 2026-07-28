@@ -26,6 +26,34 @@ function parseTransmission(raw?: string): Transmission {
   return raw.toLowerCase().includes('auto') ? 'Automat' : 'Manuell'
 }
 
+// blocket-api.se's /v1/ad/car svar innehåller ingen bilddata, så vi hämtar
+// annonssidan direkt från blocket.se och plockar ut bilderna därifrån.
+// Bilddatan ligger base64-kodad (och därefter URI-encodead) i attributet
+// data-props på #mobility-item-page-root, under adData.ad.images[].uri.
+async function fetchAdImages(adId: string): Promise<string[]> {
+  try {
+    const res = await fetch(`https://www.blocket.se/mobility/item/${adId}`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      },
+    })
+    if (!res.ok) return []
+
+    const html = await res.text()
+    const tagMatch = html.match(/<div[^>]*id="mobility-item-page-root"[^>]*>/)
+    const propsMatch = tagMatch?.[0].match(/data-props="([^"]*)"/)
+    if (!propsMatch) return []
+
+    const decoded = decodeURIComponent(Buffer.from(propsMatch[1], 'base64').toString('utf8'))
+    const images = JSON.parse(decoded)?.adData?.ad?.images
+    if (!Array.isArray(images)) return []
+
+    return images.map((i: any) => i.uri).filter((u: any) => typeof u === 'string').slice(0, 6)
+  } catch {
+    return []
+  }
+}
+
 function parseTitle(title: string): { brand?: string; model?: string; variant?: string } {
   const BRANDS = [
     'Volvo','Volkswagen','Toyota','BMW','Mercedes-Benz','Audi','Ford','Skoda',
@@ -116,6 +144,10 @@ const data: Partial<CarListing> = {
   source_url:   url,
   source_site:  'blocket',
 }
+
+    if (!data.images || data.images.length === 0) {
+      data.images = await fetchAdImages(adId)
+    }
 
     console.log('PARSED:', JSON.stringify({
       brand: data.brand, model: data.model, year: data.year,
