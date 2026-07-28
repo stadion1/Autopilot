@@ -68,6 +68,7 @@ export async function parseBlocket(_: unknown, url: string): Promise<ScraperResu
     }
 
     const ad = await res.json()
+    console.log('RAW_AD:', JSON.stringify(ad).slice(0, 1000))
     console.log('AD_KEYS:', JSON.stringify(Object.keys(ad)))
 
     // Extrahera parametrar
