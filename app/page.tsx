@@ -10,6 +10,10 @@ const EXAMPLE_URLS = [
   'bytbil.com/toyota-corolla-hybrid',
 ]
 
+// Håller spinnern synlig minst så här länge innan vi navigerar vidare —
+// annars hinner den inte synas alls vid ett snabbt (cachat) svar.
+const MIN_ANALYZE_BTN_MS = 1000
+
 export default function HomePage() {
   const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)
@@ -27,6 +31,7 @@ export default function HomePage() {
 
     setError('')
     setLoading(true)
+    const startedAt = Date.now()
 
     try {
       const res = await fetch('/api/analyze', {
@@ -43,6 +48,8 @@ export default function HomePage() {
         return
       }
 
+      const elapsed = Date.now() - startedAt
+      await new Promise(r => setTimeout(r, Math.max(0, MIN_ANALYZE_BTN_MS - elapsed)))
       router.push(`/analysis/${data.id}`)
     } catch {
       setError('Kunde inte nå servern. Kontrollera din anslutning.')
