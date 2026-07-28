@@ -25,6 +25,13 @@ const PORT = process.env.PORT ?? 3001
 
 app.use(express.json({ limit: '1mb' }))
 
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*')
+  res.header('Access-Control-Allow-Headers', 'Content-Type, x-scraper-secret')
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+  if (req.method === 'OPTIONS') return res.sendStatus(200)
+  next()
+})
 // Enkel auth — kräv en delad hemlighet i header
 // Sätts som SCRAPER_SECRET i Railway-miljövariabler
 // Samma värde sätts som SCRAPER_SECRET i Vercel
