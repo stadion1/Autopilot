@@ -35,34 +35,59 @@ interface BlocketNextData {
 
 function extractFromNextData(raw: string): Partial<CarListing> | null {
   try {
-    const data: BlocketNextData = JSON.parse(raw)
-    const ad = data?.props?.pageProps?.ad
-    if (!ad) return null
+    const data = JSON.parse(raw)
 
-    const params = ad.parameters ?? []
-    const getParam = (label: string) =>
-      params.find(p => p.label.toLowerCase().includes(label.toLowerCase()))?.value ?? ''
+    // Försök nytt /mobility/item/-format först
+    const item = data?.props?.pageProps?.item
+      ?? data?.props?.pageProps?.listing
+      ?? data?.props?.pageProps?.ad
 
-    const mileageRaw = getParam('mätarställning') || getParam('miltal')
-    const yearRaw    = getParam('modellår') || getParam('årsmodell')
-    const fuelRaw    = getParam('drivmedel') || getParam('bränsle')
-    const gearRaw    = getParam('växellåda') || getParam('transmission')
-    const colorRaw   = getParam('färg')
-    const hpRaw      = getParam('hästkrafter') || getParam('effekt')
+    if (!item) return null
+
+    // Nytt format har platt struktur
+    const price = item.price?.amount
+      ?? item.price?.value
+      ?? item.askingPrice
+      ?? item.currentPrice
+
+    const mileage = item.mileage
+      ?? item.attributes?.mileage
+      ?? item.vehicleAttributes?.mileage
+
+    const year = item.modelYear
+      ?? item.registrationYear
+      ?? item.attributes?.modelYear
+      ?? item.vehicleAttributes?.modelYear
+
+    const fuel = item.fuelType
+      ?? item.attributes?.fuelType
+      ?? item.vehicleAttributes?.fuelType
+
+    const gearbox = item.gearbox
+      ?? item.transmission
+      ?? item.attributes?.gearbox
+      ?? item.vehicleAttributes?.gearbox
+
+    const images = (item.images ?? item.photos ?? [])
+      .slice(0, 6)
+      .map((i: any) => i.url ?? i.src ?? i)
+      .filter((i: any) => typeof i === 'string')
 
     return {
-      price_sek:    ad.price?.value,
-      description:  ad.body,
-      images:       ad.images?.slice(0, 6).map(i => i.url),
-      location:     ad.location?.name,
-      seller_type:  ad.store?.type === 'store' ? 'dealer' : 'private',
-      mileage_km:   parseMileage(mileageRaw),
-      year:         parseYear(yearRaw) ?? parseYearFromTitle(ad.subject ?? ''),
-      fuel_type:    parseFuelType(fuelRaw),
-      transmission: parseTransmission(gearRaw),
-      color:        colorRaw || undefined,
-      horsepower:   hpRaw ? parseInt(hpRaw.replace(/\D/g, '')) || undefined : undefined,
-      ...parseTitle(ad.subject ?? ''),
+      price_sek:    price ? parseInt(String(price).replace(/\D/g, '')) : undefined,
+      mileage_km:   mileage ? parseMileage(String(mileage)) : undefined,
+      year:         year ? parseInt(String(year)) : undefined,
+      fuel_type:    fuel ? parseFuelType(String(fuel)) : 'Bensin',
+      transmission: gearbox ? parseTransmission(String(gearbox)) : 'Manuell',
+      description:  item.description ?? item.body,
+      location:     item.location?.name ?? item.location?.city ?? item.location,
+      seller_type:  item.sellerType === 'company' || item.store ? 'dealer' : 'private',
+      images,
+      ...parseTitle(
+        item.subject ?? item.title ?? item.heading ?? item.make
+          ? `${item.make ?? ''} ${item.model ?? ''} ${item.modelYear ?? ''}`.trim()
+          : ''
+      ),
     }
   } catch {
     return null
