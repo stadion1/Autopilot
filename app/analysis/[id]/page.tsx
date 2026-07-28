@@ -55,7 +55,8 @@ function LoadingView() {
 
 /* ── Main page ── */
 export default function AnalysisPage() {
-  const { id } = useParams<{ id: string }>()
+  const params = useParams<{ id: string }>()
+  const id = params?.id
   const router = useRouter()
   const [data, setData] = useState<AnalysisResult | null>(null)
   const [status, setStatus] = useState<'loading' | 'done' | 'error'>('loading')
