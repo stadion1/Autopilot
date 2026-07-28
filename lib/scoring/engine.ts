@@ -95,6 +95,78 @@ const KNOWN_ISSUES: KnownIssue[] = [
   { brand:'Hyundai', model:'IONIQ 5', yearFrom:2021, yearTo:2022, severity:'low',
     ruleId:'ioniq5_brake_recall', title:'IONIQ 5: bromskraft­återkallelse (2022)',
     description:'Kontrollera med Hyundai-verkstad att åtgärden är utförd med bilens VIN.' },
+
+  // Audi
+  { brand:'Audi', model:'A4', yearFrom:2008, yearTo:2011, fuelType:'Bensin', severity:'high',
+    ruleId:'audi_a4_ea888_gen1_timing_chain', title:'2.0 TFSI (EA888 Gen1): kedjespännare i plast',
+    description:'Tidiga 2.0 TFSI-motorer har en kedjespännare i plast som kan gå sönder och orsaka motorhaveri. Lyssna efter skrammel vid kallstart och kontrollera servicehistorik.' },
+  { brand:'Audi', model:'Q5', yearFrom:2008, yearTo:2011, fuelType:'Bensin', severity:'high',
+    ruleId:'audi_q5_ea888_gen1_timing_chain', title:'2.0 TFSI (EA888 Gen1): kedjespännare i plast',
+    description:'Samma motorfamilj och problem som A4. Lyssna efter skrammel vid kallstart och kontrollera servicehistorik.' },
+
+  // Hyundai / Kia — ABS-modul brandrisk
+  { brand:'Hyundai', model:'i30', yearFrom:2007, yearTo:2012, severity:'high',
+    ruleId:'hyundai_i30_abs_fire_recall', title:'Återkallelse: ABS-modul med brandrisk (2020)',
+    description:'ABS-modulen kan läcka bromsvätska internt och orsaka kortslutning och motorrumsbrand. Kontrollera med Hyundai-verkstad att åtgärden är utförd.' },
+  { brand:'Hyundai', model:'Tucson', yearFrom:2016, yearTo:2021, severity:'high',
+    ruleId:'hyundai_tucson_abs_fire_recall', title:'Återkallelse: ABS-brandrisk (kampanj 2020)',
+    description:'Kontrollera med Hyundai-verkstad att ABS-återkallelsen är åtgärdad. Risk för motorrumsbrand.' },
+  { brand:'Kia', model:'Stinger', yearFrom:2018, yearTo:2019, severity:'high',
+    ruleId:'kia_stinger_fire_recall', title:'Återkallelse: brandrisk (2020/2021)',
+    description:'Kontrollera med Kia-verkstad att brandriskåterkallelsen är åtgärdad med bilens VIN.' },
+
+  // Nissan
+  { brand:'Nissan', model:'Qashqai', yearFrom:2014, yearTo:2017, fuelType:'Bensin', severity:'medium',
+    ruleId:'nissan_qashqai_cvt_overheat', title:'CVT-växellåda (Jatco): överhettning och nödläge',
+    description:'Kan ge ryckig acceleration, ovanligt ljud och att växellådan går in i nödläge (limp mode) vid tät trafik/backar. Begär att CVT-oljan bytts regelbundet, trots att den ofta marknadsförs som "livstidsfylld".' },
+
+  // Honda — 1.5 turbo bränslespädning
+  { brand:'Honda', model:'CR-V', yearFrom:2016, yearTo:2018, fuelType:'Bensin', severity:'medium',
+    ruleId:'honda_crv_1_5t_oil_dilution', title:'1.5 turbo: bränslespädning av motorolja',
+    description:'Korta körsträckor kan späda ut motoroljan med bensin, särskilt i kallt klimat. Kontrollera oljenivå/lukt och fråga om förlängd garantiåtgärd är utförd.' },
+  { brand:'Honda', model:'Civic', yearFrom:2017, yearTo:2018, fuelType:'Bensin', severity:'medium',
+    ruleId:'honda_civic_1_5t_oil_dilution', title:'1.5 turbo: bränslespädning av motorolja',
+    description:'Samma problem som CR-V med 1.5 turbo-motorn. Kontrollera att förlängd garantiåtgärd är utförd.' },
+
+  // Volvo — D5 kamrem (äldre generation, före kedjedrift)
+  { brand:'Volvo', model:'V70', yearFrom:2001, yearTo:2007, fuelType:'Diesel', severity:'high',
+    ruleId:'volvo_v70_d5_timing_belt', title:'D5: kamremsspännare känd svaghet',
+    description:'Spännaren kan gå sönder så att kamremmen hoppar eller går av, vilket ger motorhaveri. Kräver dokumenterat byte av kamrem, spännare och pumpar enligt intervall (ca var 5:e år/9 000 mil).' },
+  { brand:'Volvo', model:'XC70', yearFrom:2001, yearTo:2007, fuelType:'Diesel', severity:'high',
+    ruleId:'volvo_xc70_d5_timing_belt', title:'D5: kamremsspännare känd svaghet',
+    description:'Samma kamremsproblem som V70 D5. Kräver dokumenterat kamremsbyte inom intervall.' },
+
+  // Peugeot / Citroën — DV6/BlueHDi DPF och EGR
+  { brand:'Peugeot', model:'308', yearFrom:2008, yearTo:2018, fuelType:'Diesel', severity:'medium',
+    ruleId:'peugeot_308_dv6_dpf_egr', title:'1.6 HDi/BlueHDi: partikelfilter och EGR-problem',
+    description:'Vanligt med igensatt partikelfilter och kärvande EGR-ventil, särskilt vid mycket korta körsträckor. Begär servicehistorik som visar DPF-regenerering.' },
+  { brand:'Citroën', model:'C4', yearFrom:2008, yearTo:2018, fuelType:'Diesel', severity:'medium',
+    ruleId:'citroen_c4_dv6_dpf_egr', title:'1.6 HDi/BlueHDi: partikelfilter och EGR-problem',
+    description:'Samma motorfamilj och problematik som Peugeot 308. Vanligt med igensatt partikelfilter vid korta körsträckor.' },
+
+  // Renault — TCe "livstidskedja"
+  { brand:'Renault', model:'Clio', yearFrom:2013, yearTo:2019, fuelType:'Bensin', severity:'medium',
+    ruleId:'renault_clio_tce_timing_chain', title:'0.9/1.2 TCe: kedjan kan sträckas i förtid',
+    description:'"Livstidskedjan" kan sträckas redan vid 8 000–10 000 mil trots att den marknadsförs som underhållsfri. Lyssna efter skrammel vid kallstart och kontrollera servicehistorik.' },
+  { brand:'Renault', model:'Captur', yearFrom:2013, yearTo:2019, fuelType:'Bensin', severity:'medium',
+    ruleId:'renault_captur_tce_timing_chain', title:'0.9/1.2 TCe: kedjan kan sträckas i förtid',
+    description:'Samma motorfamilj och problem som Clio. Lyssna efter skrammel vid kallstart och kontrollera servicehistorik.' },
+
+  // Opel — 1.6 CDTi kedjespännare
+  { brand:'Opel', model:'Astra', yearFrom:2009, yearTo:2018, fuelType:'Diesel', severity:'medium',
+    ruleId:'opel_astra_1_6cdti_chain_rattle', title:'1.6 CDTi: kedjespännare utan packning',
+    description:'Vanligt med skrammel vid kallstart pga oljeläckage i kedjespännaren. Kontrollera om en uppdaterad packning/spännare har monterats.' },
+  { brand:'Opel', model:'Insignia', yearFrom:2009, yearTo:2018, fuelType:'Diesel', severity:'medium',
+    ruleId:'opel_insignia_1_6cdti_chain_rattle', title:'1.6 CDTi: kedjespännare utan packning',
+    description:'Samma problem som Astra. Skrammel vid kallstart som försvinner vid tomgång är ett typiskt tecken.' },
+
+  // Skoda — DSG7 (DQ200), samma växellåda som drabbat VW-koncernens Golf
+  { brand:'Skoda', model:'Octavia', yearFrom:2009, yearTo:2015, severity:'medium',
+    ruleId:'skoda_octavia_dq200_dsg', title:'DSG7 (DQ200): mekatronik och kopplingsslitage',
+    description:'Samma växellådstyp som drabbat VW Golf. Vanligt med ryck vid låg fart och behov av mekatronikbyte.' },
+  { brand:'Skoda', model:'Fabia', yearFrom:2009, yearTo:2015, severity:'medium',
+    ruleId:'skoda_fabia_dq200_dsg', title:'DSG7 (DQ200): mekatronik och kopplingsslitage',
+    description:'Samma växellådstyp och problem som Octavia. Kontrollera senaste mjukvaruversion hos Skoda-verkstad.' },
 ]
 
 function getKnownIssues(car: CarListing): KnownIssue[] {
