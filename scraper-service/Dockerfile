@@ -27,15 +27,12 @@ WORKDIR /app
 COPY package.json ./
 RUN npm install
 
-RUN npx playwright install chromium
+RUN npx playwright install --with-deps chromium
 
 COPY *.ts ./
 COPY tsconfig.json ./
 RUN npx tsc
 RUN npm prune --production
-
-RUN groupadd -r scraper && useradd -r -g scraper scraper
-USER scraper
 
 EXPOSE 3001
 CMD ["node", "dist/server.js"]
