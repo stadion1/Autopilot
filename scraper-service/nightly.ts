@@ -242,10 +242,22 @@ async function run() {
 
   console.log(`[nightly] ${docsSeen} annonser genomsökta, ${matched} matchade bevakade modeller`)
 
+  // Blockets sökresultat kan skifta mellan våra sekventiella sid-anrop (en
+  // annons kan bumpas/postas medan vi bläddrar och dyka upp på två sidor),
+  // så samma source_url kan förekomma flera gånger i `rows`. Postgres ON
+  // CONFLICT DO UPDATE klarar inte att träffa samma rad två gånger i samma
+  // sats — dedupa klientsidan innan vi batchar.
+  const dedupedRows = Array.from(
+    new Map(rows.map(r => [r.source_url, r])).values()
+  )
+  if (dedupedRows.length < rows.length) {
+    console.log(`[nightly] ${rows.length - dedupedRows.length} dubbletter borttagna innan upsert`)
+  }
+
   // Upsert i batchar (Supabase/Postgres hanterar stora IN-listor dåligt annars)
   const BATCH_SIZE = 200
-  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-    const batch = rows.slice(i, i + BATCH_SIZE)
+  for (let i = 0; i < dedupedRows.length; i += BATCH_SIZE) {
+    const batch = dedupedRows.slice(i, i + BATCH_SIZE)
     const { error } = await supabase
       .from('market_listings')
       .upsert(batch, { onConflict: 'source_url' })
