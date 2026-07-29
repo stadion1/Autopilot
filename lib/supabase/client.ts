@@ -268,10 +268,13 @@ export async function getAnalysis(id: string): Promise<AnalysisResult | null> {
 }
 
 function formatDeltaInterpretation(delta: number): string {
-  const abs = Math.abs(delta).toFixed(1)
-  if (delta < -0.01) return `Priset är ungefär ${abs}% över estimerat median`
-  if (delta > 0.01)  return `Priset är ungefär ${abs}% under estimerat median`
-  return 'Priset är i linje med estimerat median'
+  // delta är en andel (0.0283 = 2.83%) — måste multipliceras med 100 innan
+  // toFixed(), annars blir t.ex. 2.8% till "0.0" (toFixed rundar decimal-
+  // talet 0.0283 till en decimal, inte procentsatsen).
+  const absPct = (Math.abs(delta) * 100).toFixed(1)
+  if (delta > 0.03)  return `Priset är ungefär ${absPct}% under estimerat median`
+  if (delta < -0.03) return `Priset är ungefär ${absPct}% över estimerat median`
+  return `Priset är ungefär i linje med estimerat median (${absPct}% ${delta >= 0 ? 'under' : 'över'})`
 }
 
 // ─── Feedback ─────────────────────────────────────────────────────────────────
