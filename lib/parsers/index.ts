@@ -36,10 +36,9 @@ export function validateListingUrl(url: string): {
     !path.includes('/item/')) {
   return { valid: false, error: 'Det ser ut som en söksida. Klistra in länken till en specifik annons.' }
 }
-  if (site === 'wayke' && !path.includes('/bil/')) {
+  if (site === 'wayke' && !path.includes('/objekt/')) {
     return { valid: false, error: 'Det ser ut som en söksida. Klistra in länken till en specifik annons.' }
   }
 
   return { valid: true, site }
 }
-'test2'

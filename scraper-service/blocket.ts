@@ -13,11 +13,16 @@ function extractAdId(url: string): string | null {
 export function parseFuelType(raw?: string): FuelType {
   if (!raw) return 'Bensin'
   const s = raw.toLowerCase()
-  if (s.includes('el'))                               return 'El'
-  if (s.includes('laddhybrid') || s.includes('plug')) return 'Laddhybrid'
-  if (s.includes('hybrid'))                           return 'Hybrid'
-  if (s.includes('diesel'))                           return 'Diesel'
-  if (s.includes('gas'))                              return 'Gas'
+  // Hybrid/laddhybrid-kontrollerna måste komma FÖRE den generella 'el'-
+  // kontrollen — Wayke taggar t.ex. alla hybrider/laddhybrider som
+  // "Bensin+El", vilket annars felaktigt skulle klassas som ren elbil
+  // eftersom "bensin+el" innehåller substrängen 'el'.
+  if (s.includes('laddhybrid') || s.includes('plug'))  return 'Laddhybrid'
+  if (s.includes('hybrid'))                            return 'Hybrid'
+  if (s.includes('diesel'))                            return 'Diesel'
+  if (s.includes('gas'))                               return 'Gas'
+  if (s.includes('el') && !s.includes('+'))            return 'El'
+  if (s.includes('el'))                                return 'Hybrid'  // t.ex. "Bensin+El" utan explicit hybrid/plug-in-ord
   return 'Bensin'
 }
 

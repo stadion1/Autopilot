@@ -49,7 +49,7 @@ export function validateListingUrl(url: string): { valid: boolean; error?: strin
     !path.includes('/item/')) {
   return { valid: false, error: 'This looks like a search page. Please paste a specific listing URL.' }
 }
-  if (site === 'wayke' && !path.includes('/bil/')) {
+  if (site === 'wayke' && !path.includes('/objekt/')) {
     return { valid: false, error: 'This looks like a search page. Please paste a specific listing URL.' }
   }
 
