@@ -121,6 +121,7 @@ interface SearchDoc {
   location?: string
   org_id?: string
   organisation_name?: string
+  regno?: string
 }
 
 interface SearchResponse {
@@ -182,8 +183,7 @@ function toMarketListingRow(doc: SearchDoc, tracked: { brand: string; model: str
     transmission: parseTransmission(doc.transmission),
     location:     doc.location ?? undefined,
     seller_type:  doc.org_id || doc.organisation_name ? 'dealer' : 'private',
-    scraped_at:   new Date().toISOString(),   // "last seen" — se sold-logik nedan
-    sold_at:      null,                        // en förnyad träff betyder att den inte är såld
+    registration_number: doc.regno ?? undefined,
   }
 }
 
@@ -254,19 +254,33 @@ async function run() {
     console.log(`[nightly] ${rows.length - dedupedRows.length} dubbletter borttagna innan upsert`)
   }
 
-  // Upsert i batchar (Supabase/Postgres hanterar stora IN-listor dåligt annars)
-  const BATCH_SIZE = 200
-  for (let i = 0; i < dedupedRows.length; i += BATCH_SIZE) {
-    const batch = dedupedRows.slice(i, i + BATCH_SIZE)
-    const { error } = await supabase
-      .from('market_listings')
-      .upsert(batch, { onConflict: 'source_url' })
+  // En rad i taget via RPC istället för en batch-upsert — upsert_market_listing()
+  // matchar på VIN/registreringsnummer (oavsett source_url) för att undvika att
+  // samma bil räknas dubbelt om den är korslistad på t.ex. Wayke också, vilket
+  // en enkel ON CONFLICT(source_url)-batch inte kan uttrycka.
+  for (const row of dedupedRows) {
+    const { error } = await supabase.rpc('upsert_market_listing', {
+      p_source_url:  row.source_url,
+      p_source_site: row.source_site,
+      p_brand:       row.brand,
+      p_model:       row.model,
+      p_variant:     row.variant ?? null,
+      p_year:        row.year,
+      p_price_sek:   row.price_sek,
+      p_mileage_km:  row.mileage_km,
+      p_fuel_type:   row.fuel_type,
+      p_transmission: row.transmission,
+      p_location:    row.location ?? null,
+      p_seller_type: row.seller_type,
+      p_vin:         null,   // sökändpointen ger bara registreringsnummer, inget VIN
+      p_registration_number: row.registration_number ?? null,
+    })
 
     if (error) {
-      console.error(`[nightly] Fel vid upsert av batch ${i / BATCH_SIZE + 1}:`, error.message)
+      console.error(`[nightly] Fel vid upsert av ${row.source_url}:`, error.message)
       continue
     }
-    upserted += batch.length
+    upserted++
   }
 
   console.log(`[nightly] ${upserted} rader upsertade till market_listings`)

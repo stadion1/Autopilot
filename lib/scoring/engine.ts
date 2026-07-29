@@ -22,6 +22,24 @@ export const SCORING_VERSION = '1.2.0'
 
 const CURRENT_YEAR = new Date().getFullYear()
 
+// Exakt ålder i år via registreringsdatum när det finns, annars den grova
+// (CURRENT_YEAR - årsmodell). Årsmodellen ensam underskattar systematiskt
+// åldern — en "2025 års modell" kan vara registrerad redan hösten 2024, så
+// en bil som ser "1 år gammal" ut på årsmodell kan i verkligheten ha
+// funnits i trafik i snart två år. Det gjorde att t.ex. en 2025-bil med
+// 3 000 mil (helt normalt efter ~1,5 år) kunde flaggas som "hög
+// mätarställning" trots att den inte kört mer än väntat för sin faktiska ålder.
+function vehicleAgeYears(car: CarListing): number {
+  if (car.registration_date) {
+    const regDate = new Date(car.registration_date)
+    if (!isNaN(regDate.getTime())) {
+      const days = (Date.now() - regDate.getTime()) / (1000 * 60 * 60 * 24)
+      return days / 365.25
+    }
+  }
+  return CURRENT_YEAR - car.year
+}
+
 const WEIGHTS = {
   price:       0.30,
   reliability: 0.25,
@@ -195,7 +213,7 @@ function scorePrice(
   depreciation: number,
   medianResult: { median: number; sample_size?: number } | null,
 ): { score: number; usedMedian: number | null; delta: number } {
-  const age = Math.max(0, CURRENT_YEAR - car.year)
+  const age = Math.max(0, vehicleAgeYears(car))
 
   const referencePrice = medianResult
     ? medianResult.median
@@ -230,7 +248,7 @@ function deltaToScore(d: number): number {
 // ─── Score: Mileage ───────────────────────────────────────────────────────────
 
 function scoreMileage(car: CarListing, avgMilPerYear: number): number {
-  const age   = Math.max(1, CURRENT_YEAR - car.year)
+  const age   = Math.max(1, vehicleAgeYears(car))
   const ratio = (car.mileage_km / 10) / Math.max(1, age * avgMilPerYear)
 
   if (ratio < 0.50) return 96
@@ -247,7 +265,7 @@ function scoreMileage(car: CarListing, avgMilPerYear: number): number {
 
 function scoreReliability(car: CarListing, reliabilityBase: number): number {
   let score = reliabilityBase
-  const age = CURRENT_YEAR - car.year
+  const age = vehicleAgeYears(car)
   const mil = car.mileage_km / 10
 
   if      (age > 10) score -= 18
@@ -277,7 +295,7 @@ function scoreOwnership(car: CarListing): number {
     'Bensin': 55, 'Diesel': 58, 'Gas': 52,
   }
   let score = fuelBase[car.fuel_type] ?? 55
-  const age = CURRENT_YEAR - car.year
+  const age = vehicleAgeYears(car)
 
   if      (age > 8) score -= 12
   else if (age > 5) score -= 6
@@ -293,7 +311,7 @@ function scoreOwnership(car: CarListing): number {
 
 function scoreResale(car: CarListing, resaleBase: number): number {
   let score = resaleBase
-  const age = CURRENT_YEAR - car.year
+  const age = vehicleAgeYears(car)
 
   const fuelAdj: Record<string, number> = {
     'El': 4, 'Laddhybrid': 6, 'Hybrid': 4,
@@ -346,7 +364,7 @@ function calculateConfidence(
     reasons.push('Ingen marknadsmedian tillgänglig — teoretiskt estimat används')
   }
 
-  const age = CURRENT_YEAR - car.year
+  const age = vehicleAgeYears(car)
   const ref = usedMedian ?? basePrice * Math.pow(1 - depreciation, age)
   if (Math.abs(car.price_sek - ref) / ref > 0.40) {
     score -= 20
@@ -387,7 +405,7 @@ function calculatePricing(
   pricePer1000ExtraMil: number,
   confidence: ConfidenceResult,
 ): PriceRange {
-  const age      = Math.max(0, CURRENT_YEAR - car.year)
+  const age      = Math.max(0, vehicleAgeYears(car))
   const midpoint = usedMedian ?? basePrice * Math.pow(1 - depreciation, age)
 
   // Mileage adjustment
@@ -418,8 +436,9 @@ function calculatePricing(
 
 function detectRisks(car: CarListing, modelNotes: string | undefined, avgMilPerYear: number): Risk[] {
   const risks: Risk[] = []
-  const mil  = car.mileage_km / 10
-  const age  = CURRENT_YEAR - car.year
+  const mil      = car.mileage_km / 10
+  const ageYears = vehicleAgeYears(car)   // exakt (registreringsdatum om möjligt) för ratio-beräkning
+  const age      = Math.round(ageYears)   // avrundat för visningstext
   const desc = (car.description ?? '').toLowerCase()
 
   // Known model-specific issues
@@ -448,7 +467,7 @@ function detectRisks(car: CarListing, modelNotes: string | undefined, avgMilPerY
   // High mileage — relativt förväntad mätarställning för bilens ålder,
   // samma ratio som scoreMileage() använder. En flat gräns (t.ex. 15 000 mil)
   // skulle träffa nästan alla äldre bilar oavsett om de faktiskt kört mycket.
-  const expectedMil = Math.max(1, age) * avgMilPerYear
+  const expectedMil = Math.max(1, ageYears) * avgMilPerYear
   const mileageRatio = mil / expectedMil
   if (mileageRatio >= 1.6) {
     risks.push({ level: 'medium',
@@ -457,8 +476,11 @@ function detectRisks(car: CarListing, modelNotes: string | undefined, avgMilPerY
                  rule_id: 'high_mileage' })
   }
 
-  // EV/PHEV battery
-  if (['El', 'Laddhybrid'].includes(car.fuel_type)) {
+  // EV/PHEV battery — annonser nämner i praktiken aldrig batterihälsa själva,
+  // så en obetingad kommentar blir bara brus. Batteriets ålder/cykler är
+  // den faktiska riskfaktorn, så gränsen matchar samma 3-årströskel som
+  // calculateConfidence() redan använder för samma anledning.
+  if (['El', 'Laddhybrid'].includes(car.fuel_type) && ageYears > 3) {
     risks.push({ level: 'medium', title: 'Batterihälsa (SoH) okänd',
                  description: 'Be säljaren om SoH-utdrag eller använd OBD-adapter för att mäta.',
                  rule_id: 'ev_battery_soh_unknown' })
@@ -533,7 +555,7 @@ function generatePros(car: CarListing, scores: Omit<DealScores,'deal'>,
                       pricing: PriceRange, avgMilPerYear: number): string[] {
   const pros: string[] = []
   const mil = Math.round(car.mileage_km / 10)
-  const age = CURRENT_YEAR - car.year
+  const age = Math.round(vehicleAgeYears(car))
   const premiumTrim = detectPremiumTrim(car)
 
   if (scores.mileage >= 80)
@@ -558,7 +580,7 @@ function generatePros(car: CarListing, scores: Omit<DealScores,'deal'>,
 
 function generateCons(car: CarListing, scores: Omit<DealScores,'deal'>, pricing: PriceRange): string[] {
   const cons: string[] = []
-  const age = CURRENT_YEAR - car.year
+  const age = Math.round(vehicleAgeYears(car))
   const premiumTrim = detectPremiumTrim(car)
 
   if (pricing.delta_pct < -0.04) {

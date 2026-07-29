@@ -147,6 +147,7 @@ const data: Partial<CarListing> = {
   description:  ad.description ?? undefined,
   images:       ad.images?.slice(0, 6).map((i: any) => i.url ?? i.src ?? i).filter((i: any) => typeof i === 'string'),
   registration_number: specs['Registreringsnummer'] ?? undefined,
+  registration_date: specs['Registreringsdatum'] ?? undefined,
   vin:          specs['Chassinummer'] ?? undefined,
   source_url:   url,
   source_site:  'blocket',

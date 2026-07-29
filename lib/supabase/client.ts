@@ -54,6 +54,7 @@ interface AnalysisRow {
   images?: string[]
   seller_type?: string
   registration_number?: string
+  registration_date?: string
   vin?: string
   raw_html?: string
 
@@ -145,6 +146,7 @@ export async function saveCarData(id: string, car: Partial<CarListing>, rawHtml?
     images:       car.images,
     seller_type:  car.seller_type,
     registration_number: car.registration_number,
+    registration_date: car.registration_date,
     vin:          car.vin,
     raw_html:     rawHtml,
   }).eq('id', id)
@@ -226,6 +228,7 @@ export async function getAnalysis(id: string): Promise<AnalysisResult | null> {
       images:       row.images,
       seller_type:  (row.seller_type as any) ?? 'private',
       registration_number: row.registration_number,
+      registration_date: row.registration_date,
       vin:          row.vin,
       source_url:   row.source_url,
       source_site:  (row.source_site as any),
@@ -329,22 +332,25 @@ export async function saveMarketListing(car: Partial<CarListing>): Promise<void>
   if (car.mileage_km == null || car.mileage_km < 0 || car.mileage_km > 1_000_000) return
 
   try {
-    await supabase.from('market_listings').upsert({
-      source_url:   car.source_url,
-      source_site:  car.source_site,
-      brand:        car.brand,
-      model:        car.model,
-      variant:      car.variant,
-      year:         car.year,
-      price_sek:    car.price_sek,
-      mileage_km:   car.mileage_km,
-      fuel_type:    car.fuel_type,
-      transmission: car.transmission,
-      location:     car.location,
-      seller_type:  car.seller_type,
-      scraped_at:   new Date().toISOString(),
-      sold_at:      null,
-    }, { onConflict: 'source_url' })
+    // Samma bil kan ligga ute på både Blocket och Wayke samtidigt — RPC:n
+    // matchar på VIN när det finns (oavsett source_url) istället för att
+    // bara dedupa på source_url, så den inte räknas dubbelt i marknadsmedianen.
+    await supabase.rpc('upsert_market_listing', {
+      p_source_url:  car.source_url,
+      p_source_site: car.source_site,
+      p_brand:       car.brand,
+      p_model:       car.model,
+      p_variant:     car.variant ?? null,
+      p_year:        car.year,
+      p_price_sek:   car.price_sek,
+      p_mileage_km:  car.mileage_km,
+      p_fuel_type:   car.fuel_type ?? null,
+      p_transmission: car.transmission ?? null,
+      p_location:    car.location ?? null,
+      p_seller_type: car.seller_type ?? null,
+      p_vin:         car.vin ?? null,
+      p_registration_number: car.registration_number ?? null,
+    })
   } catch {
     // best-effort — misslyckad skrivning ska inte påverka analysen
   }

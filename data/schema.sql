@@ -288,3 +288,74 @@ $$;
 
 ALTER TABLE analyses ADD COLUMN IF NOT EXISTS registration_number TEXT;
 ALTER TABLE analyses ADD COLUMN IF NOT EXISTS vin TEXT;
+
+
+-- ============================================================
+-- Migration: registration_date + market_listings VIN dedup
+-- Run this once in Supabase Dashboard → SQL Editor → New Query
+-- ============================================================
+-- registration_date gives scoring an exact vehicle age instead of the
+-- coarse (current_year - model_year), which undercounts age for cars
+-- first registered mid-way through the previous calendar year.
+
+ALTER TABLE analyses ADD COLUMN IF NOT EXISTS registration_date DATE;
+
+-- The same physical car can be listed on both Blocket and Wayke at once.
+-- Both write to market_listings keyed by source_url, which differs per
+-- site, so without this the same car would be double-counted in
+-- get_market_median(). VIN is the strongest cross-site identifier, but
+-- the nightly scraper's search endpoint only exposes registration_number
+-- (no VIN) — so the dedup checks both.
+ALTER TABLE market_listings ADD COLUMN IF NOT EXISTS vin TEXT;
+ALTER TABLE market_listings ADD COLUMN IF NOT EXISTS registration_number TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS market_listings_vin_key
+  ON market_listings (vin) WHERE vin IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS market_listings_regnr_key
+  ON market_listings (registration_number) WHERE registration_number IS NOT NULL;
+
+-- Upserts on VIN or registration_number when known (regardless of
+-- source_url — catches the same car cross-listed on another site),
+-- falling back to the existing source_url-based upsert otherwise.
+CREATE OR REPLACE FUNCTION upsert_market_listing(
+  p_source_url  TEXT, p_source_site TEXT, p_brand TEXT, p_model TEXT,
+  p_variant     TEXT, p_year INT, p_price_sek INT, p_mileage_km INT,
+  p_fuel_type   TEXT, p_transmission TEXT, p_location TEXT,
+  p_seller_type TEXT, p_vin TEXT, p_registration_number TEXT
+) RETURNS VOID LANGUAGE plpgsql AS $$
+DECLARE
+  v_existing_id UUID;
+BEGIN
+  SELECT id INTO v_existing_id FROM market_listings
+  WHERE (p_vin IS NOT NULL AND vin = p_vin)
+     OR (p_registration_number IS NOT NULL AND registration_number = p_registration_number)
+  LIMIT 1;
+
+  IF v_existing_id IS NOT NULL THEN
+    UPDATE market_listings SET
+      source_url = p_source_url, source_site = p_source_site,
+      brand = p_brand, model = p_model, variant = p_variant, year = p_year,
+      price_sek = p_price_sek, mileage_km = p_mileage_km, fuel_type = p_fuel_type,
+      transmission = p_transmission, location = p_location, seller_type = p_seller_type,
+      vin = COALESCE(p_vin, vin),
+      registration_number = COALESCE(p_registration_number, registration_number),
+      scraped_at = now(), sold_at = NULL
+    WHERE id = v_existing_id;
+  ELSE
+    INSERT INTO market_listings (
+      source_url, source_site, brand, model, variant, year, price_sek, mileage_km,
+      fuel_type, transmission, location, seller_type, vin, registration_number,
+      scraped_at, sold_at
+    ) VALUES (
+      p_source_url, p_source_site, p_brand, p_model, p_variant, p_year, p_price_sek, p_mileage_km,
+      p_fuel_type, p_transmission, p_location, p_seller_type, p_vin, p_registration_number,
+      now(), NULL
+    )
+    ON CONFLICT (source_url) DO UPDATE SET
+      brand = EXCLUDED.brand, model = EXCLUDED.model, variant = EXCLUDED.variant, year = EXCLUDED.year,
+      price_sek = EXCLUDED.price_sek, mileage_km = EXCLUDED.mileage_km, fuel_type = EXCLUDED.fuel_type,
+      transmission = EXCLUDED.transmission, location = EXCLUDED.location, seller_type = EXCLUDED.seller_type,
+      vin = EXCLUDED.vin, registration_number = EXCLUDED.registration_number,
+      scraped_at = now(), sold_at = NULL;
+  END IF;
+END;
+$$;

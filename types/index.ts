@@ -23,6 +23,7 @@ export interface CarListing {
   images?: string[]
   seller_type?: SellerType
   registration_number?: string
+  registration_date?: string    // ISO-datum (YYYY-MM-DD) — ger exakt ålder, till skillnad från årsmodell
   vin?: string
   source_url: string
   source_site: SupportedSite
