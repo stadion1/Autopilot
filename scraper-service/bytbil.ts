@@ -82,7 +82,11 @@ function parseMil(raw?: string): number | undefined {
 
 function parsePriceKr(raw?: string): number | undefined {
   if (!raw) return undefined
-  const num = parseInt(raw.replace(/\D/g, ''))
+  // Måste HTML-avkodas FÖRE siffer-strippningen — annars läcker "0":an i
+  // en oavkodad &#xA0;-entitet igenom som en riktig siffra (429&#xA0;900
+  // blir "4290900" istället för "429900", eftersom \D bara filtrerar
+  // bort icke-siffror och "0" i "xA0" räknas som en siffra).
+  const num = parseInt(decodeHtmlEntities(raw).replace(/\D/g, ''))
   return isNaN(num) ? undefined : num
 }
 
