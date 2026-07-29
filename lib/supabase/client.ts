@@ -284,13 +284,64 @@ export async function saveFeedback(
 
 // ─── Market data queries ──────────────────────────────────────────────────────
 
+// Under denna gräns är medianen för brusig för att lita på framför den
+// statiska referensdatan — se data/marketMedians.ts som fallback.
+const MIN_LIVE_MEDIAN_SAMPLE_SIZE = 5
+
 export async function getMarketMedian(
   brand: string,
   model: string,
   year: number
 ): Promise<{ median: number; sample_size: number } | null> {
-  const { data } = await supabase.rpc('get_market_median', { p_brand: brand, p_model: model, p_year: year })
-  return data ?? null
+  try {
+    // get_market_median() är en RETURNS TABLE-funktion — RPC ger tillbaka
+    // en array av rader, inte objektet direkt.
+    const { data, error } = await supabase.rpc('get_market_median', {
+      p_brand: brand, p_model: model, p_year: year,
+    })
+    if (error) return null
+
+    const row = data?.[0]
+    if (!row || row.median == null || row.sample_size < MIN_LIVE_MEDIAN_SAMPLE_SIZE) return null
+
+    return { median: Number(row.median), sample_size: Number(row.sample_size) }
+  } catch {
+    return null
+  }
+}
+
+// ─── Market listing write-back ────────────────────────────────────────────────
+// Varje lyckad analys via /api/analyze har redan skrapat en verklig annons
+// (pris, miltal, år) — spara den även i market_listings så att den bidrar
+// till framtida marknadsmedianer, precis som scraper-service/nightly.ts gör.
+// Best-effort: fel här ska aldrig spräcka en analys.
+
+export async function saveMarketListing(car: Partial<CarListing>): Promise<void> {
+  if (!car.source_url || !car.brand || !car.model || !car.year) return
+  if (!car.price_sek || car.price_sek < 5000 || car.price_sek > 10_000_000) return
+  if (car.year < 1980 || car.year > new Date().getFullYear() + 1) return
+  if (car.mileage_km == null || car.mileage_km < 0 || car.mileage_km > 1_000_000) return
+
+  try {
+    await supabase.from('market_listings').upsert({
+      source_url:   car.source_url,
+      source_site:  car.source_site,
+      brand:        car.brand,
+      model:        car.model,
+      variant:      car.variant,
+      year:         car.year,
+      price_sek:    car.price_sek,
+      mileage_km:   car.mileage_km,
+      fuel_type:    car.fuel_type,
+      transmission: car.transmission,
+      location:     car.location,
+      seller_type:  car.seller_type,
+      scraped_at:   new Date().toISOString(),
+      sold_at:      null,
+    }, { onConflict: 'source_url' })
+  } catch {
+    // best-effort — misslyckad skrivning ska inte påverka analysen
+  }
 }
 
 // ─── Live model reference lookup ──────────────────────────────────────────────

@@ -16,6 +16,7 @@
 import { CarListing, ConfidenceResult, DealScores, PriceRange, Risk } from '../../types'
 import { lookupModelReference } from '../../data/referenceData'
 import { lookupMarketMedian } from '../../data/marketMedians'
+import { getMarketMedian } from '../supabase/client'
 
 export const SCORING_VERSION = '1.2.0'
 
@@ -181,8 +182,10 @@ function getKnownIssues(car: CarListing): KnownIssue[] {
 }
 
 // ─── Score: Price ─────────────────────────────────────────────────────────────
-// Primary: lookup actual market median from MARKET_MEDIANS table
-// Fallback: theoretical depreciation model (for models not in the table)
+// Priority: 1) live median from market_listings (real Blocket sales data,
+// see scraper-service/nightly.ts), 2) static MARKET_MEDIANS table,
+// 3) theoretical depreciation model. medianResult is resolved by the caller
+// (scoreVehicle) since the live lookup is async.
 
 function scorePrice(
   car: CarListing,
@@ -190,11 +193,10 @@ function scorePrice(
   pricePer1000ExtraMil: number,
   basePrice: number,
   depreciation: number,
+  medianResult: { median: number; sample_size?: number } | null,
 ): { score: number; usedMedian: number | null; delta: number } {
   const age = Math.max(0, CURRENT_YEAR - car.year)
 
-  // Try market median first
-  const medianResult = lookupMarketMedian(car.brand, car.model, car.year)
   const referencePrice = medianResult
     ? medianResult.median
     : basePrice * Math.pow(1 - depreciation, age)  // fallback
@@ -562,12 +564,18 @@ export interface ScoringOutput {
   usedMedian:   number | null  // useful for debugging/logging
 }
 
-export function scoreVehicle(car: CarListing): ScoringOutput {
+export async function scoreVehicle(car: CarListing): Promise<ScoringOutput> {
   const { ref, isDefault } = lookupModelReference(car.brand, car.model, car.year)
+
+  // Live data (verkliga Blocket-annonser i market_listings) föredras framför
+  // den statiska MARKET_MEDIANS-tabellen när det finns tillräckligt underlag —
+  // se getMarketMedian() i lib/supabase/client.ts för sample-size-tröskeln.
+  const liveMedian = await getMarketMedian(car.brand, car.model, car.year)
+  const medianResult = liveMedian ?? lookupMarketMedian(car.brand, car.model, car.year)
 
   const priceResult = scorePrice(
     car, ref.avgMilPerYear, ref.pricePer1000ExtraMil,
-    ref.basePrice, ref.depreciation,
+    ref.basePrice, ref.depreciation, medianResult,
   )
 
   const subScores = {

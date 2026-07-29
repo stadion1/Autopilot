@@ -17,6 +17,7 @@ import {
   createPendingAnalysis,
   markProcessing,
   saveCarData,
+  saveMarketListing,
   saveAnalysisResult,
   markError,
 } from '../../lib/supabase/client'
@@ -69,10 +70,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   await saveCarData(analysisId, car)
+  await saveMarketListing(car)   // best-effort — bidrar med verklig data till market_listings
 
   // 5. Scoring
   const completeCar = car as CarListing
-  const { scores, confidence, pricing, pros, cons, risks, modelNotes } = scoreVehicle(completeCar)
+  const { scores, confidence, pricing, pros, cons, risks, modelNotes } = await scoreVehicle(completeCar)
 
   // 6. AI-analys
   let aiSummary: string
