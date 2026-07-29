@@ -143,6 +143,18 @@ export default function HomePage() {
             </p>
           )}
 
+          <div className={styles.trustBadges}>
+            {['Gratis', 'Ingen inloggning', 'Inga dolda intressen'].map(t => (
+              <span key={t} className={styles.trustBadge}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2.5" aria-hidden>
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                {t}
+              </span>
+            ))}
+          </div>
+
           <div className={styles.supportedSites}>
             <span className={styles.supportedLabel}>Stöds:</span>
             {['blocket.se', 'wayke.se', 'bytbil.com'].map(site => (
@@ -152,11 +164,33 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── Sample result ── */}
+      <section className={`${styles.sampleWrap} anim-fade-up delay-4`}>
+        <span className={styles.sampleLabel}>Exempel på ett resultat</span>
+        <div className={`${styles.sampleCard} card`}>
+          <div className={styles.sampleTop}>
+            <div>
+              <p className={styles.sampleCarName}>Volvo V90 T4 Momentum · 2019</p>
+              <div className={styles.sampleScoreLine}>
+                <span className={styles.sampleScoreNum}>72</span>
+                <span className={styles.sampleScoreMax}>/100 deal score</span>
+              </div>
+            </div>
+            <span className="tag tag-green">Bra affär</span>
+          </div>
+          <p className={styles.sampleSummary}>
+            "Priset ligger klart under marknadsvärdet och mätarställningen är lägre
+            än väntat för årsmodellen — en av de bättre affärerna vi sett i den här
+            klassen just nu."
+          </p>
+        </div>
+      </section>
+
       {/* ── Divider ── */}
-      <div className={`${styles.divider} anim-fade-up delay-4`} aria-hidden />
+      <div className={`${styles.divider} anim-fade-up delay-5`} aria-hidden />
 
       {/* ── Value props ── */}
-      <section className={`${styles.valueProps} anim-fade-up delay-5`}>
+      <section className={`${styles.valueProps} anim-fade-up delay-6`}>
         <ValueProp
           icon={<IconClock />}
           title="Direkt analys"
@@ -180,9 +214,8 @@ export default function HomePage() {
       </section>
 
       {/* ── Trust line ── */}
-      <p className={`${styles.trustLine} anim-fade-up delay-6`}>
-        Transparent metodologi — varje poäng kan förklaras.
-        Ingen reklam. Inga dolda intressen.
+      <p className={`${styles.trustLine} anim-fade-up delay-7`}>
+        Transparent metodologi — varje poäng kan förklaras. Ingen reklam.
       </p>
     </main>
   )

@@ -62,6 +62,8 @@ export default function AnalysisPage() {
   const [data, setData] = useState<AnalysisResult | null>(null)
   const [status, setStatus] = useState<'loading' | 'done' | 'error'>('loading')
   const [errorMsg, setErrorMsg] = useState('')
+  const [activeImg, setActiveImg] = useState(0)
+  const [linkCopied, setLinkCopied] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -140,6 +142,13 @@ export default function AnalysisPage() {
   const { car, scores, confidence, pricing, pros, cons, risks, verdict, ai_summary, meta } = data
   const mileageMil = Math.round(car.mileage_km / 10)
 
+  function handleShare() {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      setLinkCopied(true)
+      setTimeout(() => setLinkCopied(false), 2000)
+    })
+  }
+
   return (
     <main className={styles.page}>
       <div className={styles.container}>
@@ -159,20 +168,38 @@ export default function AnalysisPage() {
 
         {/* ── Car header ── */}
         <header className={`${styles.carHeader} card anim-fade-up`}>
-          <div className={styles.carImageWrap}>
-            {car.images?.[0] ? (
-              <img src={car.images[0]} alt={`${car.brand} ${car.model}`}
-                className={styles.carImage} />
-            ) : (
-              <div className={styles.carImagePlaceholder} aria-hidden>
-                <svg width="36" height="36" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" strokeWidth="1">
-                  <path d="M5 11l1.5-4.5h11L19 11"/>
-                  <path d="M3 11h18v7H3z" rx="1"/>
-                  <circle cx="7" cy="18" r="1.5"/>
-                  <circle cx="17" cy="18" r="1.5"/>
-                  <path d="M5 11h14"/>
-                </svg>
+          <div className={styles.carImageCol}>
+            <div className={styles.carImageWrap}>
+              {car.images?.[activeImg] ? (
+                <img src={car.images[activeImg]} alt={`${car.brand} ${car.model}`}
+                  className={styles.carImage} />
+              ) : (
+                <div className={styles.carImagePlaceholder} aria-hidden>
+                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="1">
+                    <path d="M5 11l1.5-4.5h11L19 11"/>
+                    <path d="M3 11h18v7H3z" rx="1"/>
+                    <circle cx="7" cy="18" r="1.5"/>
+                    <circle cx="17" cy="18" r="1.5"/>
+                    <path d="M5 11h14"/>
+                  </svg>
+                </div>
+              )}
+            </div>
+            {car.images && car.images.length > 1 && (
+              <div className={styles.thumbStrip} role="list" aria-label="Fler bilder">
+                {car.images.slice(0, 6).map((src, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    className={`${styles.thumbBtn} ${i === activeImg ? styles.thumbActive : ''}`}
+                    onClick={() => setActiveImg(i)}
+                    aria-label={`Visa bild ${i + 1} av ${car.images!.length}`}
+                    aria-pressed={i === activeImg}
+                  >
+                    <img src={src} alt="" />
+                  </button>
+                ))}
               </div>
             )}
           </div>
@@ -232,38 +259,57 @@ export default function AnalysisPage() {
           </div>
         </header>
 
-        {/* ── Score row ── */}
-        <div className={`${styles.scoreRow} anim-fade-up delay-1`}>
+        {/* ── TL;DR: score + main driver + AI summary ── */}
+        <div className={`${styles.heroRow} anim-fade-up delay-1`}>
           <ScoreRing score={scores.deal} verdict={verdict} />
+          <div className={`${styles.heroDriverCard} card`}>
+            <span className="section-label">Kort sagt</span>
+            <p className={styles.heroDriverText}>{mainDriverText(scores)}</p>
+          </div>
+        </div>
+        <div className={`anim-fade-up delay-2`}>
+          <AISummaryCard summary={ai_summary} verdict={verdict} />
+        </div>
+
+        {/* ── Detaljerad analys ── */}
+        <div className={`${styles.detailDivider} anim-fade-up delay-3`}>
+          <span className="section-label">Detaljerad analys</span>
+        </div>
+
+        <div className={`${styles.scoreRow} anim-fade-up delay-3`}>
           <SubScores scores={scores} />
           <ConfidenceCard confidence={confidence} />
         </div>
 
         {/* ── Price range ── */}
-        <div className={`anim-fade-up delay-2`}>
+        <div className={`anim-fade-up delay-4`}>
           <PriceRangeCard car={car} pricing={pricing} />
         </div>
 
-        {/* ── Pros / Cons ── */}
-        <div className={`${styles.prosConsRow} anim-fade-up delay-3`}>
-          <ProsCard pros={pros} />
-          <ConsCard cons={cons} />
+        {/* ── Pros / Cons — den som matchar omdömet visas först ── */}
+        <div className={`${styles.prosConsRow} anim-fade-up delay-5`}>
+          {verdict === 'Tveksam affär' ? (
+            <>
+              <ConsCard cons={cons} />
+              <ProsCard pros={pros} />
+            </>
+          ) : (
+            <>
+              <ProsCard pros={pros} />
+              <ConsCard cons={cons} />
+            </>
+          )}
         </div>
 
         {/* ── Risks ── */}
         {risks.length > 0 && (
-          <div className={`anim-fade-up delay-4`}>
+          <div className={`anim-fade-up delay-6`}>
             <RisksCard risks={risks} />
           </div>
         )}
 
-        {/* ── AI Summary ── */}
-        <div className={`anim-fade-up delay-5`}>
-          <AISummaryCard summary={ai_summary} verdict={verdict} />
-        </div>
-
         {/* ── Actions ── */}
-        <div className={`${styles.actions} anim-fade-up delay-6`}>
+        <div className={`${styles.actions} anim-fade-up delay-7`}>
           <a href={car.source_url} target="_blank" rel="noopener noreferrer"
             className="btn btn-ghost">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -274,6 +320,15 @@ export default function AnalysisPage() {
             </svg>
             Öppna annons
           </a>
+          <button className="btn btn-ghost" onClick={handleShare}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" aria-hidden>
+              <path d="M4 12v7a2 2 0 002 2h12a2 2 0 002-2v-7"/>
+              <polyline points="16 6 12 2 8 6"/>
+              <line x1="12" y1="2" x2="12" y2="15"/>
+            </svg>
+            {linkCopied ? 'Länk kopierad!' : 'Dela analys'}
+          </button>
           <button className="btn btn-ghost" onClick={() => router.push('/')}>
             Analysera annan bil
           </button>
@@ -285,6 +340,26 @@ export default function AnalysisPage() {
       </div>
     </main>
   )
+}
+
+// Väger varje delbetygs "underskott" mot en godkänd nivå (70) med dess vikt
+// i helhetsbetyget — de två som drar ner mest blir huvudorsaken. Samma
+// vikter som WEIGHTS i lib/scoring/engine.ts.
+function mainDriverText(scores: { price: number; reliability: number; ownership: number; mileage: number; resale: number }): string {
+  const WEIGHTS: Record<string, number> = { price: 0.30, reliability: 0.25, ownership: 0.20, mileage: 0.15, resale: 0.10 }
+  const LABELS:  Record<string, string> = { price: 'priset', reliability: 'tillförlitligheten', ownership: 'ägandekostnaden', mileage: 'mätarställningen', resale: 'andrahandsvärdet' }
+  const BASELINE = 70
+
+  const drivers = (Object.keys(WEIGHTS) as (keyof typeof WEIGHTS)[])
+    .map(key => ({ key, deficit: Math.max(0, BASELINE - (scores as any)[key]) * WEIGHTS[key] }))
+    .filter(d => d.deficit > 0)
+    .sort((a, b) => b.deficit - a.deficit)
+    .slice(0, 2)
+    .map(d => LABELS[d.key])
+
+  if (drivers.length === 0) return 'Alla delbetyg ligger på en bra nivå — ingen enskild faktor drar ner helheten.'
+  const subject = drivers.length === 1 ? drivers[0] : `${drivers[0]} och ${drivers[1]}`
+  return `${subject.charAt(0).toUpperCase()}${subject.slice(1)} drar ner betyget mest.`
 }
 
 /* ─── Sub-components ──────────────────────────────────────────────────────── */

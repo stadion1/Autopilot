@@ -151,6 +151,14 @@
   padding: 1.25rem;
 }
 
+.carImageCol {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+  width: 140px;
+}
+
 .carImageWrap {
   width: 140px;
   height: 100px;
@@ -158,6 +166,39 @@
   overflow: hidden;
   flex-shrink: 0;
   background: var(--surface-2);
+}
+
+.thumbStrip {
+  display: flex;
+  gap: 4px;
+}
+
+.thumbBtn {
+  width: 24px;
+  height: 18px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  opacity: 0.6;
+  background: none;
+  transition: opacity 0.15s, border-color 0.15s;
+}
+
+.thumbBtn:hover { opacity: 0.85; }
+
+.thumbActive {
+  opacity: 1;
+  border-color: var(--ink-1);
+}
+
+.thumbBtn img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .carImage {
@@ -252,10 +293,40 @@
   font-size: 12px;
 }
 
+/* ── Hero (TL;DR) row ── */
+.heroRow {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.heroDriverCard {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1.25rem 1.5rem;
+}
+
+.heroDriverText {
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+
+/* ── Detail section divider ── */
+.detailDivider {
+  padding-top: 1rem;
+  margin: 0.5rem 0 1rem;
+  border-top: 1px solid var(--border);
+}
+
 /* ── Score row ── */
 .scoreRow {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: 1fr auto;
   gap: 1rem;
   margin-bottom: 1rem;
 }
@@ -716,9 +787,11 @@
   .scoreRow {
     grid-template-columns: 1fr;
   }
+  .heroRow { grid-template-columns: 1fr; }
   .scoreRingCard { flex-direction: row; gap: 1rem; }
   .carHeader { flex-direction: column; }
   .carPriceSide { align-items: flex-start; }
+  .carImageCol { width: 100%; }
   .carImageWrap { width: 100%; height: 180px; }
   .prosConsRow { grid-template-columns: 1fr; }
   .priceGrid { grid-template-columns: 1fr; }
