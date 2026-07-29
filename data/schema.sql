@@ -277,3 +277,14 @@ LANGUAGE SQL AS $$
   )
   SELECT COUNT(*)::INT FROM updated;
 $$;
+
+
+-- ============================================================
+-- Migration: registration number + VIN
+-- Run this once in Supabase Dashboard → SQL Editor → New Query
+-- ============================================================
+-- blocket-api.se's specifications already include these as plain text
+-- (Registreringsnummer/Chassinummer) — no OCR needed, just wasn't extracted.
+
+ALTER TABLE analyses ADD COLUMN IF NOT EXISTS registration_number TEXT;
+ALTER TABLE analyses ADD COLUMN IF NOT EXISTS vin TEXT;

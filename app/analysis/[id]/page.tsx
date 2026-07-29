@@ -197,6 +197,9 @@ export default function AnalysisPage() {
                   {car.location}
                 </span>
               )}
+              {car.registration_number && (
+                <span className="tag tag-gray">{car.registration_number}</span>
+              )}
             </div>
 
             <h1 className={`${styles.carTitle} serif`}>

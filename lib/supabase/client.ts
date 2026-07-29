@@ -53,6 +53,8 @@ interface AnalysisRow {
   description?: string
   images?: string[]
   seller_type?: string
+  registration_number?: string
+  vin?: string
   raw_html?: string
 
   // Scores
@@ -142,6 +144,8 @@ export async function saveCarData(id: string, car: Partial<CarListing>, rawHtml?
     description:  car.description,
     images:       car.images,
     seller_type:  car.seller_type,
+    registration_number: car.registration_number,
+    vin:          car.vin,
     raw_html:     rawHtml,
   }).eq('id', id)
 }
@@ -221,6 +225,8 @@ export async function getAnalysis(id: string): Promise<AnalysisResult | null> {
       description:  row.description,
       images:       row.images,
       seller_type:  (row.seller_type as any) ?? 'private',
+      registration_number: row.registration_number,
+      vin:          row.vin,
       source_url:   row.source_url,
       source_site:  (row.source_site as any),
     },

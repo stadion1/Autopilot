@@ -22,6 +22,8 @@ export interface CarListing {
   description?: string
   images?: string[]
   seller_type?: SellerType
+  registration_number?: string
+  vin?: string
   source_url: string
   source_site: SupportedSite
 }
