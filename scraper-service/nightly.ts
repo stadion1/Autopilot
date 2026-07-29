@@ -190,15 +190,22 @@ function toMarketListingRow(doc: SearchDoc, tracked: { brand: string; model: str
 // ─── Hämtning ─────────────────────────────────────────────────────────────────
 
 async function fetchSearchPage(page: number): Promise<SearchDoc[]> {
-  const res = await fetch(`${SEARCH_URL}?page=${page}`, {
-    headers: { Accept: 'application/json', 'User-Agent': 'bilanalys-nightly/1.0' },
-  })
-  if (!res.ok) {
-    console.warn(`  Sida ${page}: HTTP ${res.status}, hoppar över`)
+  console.log(`  Hämtar sida ${page}...`)
+  try {
+    const res = await fetch(`${SEARCH_URL}?page=${page}`, {
+      headers: { Accept: 'application/json', 'User-Agent': 'bilanalys-nightly/1.0' },
+      signal: AbortSignal.timeout(15000),
+    })
+    if (!res.ok) {
+      console.warn(`  Sida ${page}: HTTP ${res.status}, hoppar över`)
+      return []
+    }
+    const json = (await res.json()) as SearchResponse
+    return json.docs ?? []
+  } catch (err: any) {
+    console.warn(`  Sida ${page}: fel (${err?.message ?? err}), hoppar över`)
     return []
   }
-  const json = (await res.json()) as SearchResponse
-  return json.docs ?? []
 }
 
 function sleep(ms: number) {
