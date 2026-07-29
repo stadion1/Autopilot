@@ -144,19 +144,14 @@
 
 /* ── Car header ── */
 .carHeader {
-  display: flex;
-  gap: 1.25rem;
-  align-items: flex-start;
   margin-bottom: 1rem;
   padding: 1.25rem;
 }
 
-.carImageCol {
+.carHeaderTop {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex-shrink: 0;
-  width: 140px;
+  gap: 1.25rem;
+  align-items: flex-start;
 }
 
 .carImageWrap {
@@ -170,13 +165,17 @@
 
 .thumbStrip {
   display: flex;
-  gap: 4px;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
 }
 
 .thumbBtn {
-  width: 24px;
-  height: 18px;
-  border-radius: 4px;
+  width: 64px;
+  height: 46px;
+  border-radius: 6px;
   overflow: hidden;
   border: 1px solid var(--border);
   padding: 0;
@@ -365,11 +364,41 @@
   font-size: 12px;
 }
 
-/* ── Hero (TL;DR) row ── */
-.heroRow {
+/* ── Hero (TL;DR) card ── */
+.heroCard {
   display: flex;
-  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.5rem 2rem;
   margin-bottom: 1rem;
+}
+
+.heroRingCol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.heroCardDivider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--border);
+}
+
+.heroCardRight {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.ringDriverText {
+  font-size: 14px;
+  color: var(--ink-3);
+  line-height: 1.5;
 }
 
 /* ── Detail section divider ── */
@@ -385,25 +414,6 @@
   grid-template-columns: 1fr auto;
   gap: 1rem;
   margin-bottom: 1rem;
-}
-
-/* Score ring card */
-.scoreRingCard {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 1.5rem 2rem;
-  width: 100%;
-  max-width: 340px;
-}
-
-.ringDriverText {
-  font-size: 13px;
-  color: var(--ink-3);
-  text-align: center;
-  line-height: 1.5;
-  margin-top: 2px;
 }
 
 .ringWrap {
@@ -852,10 +862,10 @@
   .scoreRow {
     grid-template-columns: 1fr;
   }
-  .scoreRingCard { max-width: 100%; }
-  .carHeader { flex-direction: column; }
+  .heroCard { flex-direction: column; align-items: flex-start; text-align: left; }
+  .heroCardDivider { display: none; }
+  .carHeaderTop { flex-direction: column; }
   .carPriceSide { align-items: flex-start; }
-  .carImageCol { width: 100%; }
   .carImageWrap { width: 100%; height: 180px; }
   .prosConsRow { grid-template-columns: 1fr; }
   .priceGrid { grid-template-columns: 1fr; }

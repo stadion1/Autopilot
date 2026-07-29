@@ -169,42 +169,25 @@ export default function AnalysisPage() {
 
         {/* ── Car header ── */}
         <header className={`${styles.carHeader} card anim-fade-up`}>
-          <div className={styles.carImageCol}>
-            <div
-              className={styles.carImageWrap}
-              onClick={() => car.images?.length && setLightboxOpen(true)}
-              style={car.images?.length ? { cursor: 'zoom-in' } : undefined}
-            >
-              {car.images?.[activeImg] ? (
-                <img src={car.images[activeImg]} alt={`${car.brand} ${car.model}`}
-                  className={styles.carImage} />
-              ) : (
-                <div className={styles.carImagePlaceholder} aria-hidden>
-                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" strokeWidth="1">
-                    <path d="M5 11l1.5-4.5h11L19 11"/>
-                    <path d="M3 11h18v7H3z" rx="1"/>
-                    <circle cx="7" cy="18" r="1.5"/>
-                    <circle cx="17" cy="18" r="1.5"/>
-                    <path d="M5 11h14"/>
-                  </svg>
-                </div>
-              )}
-            </div>
-            {car.images && car.images.length > 1 && (
-              <div className={styles.thumbStrip} role="list" aria-label="Fler bilder">
-                {car.images.slice(0, 6).map((src, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    className={`${styles.thumbBtn} ${i === activeImg ? styles.thumbActive : ''}`}
-                    onClick={() => setActiveImg(i)}
-                    aria-label={`Visa bild ${i + 1} av ${car.images!.length}`}
-                    aria-pressed={i === activeImg}
-                  >
-                    <img src={src} alt="" />
-                  </button>
-                ))}
+          <div className={styles.carHeaderTop}>
+          <div
+            className={styles.carImageWrap}
+            onClick={() => car.images?.length && setLightboxOpen(true)}
+            style={car.images?.length ? { cursor: 'zoom-in' } : undefined}
+          >
+            {car.images?.[activeImg] ? (
+              <img src={car.images[activeImg]} alt={`${car.brand} ${car.model}`}
+                className={styles.carImage} />
+            ) : (
+              <div className={styles.carImagePlaceholder} aria-hidden>
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="1">
+                  <path d="M5 11l1.5-4.5h11L19 11"/>
+                  <path d="M3 11h18v7H3z" rx="1"/>
+                  <circle cx="7" cy="18" r="1.5"/>
+                  <circle cx="17" cy="18" r="1.5"/>
+                  <path d="M5 11h14"/>
+                </svg>
               </div>
             )}
           </div>
@@ -262,10 +245,28 @@ export default function AnalysisPage() {
             </span>
             <VerdictBadge verdict={verdict} />
           </div>
+        </div>
+
+        {car.images && car.images.length > 1 && (
+          <div className={styles.thumbStrip} role="list" aria-label="Fler bilder">
+            {car.images.slice(0, 6).map((src, i) => (
+              <button
+                key={i}
+                type="button"
+                className={`${styles.thumbBtn} ${i === activeImg ? styles.thumbActive : ''}`}
+                onClick={() => setActiveImg(i)}
+                aria-label={`Visa bild ${i + 1} av ${car.images!.length}`}
+                aria-pressed={i === activeImg}
+              >
+                <img src={src} alt="" />
+              </button>
+            ))}
+          </div>
+        )}
         </header>
 
         {/* ── TL;DR: score + main driver + AI summary ── */}
-        <div className={`${styles.heroRow} anim-fade-up delay-1`}>
+        <div className={`${styles.heroCard} card anim-fade-up delay-1`}>
           <ScoreRing score={scores.deal} verdict={verdict} driverText={mainDriverText(scores)} />
         </div>
         <div className={`anim-fade-up delay-2`}>
@@ -448,31 +449,36 @@ function ScoreRing({ score, verdict, driverText }: { score: number; verdict: str
               : 'var(--red)'
 
   return (
-    <div className={`${styles.scoreRingCard} card`}>
-      <span className="section-label">Deal score</span>
-      <div className={styles.ringWrap}>
-        <svg width="100" height="100" viewBox="0 0 100 100" role="img"
-          aria-label={`Deal score: ${score} av 100`}>
-          <circle cx="50" cy="50" r={r} fill="none"
-            stroke="var(--surface-3)" strokeWidth="7"/>
-          <circle cx="50" cy="50" r={r} fill="none"
-            stroke={color} strokeWidth="7"
-            strokeDasharray={circ}
-            strokeDashoffset={offset}
-            strokeLinecap="round"
-            transform="rotate(-90 50 50)"
-            style={{ transition: 'stroke-dashoffset 1.2s var(--ease-out)',
-                     animation: 'ringDraw 1.2s var(--ease-out) both' }}
-          />
-        </svg>
-        <div className={styles.ringCenter}>
-          <span className={styles.ringScore} style={{ color }}>{score}</span>
-          <span className={styles.ringMax}>/100</span>
+    <>
+      <div className={styles.heroRingCol}>
+        <span className="section-label">Deal score</span>
+        <div className={styles.ringWrap}>
+          <svg width="100" height="100" viewBox="0 0 100 100" role="img"
+            aria-label={`Deal score: ${score} av 100`}>
+            <circle cx="50" cy="50" r={r} fill="none"
+              stroke="var(--surface-3)" strokeWidth="7"/>
+            <circle cx="50" cy="50" r={r} fill="none"
+              stroke={color} strokeWidth="7"
+              strokeDasharray={circ}
+              strokeDashoffset={offset}
+              strokeLinecap="round"
+              transform="rotate(-90 50 50)"
+              style={{ transition: 'stroke-dashoffset 1.2s var(--ease-out)',
+                       animation: 'ringDraw 1.2s var(--ease-out) both' }}
+            />
+          </svg>
+          <div className={styles.ringCenter}>
+            <span className={styles.ringScore} style={{ color }}>{score}</span>
+            <span className={styles.ringMax}>/100</span>
+          </div>
         </div>
       </div>
-      <VerdictBadge verdict={verdict} />
-      {driverText && <p className={styles.ringDriverText}>{driverText}</p>}
-    </div>
+      <div className={styles.heroCardDivider} aria-hidden />
+      <div className={styles.heroCardRight}>
+        <VerdictBadge verdict={verdict} />
+        {driverText && <p className={styles.ringDriverText}>{driverText}</p>}
+      </div>
+    </>
   )
 }
 
