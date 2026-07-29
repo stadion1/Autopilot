@@ -250,3 +250,30 @@ CREATE POLICY "Public read done analyses"
 
 -- Service role (used by API) can do everything
 -- (service role bypasses RLS by default in Supabase)
+
+
+-- ============================================================
+-- Migration: nightly scraper support (NIGHTLY_SCRAPER.md)
+-- Run this once in Supabase Dashboard → SQL Editor → New Query
+-- ============================================================
+
+-- Needed for upsert-on-conflict dedup in scraper-service/nightly.ts
+ALTER TABLE market_listings ADD COLUMN IF NOT EXISTS first_seen_at TIMESTAMPTZ DEFAULT now();
+ALTER TABLE market_listings ADD CONSTRAINT market_listings_source_url_key UNIQUE (source_url);
+
+-- Marks listings not re-seen in p_grace_days nights as sold. A single missed
+-- night isn't strong evidence of a sale — the nightly job only samples a
+-- rotating subset of the total market, so a grace period avoids false positives.
+CREATE OR REPLACE FUNCTION mark_stale_listings_sold(p_grace_days INT DEFAULT 5)
+RETURNS INT
+LANGUAGE SQL AS $$
+  WITH updated AS (
+    UPDATE market_listings
+    SET sold_at     = now(),
+        days_listed = GREATEST(1, EXTRACT(DAY FROM now() - first_seen_at))::INT
+    WHERE sold_at IS NULL
+      AND scraped_at < now() - (p_grace_days::TEXT || ' days')::INTERVAL
+    RETURNING 1
+  )
+  SELECT COUNT(*)::INT FROM updated;
+$$;

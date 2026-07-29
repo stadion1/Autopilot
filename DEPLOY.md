@@ -50,6 +50,37 @@ SCRAPER_SECRET=välj-en-lång-hemlig-sträng-här
 
 ---
 
+## Del 2b — Railway (nightly scraper, cron)
+
+Bygger marknadsprisdata i `market_listings` — se NIGHTLY_SCRAPER.md. Kräver
+att migrationen längst ner i `data/schema.sql` (source_url-unikhet +
+`mark_stale_listings_sold()`) har körts i Supabase SQL Editor först.
+
+1. I samma Railway-projekt som Del 2: **New Service** → **GitHub Repo** → samma
+   repo, samma Root Directory (**scraper-service**) — Railway återanvänder
+   samma Dockerfile/image, bara start-kommandot skiljer sig
+2. Under **Settings → Deploy** → sätt **Custom Start Command**:
+   ```
+   node dist/nightly.js
+   ```
+3. Under **Settings → Cron Schedule** — aktivera och sätt:
+   ```
+   0 2 * * *
+   ```
+   (körs varje natt kl 02:00 UTC)
+4. Lägg till miljövariabler under **Variables** (samma projekt som Del 2
+   har redan `NODE_ENV`/`SCRAPER_SECRET` — den här tjänsten behöver
+   dessutom):
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=        (från Del 1)
+   SUPABASE_SERVICE_ROLE_KEY=       (från Del 1)
+   NIGHTLY_MAX_PAGES=20             (valfritt, default 20)
+   ```
+5. Kör en manuell deploy första gången och kontrollera loggarna — ska sluta
+   med `[nightly] Klart på X.Xs`
+
+---
+
 ## Del 3 — Vercel (frontend)
 
 1. Gå till **vercel.com** → New Project → Import från GitHub

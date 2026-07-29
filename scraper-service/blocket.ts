@@ -10,7 +10,7 @@ function extractAdId(url: string): string | null {
   return match?.[1] ?? null
 }
 
-function parseFuelType(raw?: string): FuelType {
+export function parseFuelType(raw?: string): FuelType {
   if (!raw) return 'Bensin'
   const s = raw.toLowerCase()
   if (s.includes('el'))                               return 'El'
@@ -21,7 +21,7 @@ function parseFuelType(raw?: string): FuelType {
   return 'Bensin'
 }
 
-function parseTransmission(raw?: string): Transmission {
+export function parseTransmission(raw?: string): Transmission {
   if (!raw) return 'Manuell'
   return raw.toLowerCase().includes('auto') ? 'Automat' : 'Manuell'
 }
