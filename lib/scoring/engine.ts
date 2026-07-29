@@ -493,6 +493,40 @@ function detectRisks(car: CarListing, modelNotes: string | undefined, avgMilPerY
     .slice(0, 6)
 }
 
+// ─── Premium/exklusiv utrustningsnivå ─────────────────────────────────────────
+// Marknadsmedianen (statisk eller live) tar bara hänsyn till märke/modell/år —
+// inte utrustningsnivå. Matchar mot namngivna toppvarianter per märke, inte
+// enskilda tillval, så det bara flaggas för bilar som faktiskt har en känd
+// premiumvariant — annars skulle det kommentera på nästan varje bil.
+
+const PREMIUM_TRIM_KEYWORDS: Record<string, string[]> = {
+  'Volvo':         ['inscription', 'r-design', 'ultimate', 'polestar engineered'],
+  'BMW':           ['m sport', 'm performance', 'individual'],
+  'Mercedes-Benz': ['amg line', 'amg'],
+  'Audi':          ['s line', 'competition', 'vorsprung'],
+  'Volkswagen':    ['r-line', 'gti', 'r'],
+  'Skoda':         ['sportline', 'rs', 'laurin & klement', 'l&k'],
+  'Kia':           ['gt-line', 'gt'],
+  'Hyundai':       ['n line', 'n-line'],
+  'Toyota':        ['gr sport', 'executive'],
+  'Seat':          ['fr', 'cupra'],
+  'Mini':          ['john cooper works', 'jcw'],
+  'Ford':          ['st-line', 'vignale'],
+  'Peugeot':       ['gt-line', 'gt'],
+}
+
+function detectPremiumTrim(car: CarListing): string | null {
+  const keywords = PREMIUM_TRIM_KEYWORDS[car.brand]
+  if (!keywords || !car.variant) return null
+
+  for (const keyword of keywords) {
+    const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const match = car.variant.match(new RegExp(`\\b${escaped}\\b`, 'i'))
+    if (match) return match[0]
+  }
+  return null
+}
+
 // ─── Pros / Cons ──────────────────────────────────────────────────────────────
 
 function generatePros(car: CarListing, scores: Omit<DealScores,'deal'>,
@@ -500,6 +534,7 @@ function generatePros(car: CarListing, scores: Omit<DealScores,'deal'>,
   const pros: string[] = []
   const mil = Math.round(car.mileage_km / 10)
   const age = CURRENT_YEAR - car.year
+  const premiumTrim = detectPremiumTrim(car)
 
   if (scores.mileage >= 80)
     pros.push(`Mätarställningen (${mil.toLocaleString('sv-SE')} mil) är under genomsnittet för en ${age} år gammal bil — typiskt ${(age * avgMilPerYear).toLocaleString('sv-SE')} mil.`)
@@ -515,6 +550,8 @@ function generatePros(car: CarListing, scores: Omit<DealScores,'deal'>,
     pros.push('Säljs av återförsäljare — innebär ofta garanti och möjlighet till finansiering.')
   if (scores.resale >= 74)
     pros.push('Modellen håller andrahandsvärdet väl, vilket minskar den totala ägandekostnaden.')
+  if (premiumTrim && pricing.delta_pct >= -0.04)
+    pros.push(`Utrustningsnivån "${premiumTrim}" är en efterfrågad toppvariant, vilket stärker andrahandsvärdet.`)
 
   return pros.slice(0, 4)
 }
@@ -522,9 +559,15 @@ function generatePros(car: CarListing, scores: Omit<DealScores,'deal'>,
 function generateCons(car: CarListing, scores: Omit<DealScores,'deal'>, pricing: PriceRange): string[] {
   const cons: string[] = []
   const age = CURRENT_YEAR - car.year
+  const premiumTrim = detectPremiumTrim(car)
 
-  if (pricing.delta_pct < -0.04)
-    cons.push(`Priset är ${(Math.abs(pricing.delta_pct) * 100).toFixed(0)}% över estimerat marknadsmedian — det finns utrymme att förhandla.`)
+  if (pricing.delta_pct < -0.04) {
+    if (premiumTrim) {
+      cons.push(`Priset är ${(Math.abs(pricing.delta_pct) * 100).toFixed(0)}% över estimerat marknadsmedian — men medianen tar inte hänsyn till utrustningsnivå, och den här bilen har utrustningspaketet "${premiumTrim}" som kan motivera en del av skillnaden.`)
+    } else {
+      cons.push(`Priset är ${(Math.abs(pricing.delta_pct) * 100).toFixed(0)}% över estimerat marknadsmedian — det finns utrymme att förhandla.`)
+    }
+  }
   if (scores.ownership < 58)
     cons.push(`${car.fuel_type}-drivning och/eller premiumvarumärke ger relativt hög uppskattad ägandekostnad.`)
   if (age > 7)

@@ -43,7 +43,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
 
   {
     brand: 'Volvo', model: 'XC60',
-    yearFrom: 2017, yearTo: 2025,
+    yearFrom: 2017, yearTo: 2027,
     basePrice: 620000, depreciation: 0.120,
     avgMilPerYear: 1400, pricePer1000ExtraMil: -3000,
     reliabilityBase: 74, resaleBase: 76,
@@ -51,7 +51,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
   },
   {
     brand: 'Volvo', model: 'V60',
-    yearFrom: 2018, yearTo: 2025,
+    yearFrom: 2018, yearTo: 2027,
     basePrice: 480000, depreciation: 0.125,
     avgMilPerYear: 1500, pricePer1000ExtraMil: -2800,
     reliabilityBase: 75, resaleBase: 74,
@@ -59,7 +59,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
   },
   {
     brand: 'Volvo', model: 'V60 Cross Country',
-    yearFrom: 2018, yearTo: 2025,
+    yearFrom: 2018, yearTo: 2027,
     basePrice: 530000, depreciation: 0.115,
     avgMilPerYear: 1400, pricePer1000ExtraMil: -2600,
     reliabilityBase: 75, resaleBase: 78,
@@ -67,7 +67,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
   },
   {
     brand: 'Volvo', model: 'XC40',
-    yearFrom: 2018, yearTo: 2025,
+    yearFrom: 2018, yearTo: 2027,
     basePrice: 430000, depreciation: 0.130,
     avgMilPerYear: 1400, pricePer1000ExtraMil: -2500,
     reliabilityBase: 72, resaleBase: 72,
@@ -75,7 +75,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
   },
   {
     brand: 'Volvo', model: 'V90',
-    yearFrom: 2016, yearTo: 2025,
+    yearFrom: 2016, yearTo: 2027,
     basePrice: 620000, depreciation: 0.130,
     avgMilPerYear: 1500, pricePer1000ExtraMil: -3200,
     reliabilityBase: 74, resaleBase: 72,
@@ -83,7 +83,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
   },
   {
     brand: 'Volvo', model: 'V90 Cross Country',
-    yearFrom: 2017, yearTo: 2025,
+    yearFrom: 2017, yearTo: 2027,
     basePrice: 680000, depreciation: 0.120,
     avgMilPerYear: 1400, pricePer1000ExtraMil: -3000,
     reliabilityBase: 74, resaleBase: 75,
@@ -91,7 +91,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
   },
   {
     brand: 'Volvo', model: 'XC90',
-    yearFrom: 2015, yearTo: 2025,
+    yearFrom: 2015, yearTo: 2027,
     basePrice: 820000, depreciation: 0.130,
     avgMilPerYear: 1300, pricePer1000ExtraMil: -3500,
     reliabilityBase: 71, resaleBase: 73,
@@ -99,7 +99,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
   },
   {
     brand: 'Volvo', model: 'S60',
-    yearFrom: 2018, yearTo: 2025,
+    yearFrom: 2018, yearTo: 2027,
     basePrice: 450000, depreciation: 0.130,
     avgMilPerYear: 1500, pricePer1000ExtraMil: -2600,
     reliabilityBase: 75, resaleBase: 70,
@@ -112,7 +112,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
 
   {
     brand: 'Toyota', model: 'RAV4',
-    yearFrom: 2018, yearTo: 2025,
+    yearFrom: 2018, yearTo: 2027,
     basePrice: 440000, depreciation: 0.110,
     avgMilPerYear: 1400, pricePer1000ExtraMil: -2400,
     reliabilityBase: 87, resaleBase: 76,
@@ -120,7 +120,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
   },
   {
     brand: 'Toyota', model: 'Corolla',
-    yearFrom: 2018, yearTo: 2025,
+    yearFrom: 2018, yearTo: 2027,
     basePrice: 310000, depreciation: 0.105,
     avgMilPerYear: 1500, pricePer1000ExtraMil: -1800,
     reliabilityBase: 89, resaleBase: 72,
@@ -128,7 +128,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
   },
   {
     brand: 'Toyota', model: 'Yaris',
-    yearFrom: 2020, yearTo: 2025,
+    yearFrom: 2020, yearTo: 2027,
     basePrice: 240000, depreciation: 0.105,
     avgMilPerYear: 1200, pricePer1000ExtraMil: -1400,
     reliabilityBase: 90, resaleBase: 70,
@@ -136,7 +136,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
   },
   {
     brand: 'Toyota', model: 'C-HR',
-    yearFrom: 2016, yearTo: 2025,
+    yearFrom: 2016, yearTo: 2027,
     basePrice: 330000, depreciation: 0.115,
     avgMilPerYear: 1300, pricePer1000ExtraMil: -1900,
     reliabilityBase: 85, resaleBase: 68,
@@ -155,7 +155,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
 
   {
     brand: 'Volkswagen', model: 'Golf',
-    yearFrom: 2019, yearTo: 2025,
+    yearFrom: 2019, yearTo: 2027,
     basePrice: 330000, depreciation: 0.115,
     avgMilPerYear: 1500, pricePer1000ExtraMil: -2000,
     reliabilityBase: 72, resaleBase: 67,
@@ -171,7 +171,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
   },
   {
     brand: 'Volkswagen', model: 'Tiguan',
-    yearFrom: 2016, yearTo: 2025,
+    yearFrom: 2016, yearTo: 2027,
     basePrice: 420000, depreciation: 0.120,
     avgMilPerYear: 1400, pricePer1000ExtraMil: -2500,
     reliabilityBase: 70, resaleBase: 68,
@@ -179,7 +179,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
   },
   {
     brand: 'Volkswagen', model: 'T-Cross',
-    yearFrom: 2018, yearTo: 2025,
+    yearFrom: 2018, yearTo: 2027,
     basePrice: 260000, depreciation: 0.118,
     avgMilPerYear: 1300, pricePer1000ExtraMil: -1600,
     reliabilityBase: 73, resaleBase: 68,
@@ -187,7 +187,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
   },
   {
     brand: 'Volkswagen', model: 'ID.3',
-    yearFrom: 2020, yearTo: 2025,
+    yearFrom: 2020, yearTo: 2027,
     basePrice: 380000, depreciation: 0.160,
     avgMilPerYear: 1200, pricePer1000ExtraMil: -1500,
     reliabilityBase: 65, resaleBase: 58,
@@ -195,7 +195,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
   },
   {
     brand: 'Volkswagen', model: 'ID.4',
-    yearFrom: 2021, yearTo: 2025,
+    yearFrom: 2021, yearTo: 2027,
     basePrice: 480000, depreciation: 0.155,
     avgMilPerYear: 1300, pricePer1000ExtraMil: -2000,
     reliabilityBase: 67, resaleBase: 60,
@@ -208,7 +208,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
 
   {
     brand: 'BMW', model: '3-serie',
-    yearFrom: 2018, yearTo: 2025,
+    yearFrom: 2018, yearTo: 2027,
     basePrice: 520000, depreciation: 0.140,
     avgMilPerYear: 1500, pricePer1000ExtraMil: -3000,
     reliabilityBase: 62, resaleBase: 70,
@@ -216,7 +216,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
   },
   {
     brand: 'BMW', model: '5-serie',
-    yearFrom: 2016, yearTo: 2025,
+    yearFrom: 2016, yearTo: 2027,
     basePrice: 680000, depreciation: 0.145,
     avgMilPerYear: 1600, pricePer1000ExtraMil: -3500,
     reliabilityBase: 60, resaleBase: 68,
@@ -224,7 +224,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
   },
   {
     brand: 'BMW', model: 'X3',
-    yearFrom: 2017, yearTo: 2025,
+    yearFrom: 2017, yearTo: 2027,
     basePrice: 620000, depreciation: 0.135,
     avgMilPerYear: 1400, pricePer1000ExtraMil: -3200,
     reliabilityBase: 63, resaleBase: 70,
@@ -232,7 +232,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
   },
   {
     brand: 'BMW', model: 'X5',
-    yearFrom: 2018, yearTo: 2025,
+    yearFrom: 2018, yearTo: 2027,
     basePrice: 900000, depreciation: 0.140,
     avgMilPerYear: 1400, pricePer1000ExtraMil: -4000,
     reliabilityBase: 60, resaleBase: 69,
@@ -243,7 +243,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
 
   {
     brand: 'Mercedes-Benz', model: 'C-klass',
-    yearFrom: 2014, yearTo: 2025,
+    yearFrom: 2014, yearTo: 2027,
     basePrice: 560000, depreciation: 0.140,
     avgMilPerYear: 1500, pricePer1000ExtraMil: -3000,
     reliabilityBase: 63, resaleBase: 68,
@@ -251,7 +251,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
   },
   {
     brand: 'Mercedes-Benz', model: 'E-klass',
-    yearFrom: 2016, yearTo: 2025,
+    yearFrom: 2016, yearTo: 2027,
     basePrice: 720000, depreciation: 0.140,
     avgMilPerYear: 1600, pricePer1000ExtraMil: -3500,
     reliabilityBase: 62, resaleBase: 67,
@@ -259,7 +259,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
   },
   {
     brand: 'Mercedes-Benz', model: 'GLC',
-    yearFrom: 2015, yearTo: 2025,
+    yearFrom: 2015, yearTo: 2027,
     basePrice: 640000, depreciation: 0.135,
     avgMilPerYear: 1400, pricePer1000ExtraMil: -3200,
     reliabilityBase: 63, resaleBase: 69,
@@ -271,7 +271,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
 
   {
     brand: 'Skoda', model: 'Octavia',
-    yearFrom: 2012, yearTo: 2025,
+    yearFrom: 2012, yearTo: 2027,
     basePrice: 310000, depreciation: 0.115,
     avgMilPerYear: 1600, pricePer1000ExtraMil: -1900,
     reliabilityBase: 76, resaleBase: 67,
@@ -279,7 +279,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
   },
   {
     brand: 'Skoda', model: 'Superb',
-    yearFrom: 2015, yearTo: 2025,
+    yearFrom: 2015, yearTo: 2027,
     basePrice: 380000, depreciation: 0.120,
     avgMilPerYear: 1600, pricePer1000ExtraMil: -2200,
     reliabilityBase: 75, resaleBase: 65,
@@ -287,7 +287,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
   },
   {
     brand: 'Skoda', model: 'Kodiaq',
-    yearFrom: 2016, yearTo: 2025,
+    yearFrom: 2016, yearTo: 2027,
     basePrice: 400000, depreciation: 0.120,
     avgMilPerYear: 1400, pricePer1000ExtraMil: -2400,
     reliabilityBase: 74, resaleBase: 66,
@@ -298,7 +298,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
 
   {
     brand: 'Hyundai', model: 'Tucson',
-    yearFrom: 2020, yearTo: 2025,
+    yearFrom: 2020, yearTo: 2027,
     basePrice: 400000, depreciation: 0.120,
     avgMilPerYear: 1400, pricePer1000ExtraMil: -2300,
     reliabilityBase: 77, resaleBase: 68,
@@ -306,7 +306,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
   },
   {
     brand: 'Hyundai', model: 'i30',
-    yearFrom: 2017, yearTo: 2025,
+    yearFrom: 2017, yearTo: 2027,
     basePrice: 260000, depreciation: 0.115,
     avgMilPerYear: 1400, pricePer1000ExtraMil: -1700,
     reliabilityBase: 78, resaleBase: 65,
@@ -314,7 +314,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
   },
   {
     brand: 'Hyundai', model: 'IONIQ 5',
-    yearFrom: 2021, yearTo: 2025,
+    yearFrom: 2021, yearTo: 2027,
     basePrice: 590000, depreciation: 0.145,
     avgMilPerYear: 1300, pricePer1000ExtraMil: -2000,
     reliabilityBase: 74, resaleBase: 65,
@@ -325,7 +325,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
 
   {
     brand: 'Kia', model: 'Sportage',
-    yearFrom: 2021, yearTo: 2025,
+    yearFrom: 2021, yearTo: 2027,
     basePrice: 390000, depreciation: 0.118,
     avgMilPerYear: 1400, pricePer1000ExtraMil: -2200,
     reliabilityBase: 78, resaleBase: 69,
@@ -333,7 +333,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
   },
   {
     brand: 'Kia', model: 'EV6',
-    yearFrom: 2021, yearTo: 2025,
+    yearFrom: 2021, yearTo: 2027,
     basePrice: 560000, depreciation: 0.140,
     avgMilPerYear: 1300, pricePer1000ExtraMil: -1800,
     reliabilityBase: 75, resaleBase: 64,
@@ -344,7 +344,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
 
   {
     brand: 'Ford', model: 'Focus',
-    yearFrom: 2018, yearTo: 2025,
+    yearFrom: 2018, yearTo: 2027,
     basePrice: 260000, depreciation: 0.125,
     avgMilPerYear: 1500, pricePer1000ExtraMil: -1700,
     reliabilityBase: 70, resaleBase: 62,
@@ -352,7 +352,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
   },
   {
     brand: 'Ford', model: 'Kuga',
-    yearFrom: 2019, yearTo: 2025,
+    yearFrom: 2019, yearTo: 2027,
     basePrice: 350000, depreciation: 0.125,
     avgMilPerYear: 1400, pricePer1000ExtraMil: -2100,
     reliabilityBase: 68, resaleBase: 63,
@@ -363,7 +363,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
 
   {
     brand: 'Renault', model: 'Clio',
-    yearFrom: 2019, yearTo: 2025,
+    yearFrom: 2019, yearTo: 2027,
     basePrice: 230000, depreciation: 0.130,
     avgMilPerYear: 1300, pricePer1000ExtraMil: -1400,
     reliabilityBase: 68, resaleBase: 60,
@@ -382,7 +382,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
 
   {
     brand: 'Peugeot', model: '3008',
-    yearFrom: 2016, yearTo: 2025,
+    yearFrom: 2016, yearTo: 2027,
     basePrice: 340000, depreciation: 0.130,
     avgMilPerYear: 1400, pricePer1000ExtraMil: -2000,
     reliabilityBase: 68, resaleBase: 60,
@@ -393,7 +393,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
 
   {
     brand: 'Tesla', model: 'Model 3',
-    yearFrom: 2018, yearTo: 2025,
+    yearFrom: 2018, yearTo: 2027,
     basePrice: 520000, depreciation: 0.160,
     avgMilPerYear: 1400, pricePer1000ExtraMil: -1800,
     reliabilityBase: 68, resaleBase: 62,
@@ -401,7 +401,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
   },
   {
     brand: 'Tesla', model: 'Model Y',
-    yearFrom: 2021, yearTo: 2025,
+    yearFrom: 2021, yearTo: 2027,
     basePrice: 600000, depreciation: 0.155,
     avgMilPerYear: 1400, pricePer1000ExtraMil: -2000,
     reliabilityBase: 69, resaleBase: 63,
@@ -412,7 +412,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
 
   {
     brand: 'Subaru', model: 'Outback',
-    yearFrom: 2014, yearTo: 2025,
+    yearFrom: 2014, yearTo: 2027,
     basePrice: 420000, depreciation: 0.110,
     avgMilPerYear: 1400, pricePer1000ExtraMil: -2200,
     reliabilityBase: 80, resaleBase: 72,
@@ -434,7 +434,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
 
   {
     brand: 'Seat', model: 'Leon',
-    yearFrom: 2020, yearTo: 2025,
+    yearFrom: 2020, yearTo: 2027,
     basePrice: 290000, depreciation: 0.118,
     avgMilPerYear: 1400, pricePer1000ExtraMil: -1800,
     reliabilityBase: 73, resaleBase: 64,
@@ -445,7 +445,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
 
   {
     brand: 'Mazda', model: 'CX-5',
-    yearFrom: 2017, yearTo: 2025,
+    yearFrom: 2017, yearTo: 2027,
     basePrice: 380000, depreciation: 0.112,
     avgMilPerYear: 1400, pricePer1000ExtraMil: -2200,
     reliabilityBase: 83, resaleBase: 70,
@@ -456,7 +456,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
 
   {
     brand: 'Dacia', model: 'Duster',
-    yearFrom: 2018, yearTo: 2025,
+    yearFrom: 2018, yearTo: 2027,
     basePrice: 210000, depreciation: 0.115,
     avgMilPerYear: 1300, pricePer1000ExtraMil: -1300,
     reliabilityBase: 72, resaleBase: 64,
