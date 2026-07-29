@@ -239,6 +239,53 @@ export const MODEL_REFERENCES: ModelReference[] = [
     notes: 'G05 (2018+). Komplex bil med höga underhålls­kostnader. xDrive45e PHEV kräver batterikontroll. Räkna med 30 000+ kr/år i service.',
   },
 
+  // ─── AUDI ────────────────────────────────────────────────────────────────
+  // Basprisen för A4/A6/Q5 är uppskattade genom jämförelse mot redan verifierade
+  // BMW/Mercedes-motsvarigheter i samma segment (3-serie/C-klass, 5-serie/E-klass,
+  // X3/GLC) — inga officiella nypriser hittades för just dessa vid research.
+  // A3, Q3 och övriga fält är hämtade från Audi Sveriges prislista/återförsäljardata.
+
+  {
+    brand: 'Audi', model: 'A3',
+    yearFrom: 2020, yearTo: 2027,
+    basePrice: 370000, depreciation: 0.135,
+    avgMilPerYear: 1500, pricePer1000ExtraMil: -2000,
+    reliabilityBase: 66, resaleBase: 68,
+    notes: 'Golf-konkurrent med Audi-premium. EA888-motorer delar konstruktion med VW/Skoda — samma kedjespännar­problem kan förekomma på tidiga exemplar.',
+  },
+  {
+    brand: 'Audi', model: 'Q3',
+    yearFrom: 2019, yearTo: 2027,
+    basePrice: 400000, depreciation: 0.135,
+    avgMilPerYear: 1400, pricePer1000ExtraMil: -2400,
+    reliabilityBase: 65, resaleBase: 68,
+    notes: 'Populär kompakt-SUV. Delar plattform med VW Tiguan/Skoda Karoq. Stark efterfrågan i Sverige håller andrahandsvärdet uppe.',
+  },
+  {
+    brand: 'Audi', model: 'A4',
+    yearFrom: 2019, yearTo: 2027,
+    basePrice: 470000, depreciation: 0.140,
+    avgMilPerYear: 1500, pricePer1000ExtraMil: -3000,
+    reliabilityBase: 65, resaleBase: 69,
+    notes: 'Direkt konkurrent till BMW 3-serie och Mercedes C-klass. Tidiga 2.0 TFSI (EA888 Gen1) kan ha kedjespännar­problem — kontrollera servicehistorik.',
+  },
+  {
+    brand: 'Audi', model: 'A6',
+    yearFrom: 2018, yearTo: 2027,
+    basePrice: 680000, depreciation: 0.145,
+    avgMilPerYear: 1600, pricePer1000ExtraMil: -3500,
+    reliabilityBase: 64, resaleBase: 68,
+    notes: 'Storsäljande tjänstebil. Komplex elektronik och luftfjädring på högre utrustningsnivåer ger högre servicekostnad. Stark efterfrågan andrahand.',
+  },
+  {
+    brand: 'Audi', model: 'Q5',
+    yearFrom: 2018, yearTo: 2027,
+    basePrice: 630000, depreciation: 0.135,
+    avgMilPerYear: 1400, pricePer1000ExtraMil: -3200,
+    reliabilityBase: 66, resaleBase: 70,
+    notes: 'Konkurrerar med BMW X3 och Mercedes GLC. Bra andrahandsvärde tack vare stark efterfrågan på premium-SUV i Sverige.',
+  },
+
   // ─── MERCEDES-BENZ ────────────────────────────────────────────────────────
 
   {
@@ -338,6 +385,57 @@ export const MODEL_REFERENCES: ModelReference[] = [
     avgMilPerYear: 1300, pricePer1000ExtraMil: -1800,
     reliabilityBase: 75, resaleBase: 64,
     notes: 'Delar plattform med IONIQ 5. Sportig elbil. Kontrollera batterihälsa. Deprecierar snabbt 2021–2022-modeller. GT-variant håller värdet bättre.',
+  },
+  {
+    brand: 'Kia', model: 'Niro',
+    yearFrom: 2022, yearTo: 2027,
+    basePrice: 440000, depreciation: 0.130,
+    avgMilPerYear: 1300, pricePer1000ExtraMil: -2000,
+    reliabilityBase: 78, resaleBase: 66,
+    notes: 'Andra generationen (2022+) finns som hybrid, laddhybrid och helelektrisk. 7 års garanti från ny. Laddhybrid-varianten kräver batterikontroll.',
+  },
+  {
+    brand: 'Kia', model: 'Ceed',
+    yearFrom: 2019, yearTo: 2027,
+    basePrice: 320000, depreciation: 0.120,
+    avgMilPerYear: 1500, pricePer1000ExtraMil: -1900,
+    reliabilityBase: 77, resaleBase: 63,
+    notes: 'Golf-klass till lägre pris. Kombi (SW) mest efterfrågad i Sverige. 7 års garanti är ett starkt säljargument begagnat.',
+  },
+  {
+    brand: 'Kia', model: 'Picanto',
+    yearFrom: 2017, yearTo: 2027,
+    basePrice: 210000, depreciation: 0.115,
+    avgMilPerYear: 1200, pricePer1000ExtraMil: -1300,
+    reliabilityBase: 76, resaleBase: 60,
+    notes: 'Billig och pålitlig småbil. Låga service­kostnader. Mindre efterfrågan andrahand än större Kia-modeller, men lågt inköpspris kompenserar.',
+  },
+
+  // ─── NISSAN ──────────────────────────────────────────────────────────────
+
+  {
+    brand: 'Nissan', model: 'Qashqai',
+    yearFrom: 2021, yearTo: 2027,
+    basePrice: 330000, depreciation: 0.125,
+    avgMilPerYear: 1500, pricePer1000ExtraMil: -2200,
+    reliabilityBase: 76, resaleBase: 65,
+    notes: 'Tredje generationen (2021+) med mildhybrid/e-POWER. CVT-växellådan (1.2 DIG-T-motorn) kan överhettas i tät trafik — begär att oljan bytts regelbundet.',
+  },
+  {
+    brand: 'Nissan', model: 'X-Trail',
+    yearFrom: 2022, yearTo: 2027,
+    basePrice: 400000, depreciation: 0.125,
+    avgMilPerYear: 1500, pricePer1000ExtraMil: -2500,
+    reliabilityBase: 75, resaleBase: 63,
+    notes: 'Fjärde generationen (2022+) med e-POWER (seriehybrid) eller bensin. Rymlig familje-SUV, finns med 7 säten.',
+  },
+  {
+    brand: 'Nissan', model: 'Leaf',
+    yearFrom: 2018, yearTo: 2027,
+    basePrice: 400000, depreciation: 0.155,
+    avgMilPerYear: 1300, pricePer1000ExtraMil: -1600,
+    reliabilityBase: 77, resaleBase: 58,
+    notes: 'En av de första folkliga elbilarna — mogen teknik. Kontrollera batterihälsa (SoH), särskilt på tidiga exemplar utan aktiv batterikylning. Snabb depreciation.',
   },
 
   // ─── FORD ─────────────────────────────────────────────────────────────────
