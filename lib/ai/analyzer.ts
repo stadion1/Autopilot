@@ -83,11 +83,16 @@ function buildPrompt(
     ? `HÖGRE än genomsnittet för årsmodellen (${mil.toLocaleString('sv-SE')} mil vs typiska ${avgMilAge.toLocaleString('sv-SE')} mil)`
     : `I LINJE med genomsnittet (${mil.toLocaleString('sv-SE')} mil)`
 
+  // Ge alltid den faktiska procentsatsen, även när den är liten — annars
+  // saknar modellen ett konkret tal att utgå från i "i linje"-fallet, och
+  // kan (trots instruktionen att bara förklara givna siffror) hitta på en
+  // egen uppskattning istället för att spegla den verkliga, obetydliga skillnaden.
+  const deltaPctAbs = Math.abs(pricing.delta_pct * 100).toFixed(1)
   const priceSignal = pricing.delta_pct > 0.03
-    ? `${(pricing.delta_pct * 100).toFixed(1)}% UNDER estimerat median — gynnsamt för köparen`
+    ? `${deltaPctAbs}% UNDER estimerat median — gynnsamt för köparen`
     : pricing.delta_pct < -0.03
-    ? `${(Math.abs(pricing.delta_pct) * 100).toFixed(1)}% ÖVER estimerat median`
-    : 'I LINJE med estimerat median'
+    ? `${deltaPctAbs}% ÖVER estimerat median`
+    : `Ungefär i linje med estimerat median (${deltaPctAbs}% ${pricing.delta_pct >= 0 ? 'under' : 'över'})`
 
   const highRisks = risks.filter(r => r.level === 'high')
   const medRisks  = risks.filter(r => r.level === 'medium')
