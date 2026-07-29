@@ -59,9 +59,16 @@ att migrationen längst ner i `data/schema.sql` (source_url-unikhet +
 1. I samma Railway-projekt som Del 2: **New Service** → **GitHub Repo** → samma
    repo, samma Root Directory (**scraper-service**) — Railway återanvänder
    samma Dockerfile/image, bara start-kommandot skiljer sig
-2. Under **Settings → Deploy** → sätt **Custom Start Command**:
+2. **Viktigt:** `scraper-service/railway.json` sätter redan
+   `startCommand: node dist/server.js` för webbtjänsten, och den filen
+   styr ALLA tjänster som pekar på samma Root Directory — att bara ändra
+   **Custom Start Command** i dashboarden för den nya tjänsten räcker
+   alltså inte, filen vinner ändå. Använd istället den separata
+   `scraper-service/railway.nightly.json` (redan i repot):
+   under **Settings → Config-as-code** → fältet **Railway Config File**
+   (obs: absolut sökväg från repo-roten, följer INTE Root Directory), sätt:
    ```
-   node dist/nightly.js
+   /scraper-service/railway.nightly.json
    ```
 3. Under **Settings → Cron Schedule** — aktivera och sätt:
    ```
