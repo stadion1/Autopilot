@@ -7,7 +7,7 @@ import styles from './page.module.css'
 const EXAMPLE_URLS = [
   'blocket.se/annons/volvo-v60-t5-inscription',
   'wayke.se/objekt/bmw-320d-xdrive',
-  'bytbil.com/toyota-corolla-hybrid',
+  'bytbil.com/vastra-gotalands-lan/personbil-corolla-hybrid-1122-19298930',
 ]
 
 // Håller spinnern synlig minst så här länge innan vi navigerar vidare —

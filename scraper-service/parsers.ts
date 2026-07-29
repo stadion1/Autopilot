@@ -52,6 +52,9 @@ export function validateListingUrl(url: string): { valid: boolean; error?: strin
   if (site === 'wayke' && !path.includes('/objekt/')) {
     return { valid: false, error: 'This looks like a search page. Please paste a specific listing URL.' }
   }
+  if (site === 'bytbil' && !/-\d{6,}\/?$/.test(path)) {
+    return { valid: false, error: 'This looks like a search page. Please paste a specific listing URL.' }
+  }
 
   return { valid: true, site }
 }

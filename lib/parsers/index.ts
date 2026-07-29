@@ -39,6 +39,9 @@ export function validateListingUrl(url: string): {
   if (site === 'wayke' && !path.includes('/objekt/')) {
     return { valid: false, error: 'Det ser ut som en söksida. Klistra in länken till en specifik annons.' }
   }
+  if (site === 'bytbil' && !/-\d{6,}\/?$/.test(path)) {
+    return { valid: false, error: 'Det ser ut som en söksida. Klistra in länken till en specifik annons.' }
+  }
 
   return { valid: true, site }
 }
