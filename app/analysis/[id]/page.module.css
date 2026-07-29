@@ -207,6 +207,78 @@
   object-fit: cover;
 }
 
+/* ── Lightbox ── */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(10,10,9,0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  animation: fadeIn 0.15s var(--ease-out) both;
+}
+
+.lightboxImg {
+  max-width: min(100%, 1000px);
+  max-height: 85vh;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+  cursor: default;
+}
+
+.lightboxClose {
+  position: absolute;
+  top: 1.25rem; right: 1.25rem;
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 50%;
+  color: var(--white);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.lightboxClose:hover { background: rgba(255,255,255,0.16); }
+
+.lightboxNav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px; height: 48px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 50%;
+  color: var(--white);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.lightboxNav:hover { background: rgba(255,255,255,0.16); }
+.lightboxPrev { left: 1.25rem; }
+.lightboxNext { right: 1.25rem; }
+
+.lightboxCounter {
+  position: absolute;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 13px;
+  color: rgba(255,255,255,0.7);
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 20px;
+  padding: 4px 14px;
+}
+
+@media (max-width: 500px) {
+  .lightbox { padding: 1rem; }
+  .lightboxNav { width: 40px; height: 40px; }
+  .lightboxPrev { left: 0.5rem; }
+  .lightboxNext { right: 0.5rem; }
+}
+
 .carImagePlaceholder {
   width: 100%;
   height: 100%;
@@ -295,25 +367,9 @@
 
 /* ── Hero (TL;DR) row ── */
 .heroRow {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.heroDriverCard {
   display: flex;
-  flex-direction: column;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 1.25rem 1.5rem;
-}
-
-.heroDriverText {
-  font-size: 15px;
-  font-weight: 400;
-  color: var(--ink-2);
-  line-height: 1.5;
+  margin-bottom: 1rem;
 }
 
 /* ── Detail section divider ── */
@@ -337,8 +393,17 @@
   flex-direction: column;
   align-items: center;
   gap: 0.75rem;
-  padding: 1.25rem 1.5rem;
-  min-width: 148px;
+  padding: 1.5rem 2rem;
+  width: 100%;
+  max-width: 340px;
+}
+
+.ringDriverText {
+  font-size: 13px;
+  color: var(--ink-3);
+  text-align: center;
+  line-height: 1.5;
+  margin-top: 2px;
 }
 
 .ringWrap {
@@ -787,8 +852,7 @@
   .scoreRow {
     grid-template-columns: 1fr;
   }
-  .heroRow { grid-template-columns: 1fr; }
-  .scoreRingCard { flex-direction: row; gap: 1rem; }
+  .scoreRingCard { max-width: 100%; }
   .carHeader { flex-direction: column; }
   .carPriceSide { align-items: flex-start; }
   .carImageCol { width: 100%; }

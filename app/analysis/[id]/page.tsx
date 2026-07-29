@@ -64,6 +64,7 @@ export default function AnalysisPage() {
   const [errorMsg, setErrorMsg] = useState('')
   const [activeImg, setActiveImg] = useState(0)
   const [linkCopied, setLinkCopied] = useState(false)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -169,7 +170,11 @@ export default function AnalysisPage() {
         {/* ── Car header ── */}
         <header className={`${styles.carHeader} card anim-fade-up`}>
           <div className={styles.carImageCol}>
-            <div className={styles.carImageWrap}>
+            <div
+              className={styles.carImageWrap}
+              onClick={() => car.images?.length && setLightboxOpen(true)}
+              style={car.images?.length ? { cursor: 'zoom-in' } : undefined}
+            >
               {car.images?.[activeImg] ? (
                 <img src={car.images[activeImg]} alt={`${car.brand} ${car.model}`}
                   className={styles.carImage} />
@@ -261,11 +266,7 @@ export default function AnalysisPage() {
 
         {/* ── TL;DR: score + main driver + AI summary ── */}
         <div className={`${styles.heroRow} anim-fade-up delay-1`}>
-          <ScoreRing score={scores.deal} verdict={verdict} />
-          <div className={`${styles.heroDriverCard} card`}>
-            <span className="section-label">Kort sagt</span>
-            <p className={styles.heroDriverText}>{mainDriverText(scores)}</p>
-          </div>
+          <ScoreRing score={scores.deal} verdict={verdict} driverText={mainDriverText(scores)} />
         </div>
         <div className={`anim-fade-up delay-2`}>
           <AISummaryCard summary={ai_summary} verdict={verdict} />
@@ -338,6 +339,15 @@ export default function AnalysisPage() {
         <Disclaimer meta={meta} confidence={confidence} />
 
       </div>
+
+      {lightboxOpen && car.images && car.images.length > 0 && (
+        <Lightbox
+          images={car.images}
+          index={activeImg}
+          onIndexChange={setActiveImg}
+          onClose={() => setLightboxOpen(false)}
+        />
+      )}
     </main>
   )
 }
@@ -362,6 +372,64 @@ function mainDriverText(scores: { price: number; reliability: number; ownership:
   return `${subject.charAt(0).toUpperCase()}${subject.slice(1)} drar ner betyget mest.`
 }
 
+function Lightbox({ images, index, onIndexChange, onClose }: {
+  images: string[]; index: number; onIndexChange: (i: number) => void; onClose: () => void
+}) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape')     onClose()
+      if (e.key === 'ArrowRight') onIndexChange((index + 1) % images.length)
+      if (e.key === 'ArrowLeft')  onIndexChange((index - 1 + images.length) % images.length)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [index, images.length, onIndexChange, onClose])
+
+  return (
+    <div className={styles.lightbox} onClick={onClose} role="dialog" aria-modal="true" aria-label="Bildvisare">
+      <button className={styles.lightboxClose} onClick={onClose} aria-label="Stäng bildvisare">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" strokeWidth="2" aria-hidden>
+          <path d="M18 6L6 18M6 6l12 12"/>
+        </svg>
+      </button>
+
+      {images.length > 1 && (
+        <button
+          className={`${styles.lightboxNav} ${styles.lightboxPrev}`}
+          onClick={e => { e.stopPropagation(); onIndexChange((index - 1 + images.length) % images.length) }}
+          aria-label="Föregående bild"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2" aria-hidden><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+      )}
+
+      <img
+        src={images[index]}
+        alt={`Bild ${index + 1} av ${images.length}`}
+        className={styles.lightboxImg}
+        onClick={e => e.stopPropagation()}
+      />
+
+      {images.length > 1 && (
+        <button
+          className={`${styles.lightboxNav} ${styles.lightboxNext}`}
+          onClick={e => { e.stopPropagation(); onIndexChange((index + 1) % images.length) }}
+          aria-label="Nästa bild"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2" aria-hidden><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      )}
+
+      {images.length > 1 && (
+        <span className={styles.lightboxCounter}>{index + 1} / {images.length}</span>
+      )}
+    </div>
+  )
+}
+
 /* ─── Sub-components ──────────────────────────────────────────────────────── */
 
 function VerdictBadge({ verdict }: { verdict: string }) {
@@ -371,7 +439,7 @@ function VerdictBadge({ verdict }: { verdict: string }) {
   return <span className={`tag ${cls} ${styles.verdictBadge}`}>{verdict}</span>
 }
 
-function ScoreRing({ score, verdict }: { score: number; verdict: string }) {
+function ScoreRing({ score, verdict, driverText }: { score: number; verdict: string; driverText?: string }) {
   const r = 42
   const circ = 2 * Math.PI * r
   const offset = circ - (score / 100) * circ
@@ -403,6 +471,7 @@ function ScoreRing({ score, verdict }: { score: number; verdict: string }) {
         </div>
       </div>
       <VerdictBadge verdict={verdict} />
+      {driverText && <p className={styles.ringDriverText}>{driverText}</p>}
     </div>
   )
 }

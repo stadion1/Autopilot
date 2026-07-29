@@ -594,8 +594,16 @@ function generateCons(car: CarListing, scores: Omit<DealScores,'deal'>, pricing:
     cons.push(`${car.fuel_type}-drivning och/eller premiumvarumärke ger relativt hög uppskattad ägandekostnad.`)
   if (age > 7)
     cons.push(`${age} år gammal bil — räkna med ökad risk för oväntade underhålls­kostnader.`)
-  if (scores.mileage < 55)
-    cons.push('Mätarställningen är över genomsnittet för årsmodellen. Begär fullständig servicehistorik.')
+  if (scores.mileage < 55) {
+    // Prispoängen är redan mätarställnings­justerad (referenspriset dras ner
+    // för mil över förväntat innan det jämförs med annonspriset) — om priset
+    // ändå ser bra ut trots det är det inte en motsägelse, utan en signal om
+    // att den justeringen redan är inräknad. Utan den här meningen läser det
+    // som två motstridiga omdömen ("bra pris" + "dålig mätarställning").
+    cons.push(pricing.delta_pct > 0.02
+      ? 'Mätarställningen är över genomsnittet för årsmodellen — det är redan inräknat i prisjämförelsen ovan, men begär ändå fullständig servicehistorik.'
+      : 'Mätarställningen är över genomsnittet för årsmodellen. Begär fullständig servicehistorik.')
+  }
   if (['BMW','Mercedes-Benz','Audi','Porsche'].includes(car.brand))
     cons.push(`${car.brand} har i genomsnitt högre service­kostnader än volymvarumärken.`)
   if (car.fuel_type === 'Diesel')
