@@ -668,6 +668,218 @@
   color: var(--ink-3);
 }
 
+/* ── Ownership cost ── */
+.ownershipCard {
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.ownershipHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.ownershipTotal {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.financingRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.financingToggle {
+  display: inline-flex;
+  background: var(--surface-2);
+  border-radius: 20px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.financingToggleBtn {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--ink-3);
+  background: transparent;
+  border: none;
+  border-radius: 17px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: all 0.15s var(--ease-out);
+}
+
+.financingToggleBtn:hover { color: var(--ink-1); }
+
+.financingToggleActive {
+  background: var(--ink-1);
+  color: var(--white);
+}
+.financingToggleActive:hover { color: var(--white); }
+
+.financingFields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  animation: fadeIn 0.2s var(--ease-out) both;
+}
+
+.financingField {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--ink-4);
+  letter-spacing: 0.03em;
+}
+
+.financingInputWrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+  background: var(--surface);
+}
+
+.financingInputWrap input {
+  width: 44px;
+  border: none;
+  outline: none;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--ink-1);
+  background: transparent;
+}
+
+.financingInputWrap span {
+  font-size: 12px;
+  color: var(--ink-4);
+}
+
+.financingField select {
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--ink-1);
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.ownershipChart {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+}
+
+.ownershipBarCol {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.ownershipBarOuter {
+  height: 180px;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+
+.ownershipBarTrack {
+  width: 100%;
+  display: flex;
+  flex-direction: column-reverse;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  overflow: hidden;
+  transition: height 0.9s var(--ease-out);
+}
+
+.ownershipSegment {
+  width: 100%;
+  transition: height 0.9s var(--ease-out);
+}
+
+.ownershipSegment[data-cat="depreciation"] { background: repeating-linear-gradient(135deg, var(--ink-4), var(--ink-4) 4px, var(--ink-5) 4px, var(--ink-5) 8px); }
+.ownershipSegment[data-cat="service"]      { background: var(--accent-light); }
+.ownershipSegment[data-cat="insurance"]    { background: var(--amber); }
+.ownershipSegment[data-cat="tax"]          { background: #5E7A9E; }
+.ownershipSegment[data-cat="fuel"]         { background: #B5762E; }
+.ownershipSegment[data-cat="financing"]    { background: #7A5C8E; }
+
+.ownershipBarTotal {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-2);
+  margin-top: 6px;
+}
+
+.ownershipBarLabel {
+  font-size: 11px;
+  color: var(--ink-4);
+}
+
+.ownershipLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-3);
+  font-weight: 300;
+}
+
+.legendDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.legendDot[data-cat="depreciation"] { background: repeating-linear-gradient(135deg, var(--ink-4), var(--ink-4) 2px, var(--ink-5) 2px, var(--ink-5) 4px); }
+.legendDot[data-cat="service"]      { background: var(--accent-light); }
+.legendDot[data-cat="insurance"]    { background: var(--amber); }
+.legendDot[data-cat="tax"]          { background: #5E7A9E; }
+.legendDot[data-cat="fuel"]         { background: #B5762E; }
+.legendDot[data-cat="financing"]    { background: #7A5C8E; }
+
+.ownershipDisclaimer {
+  font-size: 11px;
+  color: var(--ink-4);
+  font-weight: 300;
+  line-height: 1.5;
+  margin-top: 0.75rem;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 /* ── Pros / Cons ── */
 .prosConsRow {
   display: grid;
@@ -870,6 +1082,9 @@
   .prosConsRow { grid-template-columns: 1fr; }
   .priceGrid { grid-template-columns: 1fr; }
   .confidenceCard { min-width: unset; }
+  .ownershipBarOuter { height: 130px; }
+  .ownershipChart { gap: 0.4rem; }
+  .financingFields { gap: 0.6rem; }
 }
 
 @media (max-width: 440px) {

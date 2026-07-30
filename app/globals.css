@@ -116,6 +116,7 @@ h1, h2, h3 { letter-spacing: -0.02em; font-weight: 500; }
 .delay-5  { animation-delay: 0.28s; }
 .delay-6  { animation-delay: 0.34s; }
 .delay-7  { animation-delay: 0.40s; }
+.delay-8  { animation-delay: 0.46s; }
 
 /* ─── Nav ─────────────────────────────────────────────────────────────────── */
 .nav {

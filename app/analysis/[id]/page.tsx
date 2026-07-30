@@ -1,9 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import styles from './page.module.css'
 import type { AnalysisResult } from '../../../types'
+import {
+  calculateOwnershipCosts, DEFAULT_FINANCING, OWNERSHIP_COST_CATEGORIES,
+  type FinancingInput,
+} from '../../../lib/scoring/ownershipCost'
 
 /* ── Loading state ── */
 const LOAD_STEPS = [
@@ -288,8 +292,13 @@ export default function AnalysisPage() {
           <PriceRangeCard car={car} pricing={pricing} />
         </div>
 
+        {/* ── Ownership cost over time ── */}
+        <div className={`anim-fade-up delay-5`}>
+          <OwnershipCostCard car={car} />
+        </div>
+
         {/* ── Pros / Cons — den som matchar omdömet visas först ── */}
-        <div className={`${styles.prosConsRow} anim-fade-up delay-5`}>
+        <div className={`${styles.prosConsRow} anim-fade-up delay-6`}>
           {verdict === 'Tveksam affär' ? (
             <>
               <ConsCard cons={cons} />
@@ -305,13 +314,13 @@ export default function AnalysisPage() {
 
         {/* ── Risks ── */}
         {risks.length > 0 && (
-          <div className={`anim-fade-up delay-6`}>
+          <div className={`anim-fade-up delay-7`}>
             <RisksCard risks={risks} />
           </div>
         )}
 
         {/* ── Actions ── */}
-        <div className={`${styles.actions} anim-fade-up delay-7`}>
+        <div className={`${styles.actions} anim-fade-up delay-8`}>
           <a href={car.source_url} target="_blank" rel="noopener noreferrer"
             className="btn btn-ghost">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -639,6 +648,144 @@ function PriceCell({ label, value, suffix = 'kr', highlight, neutral, dimmed }: 
         {typeof value === 'number' ? value.toLocaleString('sv-SE') : value}
         {' '}<span className={styles.priceCellSuffix}>{suffix}</span>
       </span>
+    </div>
+  )
+}
+
+function clampPct(n: number, min: number, max: number): number {
+  if (Number.isNaN(n)) return min
+  return Math.max(min, Math.min(max, n))
+}
+
+function OwnershipCostCard({ car }: { car: any }) {
+  const [financing, setFinancing] = useState<FinancingInput>(DEFAULT_FINANCING)
+  const costs = useMemo(() => calculateOwnershipCosts(car, financing), [car, financing])
+  const maxTotal = Math.max(...costs.map(c => c.total), 1)
+  const totalFiveYears = costs.reduce((sum, c) => sum + c.total, 0)
+
+  return (
+    <div className={`${styles.ownershipCard} card`}>
+      <div className={styles.ownershipHeader}>
+        <span className="section-label">Ägandekostnad — kommande 5 åren</span>
+        <span className={styles.ownershipTotal}>
+          {Math.round(totalFiveYears).toLocaleString('sv-SE')} kr totalt
+        </span>
+      </div>
+
+      <FinancingSelector financing={financing} onChange={setFinancing} />
+
+      <div
+        className={styles.ownershipChart}
+        role="img"
+        aria-label={`Stapeldiagram över uppskattad ägandekostnad per år de kommande 5 åren, uppdelat i värdeminskning, service, försäkring, skatt, bränsle${financing.type === 'loan' ? ' och finansiering' : ''}. Total uppskattad kostnad: ${Math.round(totalFiveYears).toLocaleString('sv-SE')} kronor.`}
+      >
+        {costs.map(row => (
+          <div key={row.year} className={styles.ownershipBarCol}>
+            <div className={styles.ownershipBarOuter}>
+              <div className={styles.ownershipBarTrack} style={{ height: `${(row.total / maxTotal) * 100}%` }}>
+                {OWNERSHIP_COST_CATEGORIES.map(cat => {
+                  const value = (row as any)[cat.key] as number
+                  if (!value) return null
+                  return (
+                    <div
+                      key={cat.key}
+                      className={styles.ownershipSegment}
+                      data-cat={cat.key}
+                      style={{ height: `${(value / row.total) * 100}%` }}
+                      title={`${cat.label}: ${Math.round(value).toLocaleString('sv-SE')} kr`}
+                    />
+                  )
+                })}
+              </div>
+            </div>
+            <span className={styles.ownershipBarTotal}>{Math.round(row.total / 1000).toLocaleString('sv-SE')}k</span>
+            <span className={styles.ownershipBarLabel}>År {row.year}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className={styles.ownershipLegend} role="list">
+        {OWNERSHIP_COST_CATEGORIES
+          .filter(cat => cat.key !== 'financing' || financing.type === 'loan')
+          .map(cat => (
+            <span key={cat.key} className={styles.legendItem} role="listitem">
+              <span className={styles.legendDot} data-cat={cat.key} aria-hidden />
+              {cat.label}
+            </span>
+          ))}
+      </div>
+
+      <p className={styles.ownershipDisclaimer}>
+        Värdeminskning bygger på modellens historiska prisutveckling. Service, försäkring, skatt och
+        bränsle är grova schablonvärden för genomsnittlig körning — inte en offert för just den här bilen.
+      </p>
+    </div>
+  )
+}
+
+function FinancingSelector({ financing, onChange }: {
+  financing: FinancingInput
+  onChange: (f: FinancingInput) => void
+}) {
+  return (
+    <div className={styles.financingRow}>
+      <div className={styles.financingToggle} role="group" aria-label="Betalsätt">
+        <button
+          type="button"
+          className={`${styles.financingToggleBtn} ${financing.type === 'cash' ? styles.financingToggleActive : ''}`}
+          onClick={() => onChange({ ...financing, type: 'cash' })}
+          aria-pressed={financing.type === 'cash'}
+        >
+          Kontant
+        </button>
+        <button
+          type="button"
+          className={`${styles.financingToggleBtn} ${financing.type === 'loan' ? styles.financingToggleActive : ''}`}
+          onClick={() => onChange({ ...financing, type: 'loan' })}
+          aria-pressed={financing.type === 'loan'}
+        >
+          Billån
+        </button>
+      </div>
+
+      {financing.type === 'loan' && (
+        <div className={styles.financingFields}>
+          <label className={styles.financingField}>
+            <span>Kontantinsats</span>
+            <div className={styles.financingInputWrap}>
+              <input
+                type="number" min={0} max={100} step={5}
+                value={financing.downPaymentPct}
+                onChange={e => onChange({ ...financing, downPaymentPct: clampPct(Number(e.target.value), 0, 100) })}
+              />
+              <span>%</span>
+            </div>
+          </label>
+          <label className={styles.financingField}>
+            <span>Ränta</span>
+            <div className={styles.financingInputWrap}>
+              <input
+                type="number" min={0} max={20} step={0.1}
+                value={financing.interestRatePct}
+                onChange={e => onChange({ ...financing, interestRatePct: clampPct(Number(e.target.value), 0, 20) })}
+              />
+              <span>%</span>
+            </div>
+          </label>
+          <label className={styles.financingField}>
+            <span>Löptid</span>
+            <select
+              value={financing.termYears}
+              onChange={e => onChange({ ...financing, termYears: Number(e.target.value) })}
+            >
+              <option value={3}>3 år</option>
+              <option value={5}>5 år</option>
+              <option value={7}>7 år</option>
+              <option value={10}>10 år</option>
+            </select>
+          </label>
+        </div>
+      )}
     </div>
   )
 }
