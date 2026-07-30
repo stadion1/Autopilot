@@ -199,93 +199,6 @@ function getKnownIssues(car: CarListing): KnownIssue[] {
   })
 }
 
-// ─── Planerat underhåll (t.ex. kamrem) ────────────────────────────────────────
-// Ger ett KONKRET svar på "varför spelar mätarställningen roll" — inte bara
-// "hög mätarställning" utan "kamremsbyte kostar X kr och förfaller runt Y mil".
-// Intervall källa: kamremsbyte.com (Volvo/Audi/Skoda-sidorna, hämtat 2026-07-30).
-// Volkswagen-intervallen är uppskattade från samma EA288-motorfamilj som Skoda
-// Octavia/Superb (delad plattform) — ingen egen VW-sida fanns på källan.
-// Avgränsat till diesel, eftersom de flesta bensinmotorer i vår data använder
-// kamkedja (ingen schemalagd bytesintervall) snarare än kamrem.
-
-interface ServiceInterval {
-  brand: string
-  model?: string        // ingen modell = generellt för märket/motorgenerationen
-  fuelType?: string
-  yearFrom?: number
-  yearTo?: number
-  item: string
-  intervalMil: number   // mil (1 mil = 10 km)
-  intervalYears?: number
-  costEstimateSek?: string
-}
-
-const SERVICE_INTERVALS: ServiceInterval[] = [
-  // Volvo Drive-E (fyrcylindriga motorer från ~2014, gäller de flesta av våra
-  // bevakade Volvo-modeller som är från 2016+)
-  { brand:'Volvo', fuelType:'Diesel', yearFrom:2014,
-    item:'Kamrem', intervalMil:24000, intervalYears:10, costEstimateSek:'8 000–15 000 kr' },
-  // Äldre 5-cylindriga Volvo-motorer (V70/XC70 D5 2001–2007) — se known_issues
-  // för den kända spännarsvagheten. Intervallet här är medvetet mer konservativt
-  // än märkets generella rekommendation (~17 500 mil) på grund av den svagheten.
-  { brand:'Volvo', model:'V70', fuelType:'Diesel', yearFrom:2001, yearTo:2007,
-    item:'Kamrem', intervalMil:9000, intervalYears:5, costEstimateSek:'6 000–12 000 kr' },
-  { brand:'Volvo', model:'XC70', fuelType:'Diesel', yearFrom:2001, yearTo:2007,
-    item:'Kamrem', intervalMil:9000, intervalYears:5, costEstimateSek:'6 000–12 000 kr' },
-
-  // Audi
-  { brand:'Audi', model:'A3', fuelType:'Diesel',
-    item:'Kamrem', intervalMil:18000, intervalYears:8, costEstimateSek:'6 000–10 000 kr' },
-  { brand:'Audi', model:'Q3', fuelType:'Diesel',
-    item:'Kamrem', intervalMil:18000, intervalYears:8, costEstimateSek:'6 000–10 000 kr' },
-  { brand:'Audi', model:'A4', fuelType:'Diesel',
-    item:'Kamrem', intervalMil:16500, intervalYears:8, costEstimateSek:'7 000–12 000 kr' },
-  { brand:'Audi', model:'A6', fuelType:'Diesel',
-    item:'Kamrem', intervalMil:13500, intervalYears:7, costEstimateSek:'8 000–14 000 kr' },
-  { brand:'Audi', model:'Q5', fuelType:'Diesel',
-    item:'Kamrem', intervalMil:13500, intervalYears:7, costEstimateSek:'8 000–14 000 kr' },
-
-  // Skoda (EA288 2.0 TDI)
-  { brand:'Skoda', model:'Octavia', fuelType:'Diesel',
-    item:'Kamrem', intervalMil:21000, intervalYears:5, costEstimateSek:'6 000–10 000 kr' },
-  { brand:'Skoda', model:'Superb', fuelType:'Diesel',
-    item:'Kamrem', intervalMil:21000, intervalYears:5, costEstimateSek:'6 000–10 000 kr' },
-  { brand:'Skoda', model:'Kodiaq', fuelType:'Diesel',
-    item:'Kamrem', intervalMil:21000, intervalYears:5, costEstimateSek:'7 000–11 000 kr' },
-
-  // Volkswagen (samma EA288-motorfamilj som Skoda ovan — uppskattat, ej
-  // direkt källbelagt för VW-varumärket specifikt)
-  { brand:'Volkswagen', model:'Golf', fuelType:'Diesel',
-    item:'Kamrem', intervalMil:21000, intervalYears:5, costEstimateSek:'6 000–10 000 kr' },
-  { brand:'Volkswagen', model:'Passat', fuelType:'Diesel',
-    item:'Kamrem', intervalMil:21000, intervalYears:5, costEstimateSek:'6 000–10 000 kr' },
-  { brand:'Volkswagen', model:'Tiguan', fuelType:'Diesel',
-    item:'Kamrem', intervalMil:21000, intervalYears:5, costEstimateSek:'7 000–11 000 kr' },
-]
-
-function getDueServiceItems(car: CarListing): (ServiceInterval & { mil: number; timesCrossed: number })[] {
-  const mil = car.mileage_km / 10
-
-  const matches = SERVICE_INTERVALS.filter(s => {
-    if (s.brand.toLowerCase() !== car.brand.toLowerCase())             return false
-    if (s.model && s.model.toLowerCase() !== car.model.toLowerCase()) return false
-    if (s.fuelType && s.fuelType !== car.fuel_type)                    return false
-    if (s.yearFrom && car.year < s.yearFrom)                           return false
-    if (s.yearTo   && car.year > s.yearTo)                             return false
-    return true
-  })
-
-  // En modell-specifik post (t.ex. V70 D5) väger tyngre än en generell
-  // märkespost (t.ex. Volvo Drive-E) om båda matchar.
-  const modelSpecific = matches.filter(m => m.model)
-  const relevant = modelSpecific.length > 0 ? modelSpecific : matches
-
-  return relevant
-    .map(s => ({ ...s, mil, timesCrossed: Math.floor(mil / s.intervalMil) }))
-    // Förfallet minst en gång, eller inom 15% av att förfalla första gången
-    .filter(s => s.timesCrossed >= 1 || mil >= s.intervalMil * 0.85)
-}
-
 // ─── Score: Price ─────────────────────────────────────────────────────────────
 // Priority: 1) live median from market_listings (real Blocket sales data,
 // see scraper-service/nightly.ts), 2) static MARKET_MEDIANS table,
@@ -550,20 +463,6 @@ function detectRisks(car: CarListing, modelNotes: string | undefined, avgMilPerY
                  description: 'Begär servicebok eller kvitton från auktoriserad verkstad.',
                  rule_id: 'no_service_history' })
   }
-
-  // Planerat underhåll (t.ex. kamrem) — konkret svar på VARFÖR mätarställningen
-  // spelar roll: kostnad och vilket mil-tal det förfaller vid, inte bara "hög".
-  getDueServiceItems(car).forEach(s => {
-    const isDue = s.timesCrossed >= 1
-    risks.push({
-      level: isDue ? 'medium' : 'low',
-      title: isDue ? `${s.item} bör vara utfört` : `${s.item} närmar sig`,
-      description: isDue
-        ? `${s.item} rekommenderas normalt vid ca ${s.intervalMil.toLocaleString('sv-SE')} mil${s.intervalYears ? ` eller ${s.intervalYears} år` : ''} — den här bilen har kört ${s.mil.toLocaleString('sv-SE')} mil. Begär kvitto som visar att det är gjort${s.costEstimateSek ? ` (kostar normalt ${s.costEstimateSek})` : ''}.`
-        : `${s.item} rekommenderas normalt vid ca ${s.intervalMil.toLocaleString('sv-SE')} mil — den här bilen närmar sig gränsen (${s.mil.toLocaleString('sv-SE')} mil kört)${s.costEstimateSek ? `. Räkna med ${s.costEstimateSek} när det blir dags` : ''}.`,
-      rule_id: `service_${s.item}_${car.brand}_${car.model}`.toLowerCase().replace(/\s+/g, '_'),
-    })
-  })
 
   // High mileage — relativt förväntad mätarställning för bilens ålder,
   // samma ratio som scoreMileage() använder. En flat gräns (t.ex. 15 000 mil)
