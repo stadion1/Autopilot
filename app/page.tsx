@@ -4,6 +4,12 @@ import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import styles from './page.module.css'
 
+const SUPPORTED_SITES = [
+  { key: 'blocket', name: 'Blocket' },
+  { key: 'wayke',   name: 'Wayke' },
+  { key: 'bytbil',  name: 'Bytbil' },
+]
+
 const EXAMPLE_URLS = [
   'blocket.se/annons/volvo-v60-t5-inscription',
   'wayke.se/objekt/bmw-320d-xdrive',
@@ -157,8 +163,8 @@ export default function HomePage() {
 
           <div className={styles.supportedSites}>
             <span className={styles.supportedLabel}>Stöds:</span>
-            {['blocket.se', 'wayke.se', 'bytbil.com'].map(site => (
-              <span key={site} className={styles.sitePill}>{site}</span>
+            {SUPPORTED_SITES.map(site => (
+              <span key={site.key} className={styles.sitePill} data-site={site.key}>{site.name}</span>
             ))}
           </div>
         </div>

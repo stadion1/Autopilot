@@ -17,6 +17,7 @@ import { CarListing, ConfidenceResult, DealScores, PriceRange, Risk } from '../.
 import { lookupModelReference } from '../../data/referenceData'
 import { lookupMarketMedian } from '../../data/marketMedians'
 import { getMarketMedian } from '../supabase/client'
+import { UNKNOWN_MODEL_REASON } from './constants'
 
 export const SCORING_VERSION = '1.2.0'
 
@@ -420,7 +421,7 @@ function calculateConfidence(
 
   if (isDefaultRef) {
     score -= 25
-    reasons.push('Begränsad marknadsdata för denna modell')
+    reasons.push(UNKNOWN_MODEL_REASON)
   }
 
   if (!usedMedian) {

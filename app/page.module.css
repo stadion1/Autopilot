@@ -225,12 +225,18 @@
 
 .sitePill {
   font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   color: var(--ink-1);
   background: var(--surface);
   border: 1px solid var(--border-strong);
   border-radius: 20px;
-  padding: 4px 12px;
+  padding: 4px 14px;
 }
+
+.sitePill[data-site="blocket"] { color: #E6541A; }
+.sitePill[data-site="wayke"]   { color: #0A8C7D; }
+.sitePill[data-site="bytbil"]  { color: #1D5FBF; }
 
 /* ── Sample result ── */
 .sampleWrap {

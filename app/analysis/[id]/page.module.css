@@ -142,6 +142,28 @@
 
 .backBtn:hover { color: var(--ink-1); }
 
+.unknownModelBanner {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 1rem 1.25rem;
+  background: var(--amber-bg);
+  border: 1px solid #F0D9B0;
+  border-radius: var(--radius-md);
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 300;
+  line-height: 1.55;
+  margin-bottom: 1.25rem;
+}
+
+.unknownModelBanner svg { color: var(--amber); margin-top: 1px; }
+
+.unknownModelBanner strong {
+  font-weight: 500;
+  color: var(--amber);
+}
+
 /* ── Car header ── */
 .carHeader {
   margin-bottom: 1rem;
@@ -782,9 +804,55 @@
 
 .ownershipChart {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 0.75rem;
   padding-top: 0.5rem;
+  position: relative;
+}
+
+.ownershipGridlines {
+  position: absolute;
+  top: 0.5rem;
+  left: 0;
+  right: 0;
+  height: 180px;
+  z-index: 0;
+}
+
+.gridline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--border);
+}
+
+.ownershipAxisCol {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.ownershipAxisTicks {
+  height: 180px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-right: 8px;
+}
+
+.ownershipAxisSpacer {
+  height: 38px;
+}
+
+.axisLabel {
+  font-size: 10px;
+  color: var(--ink-5);
+  letter-spacing: 0.02em;
+  transform: translateY(-4px);
 }
 
 .ownershipBarCol {
@@ -793,6 +861,8 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
+  position: relative;
+  z-index: 1;
 }
 
 .ownershipBarOuter {
@@ -1085,7 +1155,10 @@
   .priceGrid { grid-template-columns: 1fr; }
   .confidenceCard { min-width: unset; }
   .ownershipBarOuter { height: 130px; }
+  .ownershipGridlines { height: 130px; }
+  .ownershipAxisTicks { height: 130px; }
   .ownershipChart { gap: 0.4rem; }
+  .ownershipAxisCol { display: none; }
   .financingFields { gap: 0.6rem; }
 }
 

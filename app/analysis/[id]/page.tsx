@@ -8,6 +8,7 @@ import {
   calculateOwnershipCosts, DEFAULT_FINANCING, OWNERSHIP_COST_CATEGORIES,
   type FinancingInput,
 } from '../../../lib/scoring/ownershipCost'
+import { UNKNOWN_MODEL_REASON } from '../../../lib/scoring/constants'
 
 /* ── Loading state ── */
 const LOAD_STEPS = [
@@ -170,6 +171,11 @@ export default function AnalysisPage() {
           </svg>
           Ny analys
         </button>
+
+        {/* ── Okänd modell — vi saknar data för att ge ett tillförlitligt estimat ── */}
+        {confidence.reasons.includes(UNKNOWN_MODEL_REASON) && (
+          <UnknownModelBanner car={car} />
+        )}
 
         {/* ── Car header ── */}
         <header className={`${styles.carHeader} card anim-fade-up`}>
@@ -442,6 +448,28 @@ function Lightbox({ images, index, onIndexChange, onClose }: {
 
 /* ─── Sub-components ──────────────────────────────────────────────────────── */
 
+function UnknownModelBanner({ car }: { car: any }) {
+  const age = new Date().getFullYear() - car.year
+  const isClassic = age >= 25
+
+  return (
+    <div className={`${styles.unknownModelBanner} anim-fade-in`} role="alert">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" strokeWidth="1.5" style={{ flexShrink: 0 }} aria-hidden>
+        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/>
+        <line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+      <div>
+        <strong>Vi saknar tillförlitlig data för {car.brand} {car.model}.</strong>{' '}
+        {isClassic
+          ? `Bilen är ${age} år och äldre/klassiska fordon följer inte samma pris- och värdeminsknings­mönster som andrahandsmarknaden vår analysmotor är byggd för — pris, ägandekostnad och riskbedömning nedan bör ses som mycket grova gissningar, inte ett estimat för den här specifika bilen.`
+          : 'Modellen finns inte i vår referensdatabas, så pris, ägandekostnad och riskbedömning nedan bygger på generella schablonvärden — inte data för den här specifika bilen. AI-sammanfattningen väger in mer kontext från annonsen och kan vara mer träffsäker.'}
+      </div>
+    </div>
+  )
+}
+
 function VerdictBadge({ verdict }: { verdict: string }) {
   const cls = verdict === 'Bra affär' ? 'tag-green'
             : verdict === 'Okej affär' ? 'tag-amber'
@@ -657,10 +685,26 @@ function clampPct(n: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, n))
 }
 
+// Rundar upp till ett "snyggt" axelmax (1/2/5/10 × 10^n) så y-axelns
+// etiketter blir jämna tal istället för t.ex. "83 400".
+function niceAxisMax(value: number): number {
+  if (value <= 0) return 1000
+  const magnitude = Math.pow(10, Math.floor(Math.log10(value)))
+  const residual = value / magnitude
+  const niceResidual = residual <= 1 ? 1 : residual <= 2 ? 2 : residual <= 5 ? 5 : 10
+  return niceResidual * magnitude
+}
+
+function formatAxisValue(n: number): string {
+  return n === 0 ? '0' : `${Math.round(n / 1000).toLocaleString('sv-SE')}k`
+}
+
 function OwnershipCostCard({ car }: { car: any }) {
   const [financing, setFinancing] = useState<FinancingInput>(DEFAULT_FINANCING)
   const costs = useMemo(() => calculateOwnershipCosts(car, financing), [car, financing])
   const maxTotal = Math.max(...costs.map(c => c.total), 1)
+  const axisMax = niceAxisMax(maxTotal)
+  const axisTicks = [0, 0.25, 0.5, 0.75, 1].map(f => Math.round(axisMax * f))
   const totalFiveYears = costs.reduce((sum, c) => sum + c.total, 0)
 
   return (
@@ -679,10 +723,25 @@ function OwnershipCostCard({ car }: { car: any }) {
         role="img"
         aria-label={`Stapeldiagram över uppskattad ägandekostnad per år de kommande 5 åren, uppdelat i värdeminskning, service, försäkring, skatt, bränsle${financing.type === 'loan' ? ' och finansiering' : ''}. Total uppskattad kostnad: ${Math.round(totalFiveYears).toLocaleString('sv-SE')} kronor.`}
       >
+        <div className={styles.ownershipGridlines} aria-hidden>
+          {axisTicks.map(t => (
+            <div key={t} className={styles.gridline} style={{ bottom: `${(t / axisMax) * 100}%` }} />
+          ))}
+        </div>
+
+        <div className={styles.ownershipAxisCol} aria-hidden>
+          <div className={styles.ownershipAxisTicks}>
+            {[...axisTicks].reverse().map(t => (
+              <span key={t} className={styles.axisLabel}>{formatAxisValue(t)}</span>
+            ))}
+          </div>
+          <div className={styles.ownershipAxisSpacer} />
+        </div>
+
         {costs.map(row => (
           <div key={row.year} className={styles.ownershipBarCol}>
             <div className={styles.ownershipBarOuter}>
-              <div className={styles.ownershipBarTrack} style={{ height: `${(row.total / maxTotal) * 100}%` }}>
+              <div className={styles.ownershipBarTrack} style={{ height: `${(row.total / axisMax) * 100}%` }}>
                 {OWNERSHIP_COST_CATEGORIES.map(cat => {
                   const value = (row as any)[cat.key] as number
                   if (!value) return null
