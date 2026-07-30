@@ -150,7 +150,7 @@ const KNOWN_ISSUES: KnownIssue[] = [
   // Volvo — D5 kamrem (äldre generation, före kedjedrift)
   { brand:'Volvo', model:'V70', yearFrom:2001, yearTo:2007, fuelType:'Diesel', severity:'high',
     ruleId:'volvo_v70_d5_timing_belt', title:'D5: kamremsspännare känd svaghet',
-    description:'Spännaren kan gå sönder så att kamremmen hoppar eller går av, vilket ger motorhaveri. Kräver dokumenterat byte av kamrem, spännare och pumpar enligt intervall (ca var 5:e år/9 000 mil).' },
+    description:'Spännaren kan gå sönder så att kamremmen hoppar eller går av, vilket ger motorhaveri. Kräver dokumenterat byte av kamrem, spännare och pumpar enligt intervall (normalt 160 000 km/16 000 mil eller 10 år, se autodoc.se).' },
   { brand:'Volvo', model:'XC70', yearFrom:2001, yearTo:2007, fuelType:'Diesel', severity:'high',
     ruleId:'volvo_xc70_d5_timing_belt', title:'D5: kamremsspännare känd svaghet',
     description:'Samma kamremsproblem som V70 D5. Kräver dokumenterat kamremsbyte inom intervall.' },
@@ -197,6 +197,70 @@ function getKnownIssues(car: CarListing): KnownIssue[] {
     if (i.fuelType && i.fuelType !== car.fuel_type)                     return false
     return true
   })
+}
+
+interface ServiceInterval {
+  brand: string
+  model?: string
+  fuelType?: CarListing['fuel_type']
+  yearFrom?: number
+  yearTo?: number
+  item: string
+  intervalKm: number
+  intervalYears?: number
+  source: string
+}
+
+// Kamremsbyte (timing belt replacement) intervals — endast dieselmotorer med
+// verifierad kamrem (inte kamkedja). Varje siffra hämtad direkt från
+// produktsidans text på autodoc.se (t.ex. "Intervall för kamremsbyte på ... är
+// X.000 km"), inte från en sammanfattning — se `source` per rad.
+const SERVICE_INTERVALS: ServiceInterval[] = [
+  { brand:'Volvo', yearFrom:2014, fuelType:'Diesel', item:'Kamremsbyte', intervalKm:150000, intervalYears:10,
+    source:'autodoc.se (V60 II D4, 2018–2021)' },
+  { brand:'Volvo', model:'V70', yearFrom:2001, yearTo:2008, fuelType:'Diesel', item:'Kamremsbyte', intervalKm:160000, intervalYears:10,
+    source:'autodoc.se (V70 II D5)' },
+  { brand:'Volvo', model:'XC70', yearFrom:2001, yearTo:2008, fuelType:'Diesel', item:'Kamremsbyte', intervalKm:160000, intervalYears:10,
+    source:'autodoc.se (V70 II D5, samma plattform som XC70)' },
+  { brand:'Audi', model:'A3', fuelType:'Diesel', item:'Kamremsbyte', intervalKm:210000,
+    source:'autodoc.se (A3 Sedan 8VS/8VM, 2.0 TDI)' },
+  { brand:'Audi', model:'A4', fuelType:'Diesel', item:'Kamremsbyte', intervalKm:180000,
+    source:'autodoc.se (A4, 2.0 TDI)' },
+  { brand:'Audi', model:'A6', fuelType:'Diesel', item:'Kamremsbyte', intervalKm:210000,
+    source:'autodoc.se (A6, 2.0 TDI)' },
+  { brand:'Audi', model:'Q5', fuelType:'Diesel', item:'Kamremsbyte', intervalKm:210000,
+    source:'autodoc.se (Q5 8R, 2.0 TDI quattro)' },
+  { brand:'Skoda', model:'Octavia', fuelType:'Diesel', item:'Kamremsbyte', intervalKm:210000,
+    source:'autodoc.se (Octavia, 2.0 TDI)' },
+  { brand:'Skoda', model:'Superb', fuelType:'Diesel', item:'Kamremsbyte', intervalKm:150000,
+    source:'autodoc.se (Superb Kombi 3T5, 2.0 TDI 16V)' },
+  { brand:'Skoda', model:'Kodiaq', fuelType:'Diesel', item:'Kamremsbyte', intervalKm:210000,
+    source:'autodoc.se (Kodiaq, 2.0 TDI)' },
+  { brand:'Volkswagen', model:'Golf', fuelType:'Diesel', item:'Kamremsbyte', intervalKm:210000,
+    source:'autodoc.se (Golf, 1.6 TDI)' },
+  { brand:'Volkswagen', model:'Passat', fuelType:'Diesel', item:'Kamremsbyte', intervalKm:210000,
+    source:'autodoc.se (Passat, 2.0 TDI)' },
+  { brand:'Volkswagen', model:'Tiguan', fuelType:'Diesel', item:'Kamremsbyte', intervalKm:210000,
+    source:'autodoc.se (Tiguan, 2.0 TDI)' },
+]
+
+function getDueServiceItems(car: CarListing) {
+  return SERVICE_INTERVALS
+    .filter(s => {
+      if (s.brand.toLowerCase() !== car.brand.toLowerCase())            return false
+      if (s.model && s.model.toLowerCase() !== car.model.toLowerCase()) return false
+      if (s.fuelType && s.fuelType !== car.fuel_type)                   return false
+      if (s.yearFrom && car.year < s.yearFrom)                          return false
+      if (s.yearTo   && car.year > s.yearTo)                            return false
+      return true
+    })
+    .map(s => ({
+      ...s,
+      timesCrossed: Math.floor(car.mileage_km / s.intervalKm),
+      mil: Math.round(car.mileage_km / 10),
+      intervalMil: Math.round(s.intervalKm / 10),
+    }))
+    .filter(s => s.timesCrossed >= 1 || s.mil / s.intervalMil >= 0.85)
 }
 
 // ─── Score: Price ─────────────────────────────────────────────────────────────
@@ -463,6 +527,19 @@ function detectRisks(car: CarListing, modelNotes: string | undefined, avgMilPerY
                  description: 'Begär servicebok eller kvitton från auktoriserad verkstad.',
                  rule_id: 'no_service_history' })
   }
+
+  // Kamremsbyte — konkret, verifierat intervall (inte bara "hög mätarställning")
+  getDueServiceItems(car).forEach(s => {
+    const isDue = s.timesCrossed >= 1
+    risks.push({
+      level: isDue ? 'medium' : 'low',
+      title: isDue ? `${s.item} bör vara utfört` : `${s.item} närmar sig`,
+      description: isDue
+        ? `${s.item} rekommenderas normalt vid ca ${s.intervalMil.toLocaleString('sv-SE')} mil${s.intervalYears ? ` eller ${s.intervalYears} år` : ''} (enligt Autodoc) — den här bilen har kört ${s.mil.toLocaleString('sv-SE')} mil. Begär kvitto som visar att det är gjort.`
+        : `${s.item} rekommenderas normalt vid ca ${s.intervalMil.toLocaleString('sv-SE')} mil (enligt Autodoc) — den här bilen närmar sig gränsen (${s.mil.toLocaleString('sv-SE')} mil kört).`,
+      rule_id: `service_${s.item}_${car.brand}_${car.model}`.toLowerCase().replace(/\s+/g, '_'),
+    })
+  })
 
   // High mileage — relativt förväntad mätarställning för bilens ålder,
   // samma ratio som scoreMileage() använder. En flat gräns (t.ex. 15 000 mil)
