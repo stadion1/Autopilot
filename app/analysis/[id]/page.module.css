@@ -88,13 +88,28 @@
 }
 
 .stepActive .stepDot {
-  background: var(--ink-1);
-  animation: pulse 1.2s ease-in-out infinite;
+  background: transparent;
+  border: 2px solid var(--border-mid);
+  border-top-color: var(--ink-1);
+  animation: stepSpin 0.8s linear infinite;
 }
 
 .stepDone .stepDot {
   background: var(--accent);
   color: white;
+}
+
+@keyframes stepSpin {
+  to { transform: rotate(360deg); }
+}
+
+.loadingLongWait {
+  margin-top: 1.25rem;
+  font-size: 12px;
+  color: var(--ink-4);
+  font-weight: 300;
+  line-height: 1.5;
+  max-width: 340px;
 }
 
 /* ── Error ── */

@@ -20,14 +20,18 @@ const LOAD_STEPS = [
 const STEP_INTERVALS_MS = [1200, 2600, 4000]
 const MIN_LOADING_MS = STEP_INTERVALS_MS[STEP_INTERVALS_MS.length - 1] + 900
 
+const LONGER_THAN_USUAL_MS = 8000
+
 function LoadingView() {
   const [step, setStep] = useState(0)
+  const [longerThanUsual, setLongerThanUsual] = useState(false)
 
   useEffect(() => {
     const timers = STEP_INTERVALS_MS.map((ms, i) =>
       setTimeout(() => setStep(i + 1), ms)
     )
-    return () => timers.forEach(clearTimeout)
+    const longWaitTimer = setTimeout(() => setLongerThanUsual(true), LONGER_THAN_USUAL_MS)
+    return () => { timers.forEach(clearTimeout); clearTimeout(longWaitTimer) }
   }, [])
 
   return (
@@ -55,6 +59,11 @@ function LoadingView() {
           </li>
         ))}
       </ul>
+      {longerThanUsual && (
+        <p className={`${styles.loadingLongWait} anim-fade-in`}>
+          Tar lite längre tid än vanligt — vi väntar in svar från annonssidan. Vänta kvar, det är på väg.
+        </p>
+      )}
     </div>
   )
 }
