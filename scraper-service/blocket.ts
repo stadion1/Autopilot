@@ -6,7 +6,8 @@
 import { CarListing, FuelType, ScraperResult, Transmission } from './types'
 
 function extractAdId(url: string): string | null {
-  const match = url.match(/\/(\d{6,12})\/?$/)
+  const clean = url.split(/[?#]/)[0]
+  const match = clean.match(/\/(\d{6,12})\/?$/)
   return match?.[1] ?? null
 }
 
