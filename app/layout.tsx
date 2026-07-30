@@ -40,7 +40,7 @@ function Nav() {
             fontWeight="700"
             letterSpacing="-4"
             fill="#111418">carz<tspan id="carzi-logo-i">i</tspan></text>
-          <circle id="carzi-logo-dot" cx="765" cy="42" r="11" fill="#0057FF"/>
+          <circle id="carzi-logo-dot" cx="765" cy="42" r="11" fill="#0057FF" style={{ opacity: 0, transition: 'opacity 0.15s' }}/>
         </svg>
       </a>
       <span className="nav-badge">Beta</span>
@@ -53,6 +53,7 @@ function Nav() {
             var box = i.getBBox();
             dot.setAttribute('cx', box.x + box.width / 2);
             dot.setAttribute('cy', box.y - 18);
+            dot.style.opacity = '1';
           }
           if (document.fonts && document.fonts.ready) {
             document.fonts.ready.then(positionDot).catch(positionDot);
