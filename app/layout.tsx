@@ -2,11 +2,11 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Bilanalys — Intelligent bilrådgivning',
+  title: 'Carzi — Intelligent bilrådgivning',
   description: 'Klistra in en bilannons och förstå direkt om det är ett smart köp. AI-driven prisanalys, riskbedömning och ägarekostnader för den svenska begagnatmarknaden.',
   keywords: 'begagnad bil, bilanalys, bilrådgivning, blocket bilar, pris, andrahandsvärde',
   openGraph: {
-    title: 'Bilanalys — Intelligent bilrådgivning',
+    title: 'Carzi — Intelligent bilrådgivning',
     description: 'Förstå om bilen är ett smart köp.',
     type: 'website',
   },
@@ -30,7 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 function Nav() {
   return (
     <nav className="nav" role="navigation" aria-label="Huvudnavigation">
-      <a href="/" className="nav-logo" aria-label="Bilanalys — startsidan">
+      <a href="/" className="nav-logo" aria-label="Carzi — startsidan">
         <div className="nav-logo-mark" aria-hidden>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="1.5">
@@ -40,7 +40,7 @@ function Nav() {
             <circle cx="17" cy="18" r="1.5"/>
           </svg>
         </div>
-        <span className="nav-logo-text">Bilanalys</span>
+        <span className="nav-logo-text">Carzi</span>
       </a>
       <span className="nav-badge">Beta</span>
     </nav>
