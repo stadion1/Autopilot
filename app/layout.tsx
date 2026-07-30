@@ -40,7 +40,9 @@ function Nav() {
             <circle cx="17" cy="18" r="1.5"/>
           </svg>
         </div>
-        <span className="nav-logo-text">Carzi</span>
+        <span className="nav-logo-text">
+          Carz<span className="nav-logo-i">ı<span className="nav-logo-dot" aria-hidden /></span>
+        </span>
       </a>
       <span className="nav-badge">Beta</span>
     </nav>
