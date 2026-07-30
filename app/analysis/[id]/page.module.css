@@ -798,6 +798,8 @@
 .ownershipBarOuter {
   height: 180px;
   width: 100%;
+  max-width: 48px;
+  margin: 0 auto;
   display: flex;
   align-items: flex-end;
 }
@@ -817,11 +819,11 @@
 }
 
 .ownershipSegment[data-cat="depreciation"] { background: repeating-linear-gradient(135deg, var(--ink-4), var(--ink-4) 4px, var(--ink-5) 4px, var(--ink-5) 8px); }
-.ownershipSegment[data-cat="service"]      { background: var(--accent-light); }
-.ownershipSegment[data-cat="insurance"]    { background: var(--amber); }
-.ownershipSegment[data-cat="tax"]          { background: #5E7A9E; }
-.ownershipSegment[data-cat="fuel"]         { background: #B5762E; }
-.ownershipSegment[data-cat="financing"]    { background: #7A5C8E; }
+.ownershipSegment[data-cat="service"]      { background: #2E7A57; }
+.ownershipSegment[data-cat="insurance"]    { background: #C08A2E; }
+.ownershipSegment[data-cat="tax"]          { background: #4D6E8C; }
+.ownershipSegment[data-cat="fuel"]         { background: #B2492F; }
+.ownershipSegment[data-cat="financing"]    { background: #7D5A82; }
 
 .ownershipBarTotal {
   font-size: 12px;
@@ -861,11 +863,11 @@
 }
 
 .legendDot[data-cat="depreciation"] { background: repeating-linear-gradient(135deg, var(--ink-4), var(--ink-4) 2px, var(--ink-5) 2px, var(--ink-5) 4px); }
-.legendDot[data-cat="service"]      { background: var(--accent-light); }
-.legendDot[data-cat="insurance"]    { background: var(--amber); }
-.legendDot[data-cat="tax"]          { background: #5E7A9E; }
-.legendDot[data-cat="fuel"]         { background: #B5762E; }
-.legendDot[data-cat="financing"]    { background: #7A5C8E; }
+.legendDot[data-cat="service"]      { background: #2E7A57; }
+.legendDot[data-cat="insurance"]    { background: #C08A2E; }
+.legendDot[data-cat="tax"]          { background: #4D6E8C; }
+.legendDot[data-cat="fuel"]         { background: #B2492F; }
+.legendDot[data-cat="financing"]    { background: #7D5A82; }
 
 .ownershipDisclaimer {
   font-size: 11px;
