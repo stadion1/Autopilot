@@ -31,18 +31,19 @@ function Nav() {
   return (
     <nav className="nav" role="navigation" aria-label="Huvudnavigation">
       <a href="/" className="nav-logo" aria-label="Carzi — startsidan">
-        <div className="nav-logo-mark" aria-hidden>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="1.5">
-            <path d="M5 11l1.5-4.5h11L19 11"/>
-            <rect x="3" y="11" width="18" height="7" rx="1"/>
-            <circle cx="7"  cy="18" r="1.5"/>
-            <circle cx="17" cy="18" r="1.5"/>
-          </svg>
-        </div>
-        <span className="nav-logo-text">
-          Carz<span className="nav-logo-i">ı<span className="nav-logo-dot" aria-hidden /></span>
-        </span>
+        <svg className="nav-logo-svg" viewBox="0 0 900 220" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+          <text
+            x="50"
+            y="155"
+            fontFamily="Inter, Avenir, Helvetica, Arial, sans-serif"
+            fontSize="150"
+            fontWeight="700"
+            letterSpacing="-4"
+            fill="#111418">
+            carzi
+          </text>
+          <circle cx="765" cy="42" r="11" fill="#0057FF"/>
+        </svg>
       </a>
       <span className="nav-badge">Beta</span>
     </nav>
