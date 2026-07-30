@@ -54,6 +54,18 @@ export default function HomePage() {
         return
       }
 
+      // Triggar det tunga jobbet (skrapning, scoring, AI) utan att invänta
+      // svaret — vi navigerar direkt och låter analyssidans fyrastegs-vy
+      // (som redan pollar /api/analysis/[id]) visa den riktiga väntetiden,
+      // istället för att gömma den bakom bara en knapp-spinner.
+      if (!data.cached) {
+        fetch('/api/process', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: data.id, url: trimmed }),
+        }).catch(() => {})
+      }
+
       const elapsed = Date.now() - startedAt
       await new Promise(r => setTimeout(r, Math.max(0, MIN_ANALYZE_BTN_MS - elapsed)))
       router.push(`/analysis/${data.id}`)
