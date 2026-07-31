@@ -112,6 +112,7 @@ const SEARCH_URL      = 'https://blocket-api.se/v1/search/car'
 const MAX_PAGES       = parseInt(process.env.NIGHTLY_MAX_PAGES ?? '20', 10)
 const PAGE_DELAY_MS   = 1000
 const SOLD_GRACE_DAYS = 5
+const MAX_CONSECUTIVE_FAILURES = 3
 
 // ─── Blocket search doc shape (bara fälten vi använder) ──────────────────────
 
@@ -200,7 +201,9 @@ function toMarketListingRow(doc: SearchDoc, tracked: { brand: string; model: str
 
 // ─── Hämtning ─────────────────────────────────────────────────────────────────
 
-async function fetchSearchPage(page: number): Promise<SearchDoc[]> {
+interface PageResult { docs: SearchDoc[]; failed: boolean }
+
+async function fetchSearchPage(page: number): Promise<PageResult> {
   console.log(`  Hämtar sida ${page}...`)
   try {
     const res = await fetch(`${SEARCH_URL}?page=${page}`, {
@@ -209,13 +212,13 @@ async function fetchSearchPage(page: number): Promise<SearchDoc[]> {
     })
     if (!res.ok) {
       console.warn(`  Sida ${page}: HTTP ${res.status}, hoppar över`)
-      return []
+      return { docs: [], failed: true }
     }
     const json = (await res.json()) as SearchResponse
-    return json.docs ?? []
+    return { docs: json.docs ?? [], failed: false }
   } catch (err: any) {
     console.warn(`  Sida ${page}: fel (${err?.message ?? err}), hoppar över`)
-    return []
+    return { docs: [], failed: true }
   }
 }
 
@@ -232,12 +235,29 @@ async function run() {
   let docsSeen  = 0
   let matched   = 0
   let upserted  = 0
+  let consecutiveFailures = 0
   const rows: NonNullable<ReturnType<typeof toMarketListingRow>>[] = []
 
   for (let page = 1; page <= MAX_PAGES; page++) {
-    const docs = await fetchSearchPage(page)
+    const { docs, failed } = await fetchSearchPage(page)
+
+    // En misslyckad sida (timeout, HTTP-fel) betyder INTE att vi nått slutet
+    // av resultaten — hoppa bara över den och fortsätt till nästa sida. Om
+    // för många sidor i rad misslyckas är API:t sannolikt nere, då är det
+    // ingen idé att fortsätta hamra på det resten av natten.
+    if (failed) {
+      consecutiveFailures++
+      if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+        console.warn(`[nightly] ${consecutiveFailures} sidor i rad misslyckades — avbryter`)
+        break
+      }
+      await sleep(PAGE_DELAY_MS)
+      continue
+    }
+    consecutiveFailures = 0
     docsSeen += docs.length
-    if (docs.length === 0) break   // slut på resultat eller fel — inget mer att hämta
+
+    if (docs.length === 0) break   // genuint slut på resultat — inget mer att hämta
 
     for (const doc of docs) {
       const tracked = matchTrackedModel(doc)
