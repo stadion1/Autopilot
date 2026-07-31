@@ -329,6 +329,18 @@ function scoreMileage(car: CarListing, avgMilPerYear: number): number {
   const age   = Math.max(1, vehicleAgeYears(car))
   const ratio = (car.mileage_km / 10) / Math.max(1, age * avgMilPerYear)
 
+  // Every branch below is a "ratio < X" check, so a non-finite ratio (NaN
+  // from a bad mileage_km/avgMilPerYear upstream) silently falls through
+  // ALL of them and hits the unconditional return at the bottom — which is
+  // the WORST possible score, making broken data look like terrible
+  // mileage instead of surfacing as an error.
+  if (!Number.isFinite(ratio)) {
+    console.error('[scoreMileage] Non-finite ratio, defaulting to neutral score', {
+      source_url: car.source_url, mileage_km: car.mileage_km, age, avgMilPerYear,
+    })
+    return 50
+  }
+
   if (ratio < 0.50) return 96
   if (ratio < 0.70) return 88
   if (ratio < 0.90) return 80
