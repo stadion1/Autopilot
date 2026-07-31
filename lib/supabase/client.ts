@@ -166,20 +166,27 @@ export async function saveAnalysisResult(
   scoringVersion: string,
   dataSources: string[]
 ): Promise<void> {
+  // A NaN slipping in here would otherwise fail silently: JSON.stringify(NaN)
+  // is "null", so Supabase just stores SQL NULL with no error — the analysis
+  // "succeeds" but the price card quietly shows 0 kr. Catch it here as a
+  // last line of defense, not just at the point each value is computed.
+  const numericFields = {
+    deal_score: scores.deal, price_score: scores.price,
+    reliability_score: scores.reliability, ownership_score: scores.ownership,
+    mileage_score: scores.mileage, resale_score: scores.resale,
+    confidence_score: confidence.score,
+    fair_price_low: pricing.low, fair_price_median: pricing.median,
+    fair_price_high: pricing.high, price_delta_pct: pricing.delta_pct,
+  }
+  const badFields = Object.entries(numericFields).filter(([, v]) => !Number.isFinite(v))
+  if (badFields.length > 0) {
+    console.error(`[saveAnalysisResult] Non-finite numeric field(s) for ${id}:`, badFields)
+  }
+
   const { error } = await supabase.from('analyses').update({
-    deal_score:           scores.deal,
-    price_score:          scores.price,
-    reliability_score:    scores.reliability,
-    ownership_score:      scores.ownership,
-    mileage_score:        scores.mileage,
-    resale_score:         scores.resale,
-    confidence_score:     confidence.score,
+    ...numericFields,
     confidence_tier:      confidence.tier,
     confidence_reasons:   confidence.reasons,
-    fair_price_low:       pricing.low,
-    fair_price_median:    pricing.median,
-    fair_price_high:      pricing.high,
-    price_delta_pct:      pricing.delta_pct,
     pros,
     cons,
     risks,

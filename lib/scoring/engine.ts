@@ -276,9 +276,22 @@ function scorePrice(
   pricePer1000ExtraMil: number,
   basePrice: number,
   depreciation: number,
-  medianResult: { median: number; sample_size?: number } | null,
+  medianResultRaw: { median: number; sample_size?: number } | null,
 ): { score: number; usedMedian: number | null; delta: number } {
   const age = Math.max(0, vehicleAgeYears(car))
+
+  // A live median that isn't a real finite number should never reach the
+  // rest of the pipeline — Math.max/roundTo don't actually guard against
+  // NaN (Math.max(x, NaN) is NaN, not x), so a bad value here would
+  // otherwise silently poison the price score and the saved price range.
+  const medianResult = medianResultRaw && Number.isFinite(medianResultRaw.median)
+    ? medianResultRaw
+    : null
+  if (medianResultRaw && !medianResult) {
+    console.error('[scorePrice] Non-finite live median, ignoring it', {
+      source_url: car.source_url, medianResultRaw,
+    })
+  }
 
   const referencePrice = medianResult
     ? medianResult.median
@@ -294,9 +307,9 @@ function scorePrice(
   // positive delta = listing is cheaper than reference = good for buyer
 
   return {
-    score: deltaToScore(delta),
+    score: Number.isFinite(delta) ? deltaToScore(delta) : 50,
     usedMedian: medianResult ? medianResult.median : null,
-    delta,
+    delta: Number.isFinite(delta) ? delta : 0,
   }
 }
 
@@ -483,10 +496,26 @@ function calculatePricing(
                   : confidence.tier === 'medium' ? 0.11
                   : 0.16
 
-  const low    = roundTo(adjusted * (1 - halfWidth), 5000)
-  const median = roundTo(adjusted, 5000)
-  const high   = roundTo(adjusted * (1 + halfWidth), 5000)
-  const delta  = (adjusted - car.price_sek) / Math.max(1, adjusted)
+  let low    = roundTo(adjusted * (1 - halfWidth), 5000)
+  let median = roundTo(adjusted, 5000)
+  let high   = roundTo(adjusted * (1 + halfWidth), 5000)
+  let delta  = (adjusted - car.price_sek) / Math.max(1, adjusted)
+
+  // Math.max/roundTo don't actually guard against NaN (Math.max(10000, NaN)
+  // is NaN, not 10000 — NaN poisons any comparison) — and a NaN written to
+  // Supabase silently becomes SQL NULL (JSON.stringify(NaN) === "null"), so
+  // a broken median upstream shows up as a completely blank "0 kr" price
+  // card with no error anywhere. Fall back to something derived straight
+  // from the listing's own asking price rather than ship NaN silently.
+  if (![low, median, high, delta].every(Number.isFinite)) {
+    console.error('[calculatePricing] Non-finite result — falling back to listing price', {
+      source_url: car.source_url, usedMedian, basePrice, depreciation, age, adjusted,
+    })
+    median = car.price_sek
+    low    = roundTo(car.price_sek * 0.85, 5000)
+    high   = roundTo(car.price_sek * 1.15, 5000)
+    delta  = 0
+  }
 
   const absPct = (Math.abs(delta) * 100).toFixed(1)
   const interpretation =
