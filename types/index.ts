@@ -73,12 +73,26 @@ export interface AnalysisResult {
   risks: Risk[]
   verdict: Verdict
   ai_summary: string
+  better_deals?: BetterDeal[]
   meta: {
     analyzed_at: string
     scoring_version: string
     data_sources: string[]
     cached: boolean
   }
+}
+
+export interface BetterDeal {
+  brand: string
+  model: string
+  variant?: string
+  year: number
+  price_sek: number
+  mileage_km: number
+  location?: string
+  deal_score: number
+  source_url: string
+  source_site: SupportedSite
 }
 
 export interface ScraperResult {

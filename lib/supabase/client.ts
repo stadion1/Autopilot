@@ -9,6 +9,7 @@ import { createClient } from '@supabase/supabase-js'
 import {
   AnalysisResult,
   AnalysisStatus,
+  BetterDeal,
   CarListing,
   ConfidenceResult,
   DealScores,
@@ -493,4 +494,45 @@ export async function saveListingScore(id: string, dealScore: number): Promise<v
     deal_score: dealScore,
     deal_score_updated_at: new Date().toISOString(),
   }).eq('id', id)
+}
+
+// ─── Better-deal suggestions (analysis page) ──────────────────────────────────
+// Only ever surfaces listings that score MEANINGFULLY higher than the one
+// being viewed (BETTER_DEAL_SCORE_MARGIN) — a marginal +1-2 point difference
+// isn't worth undermining trust in the rest of the analysis over. Restricted
+// to a similar year range and price band so "better" means a genuinely
+// comparable alternative, not just any higher-scoring car of the same model
+// regardless of budget.
+
+const BETTER_DEAL_SCORE_MARGIN = 8
+const BETTER_DEAL_YEAR_WINDOW   = 2
+const BETTER_DEAL_PRICE_BAND    = 0.3
+const BETTER_DEAL_LIMIT         = 3
+
+export async function getBetterDeals(car: CarListing, dealScore: number): Promise<BetterDeal[]> {
+  try {
+    const minPrice = Math.round(car.price_sek * (1 - BETTER_DEAL_PRICE_BAND))
+    const maxPrice = Math.round(car.price_sek * (1 + BETTER_DEAL_PRICE_BAND))
+
+    const { data, error } = await supabase
+      .from('market_listings')
+      .select('brand, model, variant, year, price_sek, mileage_km, location, deal_score, source_url, source_site')
+      .ilike('brand', car.brand)
+      .ilike('model', car.model)
+      .is('sold_at', null)
+      .not('deal_score', 'is', null)
+      .gte('deal_score', dealScore + BETTER_DEAL_SCORE_MARGIN)
+      .gte('year', car.year - BETTER_DEAL_YEAR_WINDOW)
+      .lte('year', car.year + BETTER_DEAL_YEAR_WINDOW)
+      .gte('price_sek', minPrice)
+      .lte('price_sek', maxPrice)
+      .neq('source_url', car.source_url)
+      .order('deal_score', { ascending: false })
+      .limit(BETTER_DEAL_LIMIT)
+
+    if (error || !data) return []
+    return data as BetterDeal[]
+  } catch {
+    return []
+  }
 }

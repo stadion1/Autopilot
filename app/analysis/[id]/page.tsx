@@ -154,7 +154,7 @@ export default function AnalysisPage() {
 
   if (!data) return null
 
-  const { car, scores, confidence, pricing, pros, cons, risks, verdict, ai_summary, meta } = data
+  const { car, scores, confidence, pricing, pros, cons, risks, verdict, ai_summary, meta, better_deals } = data
   const mileageMil = Math.round(car.mileage_km / 10)
 
   function handleShare() {
@@ -307,13 +307,20 @@ export default function AnalysisPage() {
           <PriceRangeCard car={car} pricing={pricing} />
         </div>
 
+        {/* ── Better deals — endast om något faktiskt sticker ut ── */}
+        {better_deals && better_deals.length > 0 && (
+          <div className={`anim-fade-up delay-5`}>
+            <BetterDealsCard deals={better_deals} />
+          </div>
+        )}
+
         {/* ── Ownership cost over time ── */}
-        <div className={`anim-fade-up delay-5`}>
+        <div className={`anim-fade-up delay-6`}>
           <OwnershipCostCard car={car} />
         </div>
 
         {/* ── Pros / Cons — den som matchar omdömet visas först ── */}
-        <div className={`${styles.prosConsRow} anim-fade-up delay-6`}>
+        <div className={`${styles.prosConsRow} anim-fade-up delay-7`}>
           {verdict === 'Tveksam affär' ? (
             <>
               <ConsCard cons={cons} />
@@ -329,13 +336,13 @@ export default function AnalysisPage() {
 
         {/* ── Risks ── */}
         {risks.length > 0 && (
-          <div className={`anim-fade-up delay-7`}>
+          <div className={`anim-fade-up delay-8`}>
             <RisksCard risks={risks} />
           </div>
         )}
 
         {/* ── Actions ── */}
-        <div className={`${styles.actions} anim-fade-up delay-8`}>
+        <div className={`${styles.actions} anim-fade-up delay-9`}>
           <a href={car.source_url} target="_blank" rel="noopener noreferrer"
             className="btn btn-ghost">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -685,6 +692,38 @@ function PriceCell({ label, value, suffix = 'kr', highlight, neutral, dimmed }: 
         {typeof value === 'number' ? value.toLocaleString('sv-SE') : value}
         {' '}<span className={styles.priceCellSuffix}>{suffix}</span>
       </span>
+    </div>
+  )
+}
+
+function BetterDealsCard({ deals }: { deals: any[] }) {
+  return (
+    <div className={`${styles.betterDealsCard} card`}>
+      <span className="section-label">Andra annonser att överväga</span>
+      <ul className={styles.betterDealsList} role="list">
+        {deals.map((d, i) => (
+          <li key={i} className={styles.betterDealItem}>
+            <div className={styles.betterDealInfo}>
+              <div className={styles.betterDealTop}>
+                <span className={styles.betterDealTitle}>
+                  {d.brand} {d.model}{d.variant ? ` ${d.variant}` : ''} · {d.year}
+                </span>
+                <span className="tag tag-green">{d.deal_score}/100</span>
+              </div>
+              <span className={styles.betterDealMeta}>
+                {d.price_sek.toLocaleString('sv-SE')} kr · {Math.round(d.mileage_km / 10).toLocaleString('sv-SE')} mil
+                {d.location ? ` · ${d.location}` : ''}
+              </span>
+            </div>
+            <a href={d.source_url} target="_blank" rel="noopener noreferrer" className="btn btn-ghost">
+              Visa annons
+            </a>
+          </li>
+        ))}
+      </ul>
+      <p className={styles.betterDealsDisclaimer}>
+        Baserade på samma deal-score-modell som analysen ovan. Kontrollera alltid att annonsen fortfarande är aktuell innan du kontaktar säljaren.
+      </p>
     </div>
   )
 }

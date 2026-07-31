@@ -1,6 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { supabase } from '../../../lib/supabase/client'
-import { getAnalysis } from '../../../lib/supabase/client'
+import { supabase, getAnalysis, getBetterDeals } from '../../../lib/supabase/client'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') return res.status(405).end()
@@ -29,5 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const analysis = await getAnalysis(id)
   if (!analysis) return res.status(404).json({ error: 'Analysis not found' })
 
-  return res.status(200).json({ status: 'done', ...analysis })
+  const betterDeals = await getBetterDeals(analysis.car, analysis.scores.deal)
+
+  return res.status(200).json({ status: 'done', ...analysis, better_deals: betterDeals })
 }
