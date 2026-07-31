@@ -767,6 +767,18 @@ export async function scoreVehicle(car: CarListing): Promise<ScoringOutput> {
   }
 
   const scores:     DealScores       = { ...subScores, deal: composite(subScores) }
+
+  console.log('[scoreVehicle]', JSON.stringify({
+    source_url: car.source_url,
+    brand: car.brand, model: car.model, year: car.year,
+    price_sek: car.price_sek, mileage_km: car.mileage_km,
+    registration_date: car.registration_date ?? null,
+    age_years: Math.round(vehicleAgeYears(car) * 1000) / 1000,
+    isDefaultRef: isDefault,
+    liveMedian, usedMedian: priceResult.usedMedian,
+    subScores, deal: scores.deal,
+  }))
+
   const confidence: ConfidenceResult = calculateConfidence(
     car, priceResult.usedMedian, ref.basePrice, ref.depreciation, isDefault,
   )
