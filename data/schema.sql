@@ -359,3 +359,27 @@ BEGIN
   END IF;
 END;
 $$;
+
+
+-- ============================================================
+-- Migration: deal_score for market_listings
+-- Run this once in Supabase Dashboard → SQL Editor → New Query
+-- ============================================================
+-- Lets "find a better deal" queries sort by a stored deal_score instead of
+-- scoring every candidate live on each request. Populated and kept fresh by
+-- a separate Vercel Cron job (pages/api/cron/score-listings.ts) that reuses
+-- the same scoring engine as a single-car analysis — NOT by the nightly
+-- scraper itself, since lib/scoring/engine.ts lives in the main app and
+-- scraper-service (Railway) is built/deployed independently of it.
+--
+-- Needs periodic re-scoring, not just a one-time value at insert time:
+-- get_market_median() is computed live from market_listings, so a score
+-- computed when only 2 rows exist for a brand/model becomes stale once 50
+-- more accumulate. deal_score_updated_at drives that re-scoring cadence.
+
+ALTER TABLE market_listings ADD COLUMN IF NOT EXISTS deal_score INT;
+ALTER TABLE market_listings ADD COLUMN IF NOT EXISTS deal_score_updated_at TIMESTAMPTZ;
+
+CREATE INDEX IF NOT EXISTS market_listings_deal_score_idx
+  ON market_listings (brand, model, deal_score DESC)
+  WHERE sold_at IS NULL;

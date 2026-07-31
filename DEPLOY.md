@@ -109,6 +109,35 @@ SCRAPER_SECRET=                  (samma värde som i Railway)
 
 ---
 
+## Del 3b — Vercel Cron (deal_score för marknadsdata)
+
+Räknar om `deal_score` för aktiva rader i `market_listings` — samma
+scoring-motor som en enskild analys, men utan AI-anropet, så det är billigt
+att köra på hela marknaden. Se kommentaren i
+`pages/api/cron/score-listings.ts` för varför det här ligger som ett eget
+jobb i Vercel-appen och inte byggs in i den nattliga Railway-scrapern.
+
+1. Kräver att migrationen **"deal_score for market_listings"** längst ner i
+   `data/schema.sql` har körts i Supabase SQL Editor först.
+2. `vercel.json` i repo-roten schemalägger jobbet redan (`0 3 * * *`, en
+   timme efter att Railway-scrapern startar kl 02:00 UTC) — inget extra att
+   klicka i Vercel-dashboarden, det aktiveras automatiskt vid deploy.
+3. Lägg (valfritt men rekommenderat) till en miljövariabel så inte vem som
+   helst kan trigga jobbet manuellt:
+   ```
+   CRON_SECRET=                    (valfri hemlighet, valfritt värde)
+   ```
+   Vercel skickar automatiskt med den som `Authorization: Bearer <värde>`
+   när den anropar schemalagda routes.
+4. **Obs:** Vercel Hobby-planen begränsar hur ofta/många cron-jobb som får
+   köras — kontrollera i Vercel-dashboarden under **Settings → Cron Jobs**
+   att jobbet faktiskt är aktiverat efter första deploy.
+5. Kör en manuell deploy och kontrollera loggarna (**Deployments → senaste
+   → Functions → /api/cron/score-listings**) — ska sluta med
+   `[score-listings] X poängsatta, 0 misslyckade`.
+
+---
+
 ## Verifiera att allt hänger ihop
 
 Öppna din Vercel-URL, klistra in en Blocket-annons och kontrollera:

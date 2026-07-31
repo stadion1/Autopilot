@@ -445,3 +445,52 @@ export async function getLiveKnownIssues(
     return []
   }
 }
+
+// ─── Market listing scoring (pages/api/cron/score-listings.ts) ───────────────
+// deal_score needs periodic re-scoring, not just a one-time value at insert
+// time — get_market_median() is computed live from market_listings, so a
+// score computed when only a couple of rows exist for a brand/model goes
+// stale once more accumulate. deal_score_updated_at drives which rows are
+// due: never-scored rows first, then the oldest scores.
+
+const SCORE_STALE_AFTER_HOURS = 24
+
+export interface ListingToScore {
+  id: string
+  brand: string
+  model: string
+  variant: string | null
+  year: number
+  price_sek: number
+  mileage_km: number
+  fuel_type: string
+  transmission: string
+  location: string | null
+  seller_type: string | null
+  source_url: string
+  source_site: string
+  registration_number: string | null
+  vin: string | null
+}
+
+export async function getListingsNeedingScore(limit: number): Promise<ListingToScore[]> {
+  const staleCutoff = new Date(Date.now() - SCORE_STALE_AFTER_HOURS * 3600_000).toISOString()
+
+  const { data, error } = await supabase
+    .from('market_listings')
+    .select('id, brand, model, variant, year, price_sek, mileage_km, fuel_type, transmission, location, seller_type, source_url, source_site, registration_number, vin')
+    .is('sold_at', null)
+    .or(`deal_score_updated_at.is.null,deal_score_updated_at.lt.${staleCutoff}`)
+    .order('deal_score_updated_at', { ascending: true, nullsFirst: true })
+    .limit(limit)
+
+  if (error || !data) return []
+  return data as ListingToScore[]
+}
+
+export async function saveListingScore(id: string, dealScore: number): Promise<void> {
+  await supabase.from('market_listings').update({
+    deal_score: dealScore,
+    deal_score_updated_at: new Date().toISOString(),
+  }).eq('id', id)
+}
