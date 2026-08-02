@@ -41,6 +41,18 @@ function vehicleAgeYears(car: CarListing): number {
   return CURRENT_YEAR - car.year
 }
 
+// Mätarställning ensam, inte årsmodell — en förbeställd "nästa års modell"
+// (t.ex. Blockets "Ny bil till salu"-annonser) kan visa ett modellår som
+// ligger EFTER innevarande år, vilket ger en förvirrande eller rentav
+// negativ ålder om man räknar (CURRENT_YEAR - årsmodell). Mätarställning
+// nära noll är ett robust, entydigt "det här är i praktiken en ny bil"-
+// tecken oavsett hur årsmodellen råkar vara satt.
+const NEW_CAR_MAX_MIL_KM = 500
+
+function isEssentiallyNewCar(car: CarListing): boolean {
+  return car.mileage_km <= NEW_CAR_MAX_MIL_KM
+}
+
 const WEIGHTS = {
   price:       0.30,
   reliability: 0.25,
@@ -677,7 +689,9 @@ function generatePros(car: CarListing, scores: Omit<DealScores,'deal'>,
   const age = Math.round(vehicleAgeYears(car))
   const premiumTrim = detectPremiumTrim(car)
 
-  if (scores.mileage >= 80)
+  if (isEssentiallyNewCar(car))
+    pros.push(`Bilen är i praktiken oanvänd (${mil.toLocaleString('sv-SE')} mil) — inga tidigare ägare eller slitage att ta hänsyn till.`)
+  else if (scores.mileage >= 80)
     pros.push(`Mätarställningen (${mil.toLocaleString('sv-SE')} mil) är under genomsnittet för en ${age} år gammal bil — typiskt ${(age * avgMilPerYear).toLocaleString('sv-SE')} mil.`)
   if (pricing.delta_pct > 0.04)
     pros.push(`Priset är ${(pricing.delta_pct * 100).toFixed(0)}% under estimerat marknadsmedian — bra förhandlings­utrymme.`)
@@ -701,6 +715,9 @@ function generateCons(car: CarListing, scores: Omit<DealScores,'deal'>, pricing:
   const cons: string[] = []
   const age = Math.round(vehicleAgeYears(car))
   const premiumTrim = detectPremiumTrim(car)
+
+  if (isEssentiallyNewCar(car))
+    cons.push('Ny bil — värdeminskningen är normalt som brantast under det första året, snabbare än för en redan begagnad bil av samma modell.')
 
   if (pricing.delta_pct < -0.04) {
     if (premiumTrim) {

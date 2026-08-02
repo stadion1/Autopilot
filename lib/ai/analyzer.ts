@@ -77,7 +77,15 @@ function buildPrompt(
   const age        = new Date().getFullYear() - car.year
   const mil        = Math.round(car.mileage_km / 10)
   const avgMilAge  = age * 1500
-  const milSignal  = mil < avgMilAge * 0.85
+  // En förbeställd "nästa års modell" (Blockets "Ny bil till salu") kan visa
+  // ett årsmodell EFTER innevarande år, vilket gör (currentYear - årsmodell)
+  // noll eller negativt — "genomsnittlig mätarställning för årsmodellen"
+  // blir då meningslös eller rentav negativ. Mätarställning nära noll är ett
+  // entydigt "det här är i praktiken en ny bil"-tecken oavsett årsmodell.
+  const isNewCar   = mil <= 50
+  const milSignal  = isNewCar
+    ? `I PRAKTIKEN NY/OANVÄND (${mil.toLocaleString('sv-SE')} mil) — ingen jämförelse mot genomsnittlig mätarställning är relevant`
+    : mil < avgMilAge * 0.85
     ? `LÄGRE än genomsnittet för årsmodellen (${mil.toLocaleString('sv-SE')} mil vs typiska ${avgMilAge.toLocaleString('sv-SE')} mil)`
     : mil > avgMilAge * 1.20
     ? `HÖGRE än genomsnittet för årsmodellen (${mil.toLocaleString('sv-SE')} mil vs typiska ${avgMilAge.toLocaleString('sv-SE')} mil)`
@@ -125,6 +133,7 @@ ${medRisks.length > 0  ? `OBS: ${medRisks.length} MEDEL risk identifierad — n�
 
 ${modelNotes ? `MODELL­SPECIFIK INFORMATION (från vår databas):\n${modelNotes}\n` : ''}
 ${car.description ? `ANNONSTEXT (utdrag):\n${car.description.slice(0, 400)}` : ''}
+${isNewCar ? `\nOBS — DETTA ÄR EN NY BIL (${mil} mil): Säg INTE att mätarställningen är "som förväntat för årsmodellen" eller liknande — det är en ny bil, inte en begagnad. Nämn istället att en ny bil ofta har en brantare värdeminskning det första året jämfört med en redan begagnad bil av samma modell.\n` : ''}
 
 Skriv nu en ärlig, balanserad analys på 2–3 korta stycken.
 - Stycke 1: Priset och mätarställningen i kontext.
