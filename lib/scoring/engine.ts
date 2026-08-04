@@ -789,9 +789,14 @@ export async function scoreVehicle(car: CarListing): Promise<ScoringOutput> {
   // listpriser per märke/modell/UTRUSTNINGSNIVÅ) är då en bättre referens
   // än den enda platta basePrice-siffran per modell i referenceData.ts,
   // som inte kan skilja en baspris-trim från en toppmodell.
+  let usedNewCarPrice = false
   if (isEssentiallyNewCar(car)) {
     const newCarPrice = await getNewCarPrice(car.brand, car.model, car.variant, car.year)
-    if (newCarPrice) medianResult = { median: newCarPrice }
+    console.log('[scoreVehicle] new-car price lookup', {
+      source_url: car.source_url, brand: car.brand, model: car.model,
+      variant: car.variant, year: car.year, matchedPrice: newCarPrice,
+    })
+    if (newCarPrice) { medianResult = { median: newCarPrice }; usedNewCarPrice = true }
   }
 
   const priceResult = scorePrice(
@@ -816,7 +821,7 @@ export async function scoreVehicle(car: CarListing): Promise<ScoringOutput> {
     registration_date: car.registration_date ?? null,
     age_years: Math.round(vehicleAgeYears(car) * 1000) / 1000,
     isDefaultRef: isDefault,
-    liveMedian, usedMedian: priceResult.usedMedian,
+    liveMedian, usedMedian: priceResult.usedMedian, usedNewCarPrice,
     subScores, deal: scores.deal,
   }))
 
