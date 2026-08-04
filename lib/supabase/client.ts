@@ -543,3 +543,83 @@ export async function getBetterDeals(car: CarListing, dealScore: number): Promis
     return []
   }
 }
+
+// ─── New-car list prices (Skatteverket) ───────────────────────────────────────
+// Trim-level "what did this cost new" data, used as the reference price for
+// essentially-new cars instead of the flat per-model basePrice — see the
+// migration comment in data/schema.sql for why. Synced by
+// pages/api/cron/sync-new-car-prices.ts, queried here at scoring time.
+
+export interface NewCarPriceRow {
+  source_code: string
+  brand: string
+  model_raw: string
+  manufacturing_year: number
+  price_sek: number
+  fuel_type: string | null
+}
+
+export async function upsertNewCarPrices(rows: NewCarPriceRow[]): Promise<{ error: string | null }> {
+  if (rows.length === 0) return { error: null }
+  const { error } = await supabase
+    .from('new_car_prices')
+    .upsert(
+      rows.map(r => ({ ...r, synced_at: new Date().toISOString() })),
+      { onConflict: 'source_code' },
+    )
+  return { error: error?.message ?? null }
+}
+
+// Picks the closest trim match by word-overlap between our scraped variant
+// text and Skatteverket's free-text model string. With no variant to go on
+// and more than one trim for the model, there's no reasonable way to pick
+// one over another — better to return nothing and let the caller fall back
+// to the existing basePrice estimate than silently guess a random trim's price.
+function pickBestTrimMatch(
+  candidates: { model_raw: string; price_sek: number }[],
+  variant: string | undefined,
+): number | null {
+  if (candidates.length === 1) return candidates[0].price_sek
+  if (!variant) return null
+
+  const variantTokens = variant.toLowerCase().split(/\s+/).filter(Boolean)
+  let bestScore = 0
+  let bestPrice: number | null = null
+  for (const c of candidates) {
+    const modelTokens = c.model_raw.toLowerCase().split(/\s+/)
+    const overlap = variantTokens.filter(t => modelTokens.includes(t)).length
+    if (overlap > bestScore) { bestScore = overlap; bestPrice = c.price_sek }
+  }
+  return bestScore >= 1 ? bestPrice : null
+}
+
+export async function getNewCarPrice(
+  brand: string,
+  model: string,
+  variant: string | undefined,
+  year: number,
+): Promise<number | null> {
+  try {
+    // Try the listing's own model year first, then adjacent years — a
+    // dealer's "model year" label doesn't always line up with which
+    // manufacturing-year bucket Skatteverket happened to file the trim
+    // under (we've seen pre-order listings labelled a year that Skatteverket
+    // hasn't published prices for yet).
+    for (const y of [year, year - 1, year + 1]) {
+      const { data, error } = await supabase
+        .from('new_car_prices')
+        .select('model_raw, price_sek')
+        .ilike('brand', brand)
+        .ilike('model_raw', `%${model}%`)
+        .eq('manufacturing_year', y)
+
+      if (error || !data || data.length === 0) continue
+
+      const price = pickBestTrimMatch(data, variant)
+      if (price) return price
+    }
+    return null
+  } catch {
+    return null
+  }
+}

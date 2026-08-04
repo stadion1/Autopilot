@@ -16,7 +16,7 @@
 import { CarListing, ConfidenceResult, DealScores, PriceRange, Risk } from '../../types'
 import { lookupModelReference } from '../../data/referenceData'
 import { lookupMarketMedian } from '../../data/marketMedians'
-import { getMarketMedian } from '../supabase/client'
+import { getMarketMedian, getNewCarPrice } from '../supabase/client'
 import { UNKNOWN_MODEL_REASON } from './constants'
 
 export const SCORING_VERSION = '1.2.0'
@@ -780,7 +780,19 @@ export async function scoreVehicle(car: CarListing): Promise<ScoringOutput> {
   // den statiska MARKET_MEDIANS-tabellen när det finns tillräckligt underlag —
   // se getMarketMedian() i lib/supabase/client.ts för sample-size-tröskeln.
   const liveMedian = await getMarketMedian(car.brand, car.model, car.year)
-  const medianResult = liveMedian ?? lookupMarketMedian(car.brand, car.model, car.year)
+  let medianResult: { median: number; sample_size?: number } | null =
+    liveMedian ?? lookupMarketMedian(car.brand, car.model, car.year)
+
+  // En i praktiken oanvänd bil har ingen egen prishistorik att mätas mot —
+  // "medianen" för en nypremiärad modell är antingen tunn (för få sålda
+  // exemplar) eller obefintlig. Skatteverkets nybilspriser (verkliga
+  // listpriser per märke/modell/UTRUSTNINGSNIVÅ) är då en bättre referens
+  // än den enda platta basePrice-siffran per modell i referenceData.ts,
+  // som inte kan skilja en baspris-trim från en toppmodell.
+  if (isEssentiallyNewCar(car)) {
+    const newCarPrice = await getNewCarPrice(car.brand, car.model, car.variant, car.year)
+    if (newCarPrice) medianResult = { median: newCarPrice }
+  }
 
   const priceResult = scorePrice(
     car, ref.avgMilPerYear, ref.pricePer1000ExtraMil,

@@ -138,6 +138,31 @@ jobb i Vercel-appen och inte byggs in i den nattliga Railway-scrapern.
 
 ---
 
+## Del 3c — Vercel Cron (nybilspriser från Skatteverket)
+
+Synkar Skatteverkets öppna nybilsprisdata (CC0) till `new_car_prices`,
+använt som referenspris för i praktiken nya bilar (nära noll mil) istället
+för det platta `basePrice` per modell i `data/referenceData.ts`, som inte
+kan skilja en baspris-trim från en toppmodell. Se kommentaren i
+`pages/api/cron/sync-new-car-prices.ts`.
+
+1. Kräver att migrationen **"new_car_prices (Skatteverket nybilspriser)"**
+   längst ner i `data/schema.sql` har körts i Supabase SQL Editor först.
+2. `vercel.json` schemalägger jobbet redan (`0 5 * * 1`, måndagar kl 05:00
+   UTC) — Skatteverket publicerar bara ca 3 uppdateringar per år, så det
+   här behöver inte köras oftare.
+3. Samma `CRON_SECRET`-variabel som ovan skyddar den här routen också, om
+   den är satt.
+4. **Obs:** det här är det ANDRA cron-jobbet i `vercel.json` — Vercel
+   Hobby-planen har historiskt begränsat hur många/ofta cron-jobb får köras.
+   Kontrollera i Vercel-dashboarden under **Settings → Cron Jobs** att båda
+   jobben faktiskt är aktiverade efter deploy.
+5. Kör en manuell deploy och testa via `/api/cron/sync-new-car-prices`
+   direkt i webbläsaren (som med score-listings) — svaret listar antal
+   synkade rader per år, t.ex. `{"years":{"2025":{"synced":3200,"failed":0},"2026":{"synced":3410,"failed":0}}}`.
+
+---
+
 ## Verifiera att allt hänger ihop
 
 Öppna din Vercel-URL, klistra in en Blocket-annons och kontrollera:

@@ -1,5 +1,6 @@
 {
   "crons": [
-    { "path": "/api/cron/score-listings", "schedule": "0 3 * * *" }
+    { "path": "/api/cron/score-listings", "schedule": "0 3 * * *" },
+    { "path": "/api/cron/sync-new-car-prices", "schedule": "0 5 * * 1" }
   ]
 }

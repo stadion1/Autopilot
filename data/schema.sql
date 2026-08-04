@@ -383,3 +383,33 @@ ALTER TABLE market_listings ADD COLUMN IF NOT EXISTS deal_score_updated_at TIMES
 CREATE INDEX IF NOT EXISTS market_listings_deal_score_idx
   ON market_listings (brand, model, deal_score DESC)
   WHERE sold_at IS NULL;
+
+
+-- ============================================================
+-- Migration: new_car_prices (Skatteverket nybilspriser)
+-- Run this once in Supabase Dashboard → SQL Editor → New Query
+-- ============================================================
+-- Real trim-level new-car list prices from Skatteverket's open data API
+-- (CC0, https://skatteverket.entryscape.net/rowstore/dataset/fad86bf9-
+-- 67e3-4d68-829c-7b9a23bc5e42), synced periodically by
+-- pages/api/cron/sync-new-car-prices.ts. Used as the reference price for
+-- essentially-new cars (near-zero mileage) instead of the flat per-model
+-- basePrice in data/referenceData.ts, which can't capture that e.g. a
+-- Volvo XC60 spans 560 000–893 000 kr new depending on trim.
+
+CREATE TABLE new_car_prices (
+  id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  source_code        TEXT UNIQUE NOT NULL,  -- Skatteverkets "kod" — stabil per rad/trim/år
+  brand              TEXT NOT NULL,
+  model_raw          TEXT NOT NULL,         -- t.ex. "XC60 T6 Plus Nordic Edition"
+  manufacturing_year INT NOT NULL,
+  price_sek          INT NOT NULL,
+  fuel_type          TEXT,
+  synced_at          TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX ON new_car_prices (brand, manufacturing_year);
+
+ALTER TABLE new_car_prices ENABLE ROW LEVEL SECURITY;
+-- No public policy — only the service role (used server-side) reads/writes
+-- this table, same as the rest of the scoring pipeline's internal tables.
