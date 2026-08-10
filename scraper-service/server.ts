@@ -152,18 +152,28 @@ app.post('/backfill-sold-verification', async (req: Request, res: Response) => {
   const days = typeof req.body?.days === 'number' && req.body.days > 0 ? req.body.days : 14
   const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString()
 
-  const { data, error } = await supabase
-    .from('market_listings')
-    .select('id, source_url')
-    .eq('source_site', 'blocket')
-    .not('sold_at', 'is', null)
-    .gte('sold_at', cutoff)
+  // Supabase/PostgREST caps results at 1000 rows per request by default —
+  // without explicit pagination, any match beyond the first 1000 would
+  // silently never get checked. Page through with .range() until a page
+  // comes back short of PAGE_SIZE.
+  const PAGE_SIZE = 1000
+  const candidates: { id: string; source_url: string }[] = []
+  for (let page = 0; ; page++) {
+    const { data, error } = await supabase
+      .from('market_listings')
+      .select('id, source_url')
+      .eq('source_site', 'blocket')
+      .not('sold_at', 'is', null)
+      .gte('sold_at', cutoff)
+      .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1)
 
-  if (error) {
-    return res.status(500).json({ error: error.message })
+    if (error) {
+      return res.status(500).json({ error: error.message })
+    }
+    candidates.push(...(data ?? []))
+    if (!data || data.length < PAGE_SIZE) break
   }
 
-  const candidates = data ?? []
   console.log(`[backfill] ${candidates.length} sold-markerade Blocket-rader (senaste ${days} dagarna) att kontrollera`)
 
   const stats = { checked: candidates.length, unmarked: 0, confirmedSold: 0, ambiguous: 0 }

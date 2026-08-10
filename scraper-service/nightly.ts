@@ -247,17 +247,28 @@ interface StaleCandidate {
 
 async function fetchStaleCandidates(graceDays: number): Promise<StaleCandidate[]> {
   const cutoff = new Date(Date.now() - graceDays * 24 * 60 * 60 * 1000).toISOString()
-  const { data, error } = await supabase
-    .from('market_listings')
-    .select('id, source_url, source_site, first_seen_at')
-    .is('sold_at', null)
-    .lt('scraped_at', cutoff)
 
-  if (error) {
-    console.error('[nightly] Fel vid hämtning av kandidater för sold-verifiering:', error.message)
-    return []
+  // Supabase/PostgREST caps results at 1000 rows per request by default —
+  // page through with .range() so a large backlog doesn't silently lose
+  // anything beyond the first 1000 candidates.
+  const PAGE_SIZE = 1000
+  const candidates: StaleCandidate[] = []
+  for (let page = 0; ; page++) {
+    const { data, error } = await supabase
+      .from('market_listings')
+      .select('id, source_url, source_site, first_seen_at')
+      .is('sold_at', null)
+      .lt('scraped_at', cutoff)
+      .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1)
+
+    if (error) {
+      console.error('[nightly] Fel vid hämtning av kandidater för sold-verifiering:', error.message)
+      break
+    }
+    candidates.push(...((data ?? []) as StaleCandidate[]))
+    if (!data || data.length < PAGE_SIZE) break
   }
-  return (data ?? []) as StaleCandidate[]
+  return candidates
 }
 
 async function verifyAndMarkSoldListings(graceDays: number) {
