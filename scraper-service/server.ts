@@ -17,6 +17,9 @@
 
 import express, { Request, Response } from 'express'
 import { scrapeAndParse, validateListingUrl, detectSite } from './parsers'
+import { supabase } from './supabase'
+import { extractAdId } from './blocket'
+import { verifyBlocketAdGone } from './soldVerification'
 
 const app  = express()
 const PORT = process.env.PORT ?? 3001
@@ -130,6 +133,67 @@ app.post('/scrape', async (req: Request, res: Response) => {
       error:   err.message ?? 'Okänt scraping-fel',
     })
   }
+})
+
+/**
+ * POST /backfill-sold-verification
+ * Body (valfritt): { days?: number } — hur många dagar bakåt sold_at ska
+ * omprövas, default 14.
+ *
+ * Engångsverktyg, triggas manuellt (inte schemalagt): rättar rader som
+ * felaktigt markerades sålda av den gamla "inte återsedd i samplet"-
+ * heuristiken innan verifieringen mot Blockets egen annons-endpoint fanns
+ * (se nightly.ts). nightly.ts sköter verifiering av NYA kandidater varje
+ * natt på egen hand — det här är bara för att städa upp befintliga
+ * felmarkeringar i efterhand, kan köras om vid behov men behöver inte
+ * schemaläggas.
+ */
+app.post('/backfill-sold-verification', async (req: Request, res: Response) => {
+  const days = typeof req.body?.days === 'number' && req.body.days > 0 ? req.body.days : 14
+  const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString()
+
+  const { data, error } = await supabase
+    .from('market_listings')
+    .select('id, source_url')
+    .eq('source_site', 'blocket')
+    .not('sold_at', 'is', null)
+    .gte('sold_at', cutoff)
+
+  if (error) {
+    return res.status(500).json({ error: error.message })
+  }
+
+  const candidates = data ?? []
+  console.log(`[backfill] ${candidates.length} sold-markerade Blocket-rader (senaste ${days} dagarna) att kontrollera`)
+
+  const stats = { checked: candidates.length, unmarked: 0, confirmedSold: 0, ambiguous: 0 }
+  const CONCURRENCY = 8
+
+  for (let i = 0; i < candidates.length; i += CONCURRENCY) {
+    const chunk = candidates.slice(i, i + CONCURRENCY)
+    await Promise.all(chunk.map(async (c: { id: string; source_url: string }) => {
+      const adId = extractAdId(c.source_url)
+      if (!adId) { stats.ambiguous++; return }
+
+      const gone = await verifyBlocketAdGone(adId)
+      if (gone === false) {
+        // Fortfarande aktiv trots sold_at — felmarkerad av den gamla
+        // heuristiken, backa den.
+        await supabase.from('market_listings')
+          .update({ sold_at: null, days_listed: null, scraped_at: new Date().toISOString() })
+          .eq('id', c.id)
+        stats.unmarked++
+      } else if (gone === true) {
+        stats.confirmedSold++   // korrekt markerad, rör inte
+      } else {
+        stats.ambiguous++       // nätverksfel — rör inte, går att köra om senare
+      }
+    }))
+    await new Promise(resolve => setTimeout(resolve, 500))
+  }
+
+  console.log('[backfill] Klart:', stats)
+  return res.json(stats)
 })
 
 // ── Start ─────────────────────────────────────────────────────────────────────

@@ -40,6 +40,7 @@
 
 import { supabase } from './supabase'
 import { parseFuelType, parseTransmission, extractAdId } from './blocket'
+import { verifyBlocketAdGone, daysListedSince } from './soldVerification'
 
 // ─── Modeller vi bevakar ──────────────────────────────────────────────────────
 // Härlett från data/referenceData.ts i huvudappen. Hålls som en separat,
@@ -109,7 +110,6 @@ const TRACKED_MODELS: { brand: string; model: string }[] = [
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const SEARCH_URL      = 'https://blocket-api.se/v1/search/car'
-const AD_URL          = 'https://blocket-api.se/v1/ad/car'
 const MAX_PAGES       = parseInt(process.env.NIGHTLY_MAX_PAGES ?? '20', 10)
 const PAGE_DELAY_MS   = 1000
 const SOLD_GRACE_DAYS = 5
@@ -258,28 +258,6 @@ async function fetchStaleCandidates(graceDays: number): Promise<StaleCandidate[]
     return []
   }
   return (data ?? []) as StaleCandidate[]
-}
-
-// null = kunde inte avgöras (nätverksfel/timeout) — ska INTE tolkas som såld,
-// bara försökas igen nästa natt.
-async function verifyBlocketAdGone(adId: string): Promise<boolean | null> {
-  try {
-    const res = await fetch(`${AD_URL}?id=${adId}`, {
-      headers: { Accept: 'application/json', 'User-Agent': 'bilanalys-nightly/1.0' },
-      signal: AbortSignal.timeout(10000),
-    })
-    if (res.status === 404 || res.status === 410) return true   // bekräftat borta
-    if (!res.ok) return null                                     // annat fel — oklart, försök igen senare
-    const ad = await res.json().catch(() => null)
-    return !ad || !ad.title   // saknar grundläggande fält = i praktiken borta
-  } catch {
-    return null   // timeout/nätverksfel — oklart, inte samma sak som borta
-  }
-}
-
-function daysListedSince(firstSeenAt: string): number {
-  const days = (Date.now() - new Date(firstSeenAt).getTime()) / (1000 * 60 * 60 * 24)
-  return Math.max(1, Math.round(days))
 }
 
 async function verifyAndMarkSoldListings(graceDays: number) {
