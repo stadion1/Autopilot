@@ -19,7 +19,7 @@ import express, { Request, Response } from 'express'
 import { scrapeAndParse, validateListingUrl, detectSite } from './parsers'
 import { supabase } from './supabase'
 import { extractAdId } from './blocket'
-import { verifyBlocketAdGone } from './soldVerification'
+import { verifyBlocketAdGone, daysListedSince } from './soldVerification'
 
 const app  = express()
 const PORT = process.env.PORT ?? 3001
@@ -203,6 +203,73 @@ app.post('/backfill-sold-verification', async (req: Request, res: Response) => {
   }
 
   console.log('[backfill] Klart:', stats)
+  return res.json(stats)
+})
+
+/**
+ * POST /reverify-active-listings
+ *
+ * Engångsverktyg, triggas manuellt: rättar det MOTSATTA problemet mot
+ * /backfill-sold-verification. verifyBlocketAdGone() förlitade sig tidigare
+ * på blocket-api.se, som visade sig fortsätta returnera fullständig data
+ * (200 OK) för annonser som redan sålts/tagits bort på riktiga Blocket —
+ * det cachar/speglar uppenbarligen data istället för att spegla borttagning
+ * i realtid. Det gjorde att både nightly-verifieringen och båda
+ * backfill-körningarna sannolikt har återaktiverat (sold_at satt till NULL)
+ * annonser som i själva verket är sålda, mycket oftare än de rättade
+ * riktiga falska positiva.
+ *
+ * Går igenom ALLA rader med source_site='blocket' AND sold_at IS NULL och
+ * kontrollerar dem mot den korrigerade metoden (riktiga blocket.se-sidan,
+ * inte blocket-api.se) — markerar bara sold_at på de som bekräftat är
+ * borta. Rör inte rader som fortfarande är aktiva eller vars status är
+ * oklar (nätverksfel).
+ */
+app.post('/reverify-active-listings', async (req: Request, res: Response) => {
+  const PAGE_SIZE = 1000
+  const candidates: { id: string; source_url: string; first_seen_at: string }[] = []
+  for (let page = 0; ; page++) {
+    const { data, error } = await supabase
+      .from('market_listings')
+      .select('id, source_url, first_seen_at')
+      .eq('source_site', 'blocket')
+      .is('sold_at', null)
+      .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1)
+
+    if (error) {
+      return res.status(500).json({ error: error.message })
+    }
+    candidates.push(...(data ?? []))
+    if (!data || data.length < PAGE_SIZE) break
+  }
+
+  console.log(`[reverify] ${candidates.length} aktiva Blocket-rader att kontrollera`)
+
+  const stats = { checked: candidates.length, markedSold: 0, stillActive: 0, ambiguous: 0 }
+  const CONCURRENCY = 8
+
+  for (let i = 0; i < candidates.length; i += CONCURRENCY) {
+    const chunk = candidates.slice(i, i + CONCURRENCY)
+    await Promise.all(chunk.map(async (c: { id: string; source_url: string; first_seen_at: string }) => {
+      const adId = extractAdId(c.source_url)
+      if (!adId) { stats.ambiguous++; return }
+
+      const gone = await verifyBlocketAdGone(adId)
+      if (gone === true) {
+        await supabase.from('market_listings')
+          .update({ sold_at: new Date().toISOString(), days_listed: daysListedSince(c.first_seen_at) })
+          .eq('id', c.id)
+        stats.markedSold++
+      } else if (gone === false) {
+        stats.stillActive++   // faktiskt aktiv, rör inte
+      } else {
+        stats.ambiguous++     // nätverksfel — rör inte, går att köra om senare
+      }
+    }))
+    await new Promise(resolve => setTimeout(resolve, 500))
+  }
+
+  console.log('[reverify] Klart:', stats)
   return res.json(stats)
 })
 
