@@ -261,9 +261,14 @@ CREATE POLICY "Public read done analyses"
 ALTER TABLE market_listings ADD COLUMN IF NOT EXISTS first_seen_at TIMESTAMPTZ DEFAULT now();
 ALTER TABLE market_listings ADD CONSTRAINT market_listings_source_url_key UNIQUE (source_url);
 
--- Marks listings not re-seen in p_grace_days nights as sold. A single missed
--- night isn't strong evidence of a sale — the nightly job only samples a
--- rotating subset of the total market, so a grace period avoids false positives.
+-- SUPERSEDED as of the "sold-verifiering" change in scraper-service/nightly.ts
+-- (verifyAndMarkSoldListings) — kept here for reference/rollback only, no
+-- longer called. Marking "not re-seen in N nights" as sold turned out to
+-- produce real false positives: the rotating relevance-sorted sample only
+-- covers a small slice of the market per night, so a still-active listing
+-- can plausibly miss the sample for 5+ consecutive nights on sort-order
+-- noise alone. nightly.ts now verifies each stale candidate against
+-- Blocket's own ad-detail endpoint before marking it sold.
 CREATE OR REPLACE FUNCTION mark_stale_listings_sold(p_grace_days INT DEFAULT 5)
 RETURNS INT
 LANGUAGE SQL AS $$

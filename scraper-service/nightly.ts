@@ -39,7 +39,7 @@
  */
 
 import { supabase } from './supabase'
-import { parseFuelType, parseTransmission } from './blocket'
+import { parseFuelType, parseTransmission, extractAdId } from './blocket'
 
 // ─── Modeller vi bevakar ──────────────────────────────────────────────────────
 // Härlett från data/referenceData.ts i huvudappen. Hålls som en separat,
@@ -109,10 +109,13 @@ const TRACKED_MODELS: { brand: string; model: string }[] = [
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const SEARCH_URL      = 'https://blocket-api.se/v1/search/car'
+const AD_URL          = 'https://blocket-api.se/v1/ad/car'
 const MAX_PAGES       = parseInt(process.env.NIGHTLY_MAX_PAGES ?? '20', 10)
 const PAGE_DELAY_MS   = 1000
 const SOLD_GRACE_DAYS = 5
 const MAX_CONSECUTIVE_FAILURES = 3
+const VERIFY_CONCURRENCY = 8
+const VERIFY_BATCH_DELAY_MS = 500
 
 // ─── Blocket search doc shape (bara fälten vi använder) ──────────────────────
 
@@ -226,6 +229,107 @@ function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
+// ─── Sold-verifiering ─────────────────────────────────────────────────────────
+// "Inte återsedd i skanningen på N dagar" är INTE samma sak som "borttagen
+// från Blocket" — nightly-skanningen hämtar bara ~20 sidor (~1 000 annonser)
+// ur Blockets relevanssorterade flöde av ~143 000 totalt, och den sorteringen
+// är inte stabil natt till natt. En fortfarande aktiv annons kan helt enkelt
+// trilla ur det samplet några nätter i rad utan att ha sålts. Innan en annons
+// markeras såld verifierar vi därför direkt mot dess egen annons-endpoint
+// istället för att bara lita på frånvaro ur samplet.
+
+interface StaleCandidate {
+  id: string
+  source_url: string
+  source_site: string
+  first_seen_at: string
+}
+
+async function fetchStaleCandidates(graceDays: number): Promise<StaleCandidate[]> {
+  const cutoff = new Date(Date.now() - graceDays * 24 * 60 * 60 * 1000).toISOString()
+  const { data, error } = await supabase
+    .from('market_listings')
+    .select('id, source_url, source_site, first_seen_at')
+    .is('sold_at', null)
+    .lt('scraped_at', cutoff)
+
+  if (error) {
+    console.error('[nightly] Fel vid hämtning av kandidater för sold-verifiering:', error.message)
+    return []
+  }
+  return (data ?? []) as StaleCandidate[]
+}
+
+// null = kunde inte avgöras (nätverksfel/timeout) — ska INTE tolkas som såld,
+// bara försökas igen nästa natt.
+async function verifyBlocketAdGone(adId: string): Promise<boolean | null> {
+  try {
+    const res = await fetch(`${AD_URL}?id=${adId}`, {
+      headers: { Accept: 'application/json', 'User-Agent': 'bilanalys-nightly/1.0' },
+      signal: AbortSignal.timeout(10000),
+    })
+    if (res.status === 404 || res.status === 410) return true   // bekräftat borta
+    if (!res.ok) return null                                     // annat fel — oklart, försök igen senare
+    const ad = await res.json().catch(() => null)
+    return !ad || !ad.title   // saknar grundläggande fält = i praktiken borta
+  } catch {
+    return null   // timeout/nätverksfel — oklart, inte samma sak som borta
+  }
+}
+
+function daysListedSince(firstSeenAt: string): number {
+  const days = (Date.now() - new Date(firstSeenAt).getTime()) / (1000 * 60 * 60 * 24)
+  return Math.max(1, Math.round(days))
+}
+
+async function verifyAndMarkSoldListings(graceDays: number) {
+  const candidates = await fetchStaleCandidates(graceDays)
+  console.log(`[nightly] ${candidates.length} kandidater inte återsedda på ${graceDays} dagar`)
+
+  const stats = { confirmedSold: 0, stillActive: 0, ambiguous: 0, noVerification: 0 }
+
+  const blocketCandidates    = candidates.filter(c => c.source_site === 'blocket')
+  const unverifiableCandidates = candidates.filter(c => c.source_site !== 'blocket')
+
+  // Wayke/Bytbil-rader (från användaranalyser, inte den här skanningen) har
+  // ingen motsvarande verifierings-endpoint tillgänglig här — faller tillbaka
+  // på den gamla grace-period-heuristiken istället för att lämna dem
+  // omarkerade för evigt.
+  for (const c of unverifiableCandidates) {
+    const { error } = await supabase.from('market_listings')
+      .update({ sold_at: new Date().toISOString(), days_listed: daysListedSince(c.first_seen_at) })
+      .eq('id', c.id)
+    if (!error) stats.confirmedSold++
+    else stats.noVerification++
+  }
+
+  for (let i = 0; i < blocketCandidates.length; i += VERIFY_CONCURRENCY) {
+    const chunk = blocketCandidates.slice(i, i + VERIFY_CONCURRENCY)
+    await Promise.all(chunk.map(async c => {
+      const adId = extractAdId(c.source_url)
+      if (!adId) { stats.ambiguous++; return }
+
+      const gone = await verifyBlocketAdGone(adId)
+      if (gone === true) {
+        const { error } = await supabase.from('market_listings')
+          .update({ sold_at: new Date().toISOString(), days_listed: daysListedSince(c.first_seen_at) })
+          .eq('id', c.id)
+        if (!error) stats.confirmedSold++
+      } else if (gone === false) {
+        // Fortfarande aktiv, bara missad i samplet — uppdatera scraped_at så
+        // den inte omprövas igen imorgon i onödan.
+        await supabase.from('market_listings').update({ scraped_at: new Date().toISOString() }).eq('id', c.id)
+        stats.stillActive++
+      } else {
+        stats.ambiguous++   // nätverksfel — rör inte raden, försök igen nästa natt
+      }
+    }))
+    await sleep(VERIFY_BATCH_DELAY_MS)
+  }
+
+  return stats
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function run() {
@@ -316,17 +420,15 @@ async function run() {
 
   console.log(`[nightly] ${upserted} rader upsertade till market_listings`)
 
-  // Markera annonser som sålda — kräver mark_stale_listings_sold() från
-  // migrationen längst ner i data/schema.sql
-  const { data: soldCount, error: soldError } = await supabase.rpc('mark_stale_listings_sold', {
-    p_grace_days: SOLD_GRACE_DAYS,
-  })
-
-  if (soldError) {
-    console.error('[nightly] Fel vid markering av sålda annonser:', soldError.message)
-  } else {
-    console.log(`[nightly] ${soldCount ?? 0} annonser markerade som sålda (${SOLD_GRACE_DAYS} dagars karens)`)
-  }
+  // Markera annonser som sålda — verifierar mot Blockets egen annons-endpoint
+  // istället för att bara anta att frånvaro ur samplet betyder sålt (se
+  // kommentaren vid verifyAndMarkSoldListings ovan för varför).
+  const soldStats = await verifyAndMarkSoldListings(SOLD_GRACE_DAYS)
+  console.log(
+    `[nightly] Sold-verifiering: ${soldStats.confirmedSold} bekräftat sålda, ` +
+    `${soldStats.stillActive} fortfarande aktiva (missade i samplet), ` +
+    `${soldStats.ambiguous} oklara (försöks igen), ${soldStats.noVerification} kunde inte uppdateras`
+  )
 
   const ms = Date.now() - startedAt
   console.log(`[nightly] Klart på ${(ms / 1000).toFixed(1)}s\n`)
