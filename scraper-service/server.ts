@@ -385,6 +385,12 @@ app.post('/cleanup-implausible-listings', async (req: Request, res: Response) =>
   const isImplausible = (row: { year: number | null; price_sek: number | null; mileage_km: number | null }) => {
     if (row.year == null || row.price_sek == null || row.mileage_km == null) return false
     if (row.year < MIN_YEAR) return true
+    // T.ex. en 2011 Mercedes C220 med "256 387 mil" (2 563 870 km) i data —
+    // ett uppenbart inmatningsfel i annonsen som redan borde stoppats av
+    // samma 1 000 000 km-tak som gäller vid ny insamling (nightly.ts,
+    // saveMarketListing), men raden hamnade i databasen innan/utan den
+    // kontrollen.
+    if (row.mileage_km < 0 || row.mileage_km > 1_000_000) return true
     if (row.price_sek < IMPLAUSIBLE_LOW_PRICE) {
       const ageYears = currentYear - row.year
       if (ageYears < MIN_AGE_YEARS_FOR_LOW_PRICE && row.mileage_km < MIN_MILEAGE_KM_FOR_LOW_PRICE) return true
