@@ -28,7 +28,13 @@ historiska skäl, ingen anledning att migrera).
   användaranalyserade), skriver `deal_score` — matar "bättre
   alternativ"-kortet
 - `pages/api/cron/sync-new-car-prices.ts` — veckovis Vercel Cron (mån
-  05:00 UTC): synkar Skatteverkets nybilspris-API mot `new_car_prices`
+  05:00 UTC): synkar Skatteverkets nybilspris-API (innevarande +
+  föregående år) mot `new_car_prices`
+- `pages/api/admin/backfill-new-car-prices.ts` — engångsverktyg (ej
+  schemalagt): synkar EN historisk årgång per anrop, se pågående arbete
+  nedan
+- `lib/skatteverket.ts` — delad Skatteverket-synklogik (`syncSkatteverketYear()`)
+  mellan cronen och backfillen
 - `lib/scoring/engine.ts` — poängmotorn: pris, mätarställning, ålder,
   utrustning m.m. → deal score + pros/cons + confidence. Har
   `isEssentiallyNewCar()` (mätarställning ≤500km, INTE årsmodell — en
@@ -118,6 +124,35 @@ behov:
 - `POST /cleanup-implausible-listings` — tar bort pre-2010/orimligt
   pris/orimlig mätarställning-rader (redan körd, 546 rader borttagna,
   0 kvar vid senaste körning)
+
+## Pågående arbete: empirisk värdeminskningskurva
+
+Nuvarande värdeminskning (`lib/scoring/ownershipCost.ts`) är en platt,
+manuellt gissad årlig procentsats per modell (`referenceData.ts`), applicerad
+exponentiellt oavsett bilens ålder — fångar inte den kända branta
+år 1-nedgången. Beslutad plan (användaren har godkänt att vi bygger detta):
+
+1. **Steg 1 (pågår):** engångs-backfill av Skatteverkets historiska
+   nybilspriser (2008–idag finns i deras dataset, vi siktar på 2010–idag
+   för att matcha `referenceData.ts`s golv) in i `new_car_prices`. Byggt:
+   `pages/api/admin/backfill-new-car-prices.ts?year=YYYY` (ett år per
+   anrop — ingen `maxDuration` är satt för appens serverless-funktioner så
+   defaulten kan vara så låg som 10s, och ett helt år i en loop hade
+   riskerat timeout). Delad synklogik flyttad till `lib/skatteverket.ts`.
+   **Ännu inte körd** — nästa steg är att faktiskt trigga anropet för
+   varje år 2010–innevarande år.
+2. **Steg 2 (ej påbörjat):** aggregeringslogik som räknar fram en
+   empirisk kurva per modell från `market_listings` (medianpris per
+   åldersår, ankrat i Skatteverkets nybilspris vid ålder 0), med fallback
+   till nuvarande platta procentsats när en modell/ålder-grupp har för få
+   annonser (tröskel ej fastställd, förslag: 5).
+3. **Steg 3 (ej påbörjat):** finjustering för mätarställning — inom
+   varje åldersgrupp, mät hur priset avviker med mätarställningens
+   avvikelse från förväntat (`ref.avgMilPerYear × ålder`), ge en
+   kr/mil-justering.
+4. **Steg 4 (ej påbörjat):** lagra kurvan (troligen ny tabell,
+   `depreciation_curves`) och koppla in i `calculateOwnershipCosts()`
+   istället för `ref.depreciation`.
 
 ## Kända begränsningar / öppna trådar
 
