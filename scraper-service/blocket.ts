@@ -132,6 +132,19 @@ const parseMileageStr = (raw?: string) => {
 
 const specs = ad.specifications ?? {}
 
+    // Leasingannonser visar en månadskostnad i prisfältet, inte ett köppris
+    // (verifierat: en "Försäljningsform":"Leasing"-annons hade pris 7 700 kr
+    // för en Skoda Peaq). Vår hela analys — medianjämförelse, deal-score,
+    // ägandekostnad — förutsätter ett köppris, så att köra den på en
+    // leasingannons skulle ge missvisande siffror, inte bara osäkra.
+    // Bättre att vägra tydligt än att låtsas analysera fel sak.
+    if (specs['Försäljningsform'] === 'Leasing') {
+      return {
+        success: false,
+        error: 'Den här annonsen är ett leasingerbjudande (månadskostnad), inte ett köp — vår analys jämför köppriser och skulle ge missvisande resultat för leasing.',
+      }
+    }
+
 const data: Partial<CarListing> = {
   brand:        specs['Märke'] ?? ad.title?.split(' ')[0],
   model:        specs['Modell'] ?? ad.title?.split(' ')[1],

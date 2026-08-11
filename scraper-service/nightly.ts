@@ -119,6 +119,12 @@ const VERIFY_BATCH_DELAY_MS = 500
 
 // ─── Blocket search doc shape (bara fälten vi använder) ──────────────────────
 
+// sales_form: 1 = begagnad bil till salu, 2 = ny bil till salu, 5 = leasing
+// (verifierat direkt mot API:et — leasing-annonser visar prisfältet som
+// månadskostnad, t.ex. "Audi A3" för 2 795 kr, inte ett köppris. Blandas
+// annars rakt in i market_listings och drar ner medianpriset kraftigt).
+const LEASING_SALES_FORM = 5
+
 interface SearchDoc {
   id?: string
   ad_id?: number
@@ -137,6 +143,7 @@ interface SearchDoc {
   org_id?: string
   organisation_name?: string
   regno?: string
+  sales_form?: number
 }
 
 interface SearchResponse {
@@ -181,6 +188,7 @@ function toMarketListingRow(doc: SearchDoc, tracked: { brand: string; model: str
   const mileageKm = typeof doc.mileage === 'number' ? doc.mileage * 10 : undefined
 
   if (!doc.canonical_url) return null
+  if (doc.sales_form === LEASING_SALES_FORM) return null   // månadskostnad, inte köppris
   if (!priceSek || priceSek < 5000 || priceSek > 10_000_000) return null
   if (!doc.year || doc.year < 1980 || doc.year > new Date().getFullYear() + 1) return null
   if (mileageKm === undefined || mileageKm < 0 || mileageKm > 1_000_000) return null

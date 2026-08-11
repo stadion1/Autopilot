@@ -273,6 +273,80 @@ app.post('/reverify-active-listings', async (req: Request, res: Response) => {
   return res.json(stats)
 })
 
+/**
+ * POST /cleanup-leasing-listings
+ * Body (valfritt): { priceCeiling?: number } — kontrollera bara rader under
+ * detta pris, default 50000 kr. Leasingannonsers "pris" är en månadskostnad
+ * (verifierat: en bekräftad leasingannons visade 7 700 kr för en Skoda Peaq),
+ * så en gräns rejält över det fångar in leasingprissatta rader utan att
+ * kontrollera hela tabellen.
+ *
+ * Engångsverktyg: nightly.ts filtrerar numera bort sales_form=5
+ * (leasing) vid insamling, men rader som redan hamnat i market_listings
+ * innan den fixen finns kvar och drar ner medianpriser kraftigt. Kontrollerar
+ * varje kandidat mot annonsens "Försäljningsform"-fält och TAR BORT raden
+ * (inte bara markerar den) om den bekräftas vara leasing — en leasingrad har
+ * ingen giltig användning i market_listings, till skillnad från en sold_at-
+ * markering som åtminstone en gång var en riktig försäljning.
+ */
+app.post('/cleanup-leasing-listings', async (req: Request, res: Response) => {
+  const priceCeiling = typeof req.body?.priceCeiling === 'number' && req.body.priceCeiling > 0
+    ? req.body.priceCeiling : 50000
+
+  const PAGE_SIZE = 1000
+  const candidates: { id: string; source_url: string }[] = []
+  for (let page = 0; ; page++) {
+    const { data, error } = await supabase
+      .from('market_listings')
+      .select('id, source_url')
+      .eq('source_site', 'blocket')
+      .lt('price_sek', priceCeiling)
+      .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1)
+
+    if (error) {
+      return res.status(500).json({ error: error.message })
+    }
+    candidates.push(...(data ?? []))
+    if (!data || data.length < PAGE_SIZE) break
+  }
+
+  console.log(`[cleanup-leasing] ${candidates.length} Blocket-rader under ${priceCeiling} kr att kontrollera`)
+
+  const stats = { checked: candidates.length, removed: 0, keptGenuine: 0, ambiguous: 0 }
+  const CONCURRENCY = 8
+
+  for (let i = 0; i < candidates.length; i += CONCURRENCY) {
+    const chunk = candidates.slice(i, i + CONCURRENCY)
+    await Promise.all(chunk.map(async (c: { id: string; source_url: string }) => {
+      const adId = extractAdId(c.source_url)
+      if (!adId) { stats.ambiguous++; return }
+
+      try {
+        const res2 = await fetch(`https://blocket-api.se/v1/ad/car?id=${adId}`, {
+          headers: { Accept: 'application/json', 'User-Agent': 'bilanalys-nightly/1.0' },
+          signal: AbortSignal.timeout(10000),
+        })
+        if (!res2.ok) { stats.ambiguous++; return }
+        const ad = await res2.json().catch(() => null)
+        const salesForm = ad?.specifications?.['Försäljningsform']
+
+        if (salesForm === 'Leasing') {
+          await supabase.from('market_listings').delete().eq('id', c.id)
+          stats.removed++
+        } else {
+          stats.keptGenuine++   // äkta lågprissatt bil, rör inte
+        }
+      } catch {
+        stats.ambiguous++
+      }
+    }))
+    await new Promise(resolve => setTimeout(resolve, 500))
+  }
+
+  console.log('[cleanup-leasing] Klart:', stats)
+  return res.json(stats)
+})
+
 // ── Start ─────────────────────────────────────────────────────────────────────
 
 app.listen(PORT, () => {
