@@ -336,11 +336,30 @@ export async function getMarketMedian(
 // till framtida marknadsmedianer, precis som scraper-service/nightly.ts gör.
 // Best-effort: fel här ska aldrig spräcka en analys.
 
+// Mirrors the same checks in scraper-service/nightly.ts's toMarketListingRow()
+// — can't share code across the two deployments (scraper-service builds
+// independently, see its own comments), so kept in sync manually.
+const IMPLAUSIBLE_LOW_PRICE_SEK = 20000
+const MIN_AGE_YEARS_FOR_LOW_PRICE = 10
+const MIN_MILEAGE_KM_FOR_LOW_PRICE = 150000
+
 export async function saveMarketListing(car: Partial<CarListing>): Promise<void> {
   if (!car.source_url || !car.brand || !car.model || !car.year) return
   if (!car.price_sek || car.price_sek < 5000 || car.price_sek > 10_000_000) return
-  if (car.year < 1980 || car.year > new Date().getFullYear() + 1) return
+  // Verklig referensdata (data/referenceData.ts) klustrar 2008–2022 — en
+  // äldre årsmodell är en annan bilgeneration än vad vår prismodell täcker.
+  if (car.year < 2010 || car.year > new Date().getFullYear() + 1) return
   if (car.mileage_km == null || car.mileage_km < 0 || car.mileage_km > 1_000_000) return
+
+  // Ett mycket lågt pris är bara rimligt för en genuint gammal/slitstark
+  // bil. Verifierat: leasingövertag (t.ex. en nästan ny VW ID.3 för 5 400 kr)
+  // ger inget separat Försäljningsform-värde att filtrera på som ren
+  // leasing gör, men delar samma tecken — ung bil, lite mil, orimligt lågt
+  // pris.
+  if (car.price_sek < IMPLAUSIBLE_LOW_PRICE_SEK) {
+    const ageYears = new Date().getFullYear() - car.year
+    if (ageYears < MIN_AGE_YEARS_FOR_LOW_PRICE && car.mileage_km < MIN_MILEAGE_KM_FOR_LOW_PRICE) return
+  }
 
   try {
     // Samma bil kan ligga ute på både Blocket och Wayke samtidigt — RPC:n

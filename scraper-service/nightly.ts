@@ -190,8 +190,26 @@ function toMarketListingRow(doc: SearchDoc, tracked: { brand: string; model: str
   if (!doc.canonical_url) return null
   if (doc.sales_form === LEASING_SALES_FORM) return null   // månadskostnad, inte köppris
   if (!priceSek || priceSek < 5000 || priceSek > 10_000_000) return null
-  if (!doc.year || doc.year < 1980 || doc.year > new Date().getFullYear() + 1) return null
+  // referenceData.ts:s riktiga (icke-fallback) poster klustrar 2008–2022 —
+  // ett äldre årtal är en annan generation av modellen än vad vår
+  // referensdata/prismodell är byggd för, inte bara "en billig bil".
+  if (!doc.year || doc.year < 2010 || doc.year > new Date().getFullYear() + 1) return null
   if (mileageKm === undefined || mileageKm < 0 || mileageKm > 1_000_000) return null
+
+  // Ett mycket lågt pris är bara rimligt för en genuint gammal/slitstark
+  // bil — en ung bil med lite mil till ett sådant pris är i praktiken
+  // aldrig ett riktigt köppris. Verifierat: en 2024 VW ID.3 (4 500 mil) för
+  // 5 400 kr och en nyare Tesla för ~7 900 kr var båda leasingövertag, inte
+  // sålda bilar — Försäljningsform-fältet särskiljer INTE övertag från en
+  // vanlig försäljning, så det går inte att fånga med samma check som
+  // ren leasing (sales_form=5) ovan.
+  const IMPLAUSIBLE_LOW_PRICE = 20000
+  const MIN_AGE_YEARS_FOR_LOW_PRICE = 10
+  const MIN_MILEAGE_KM_FOR_LOW_PRICE = 150000
+  if (priceSek < IMPLAUSIBLE_LOW_PRICE) {
+    const ageYears = new Date().getFullYear() - doc.year
+    if (ageYears < MIN_AGE_YEARS_FOR_LOW_PRICE && mileageKm < MIN_MILEAGE_KM_FOR_LOW_PRICE) return null
+  }
 
   return {
     source_url:   doc.canonical_url,
