@@ -347,6 +347,67 @@ app.post('/cleanup-leasing-listings', async (req: Request, res: Response) => {
   return res.json(stats)
 })
 
+/**
+ * POST /cleanup-implausible-listings
+ *
+ * Engångsverktyg: nightly.ts och lib/supabase/client.ts (saveMarketListing)
+ * avvisar numera nya rader med årsmodell < 2010 eller ett orimligt lågt pris
+ * för en ung/lågmil bil (se kommentarerna i respektive fil) — men rader som
+ * hamnade i market_listings INNAN de fixarna finns kvar och drar ner
+ * medianpriser. Ingen extern verifiering behövs här (till skillnad från
+ * leasing-cleanup ovan) — reglerna kollar bara data som redan finns lagrad
+ * i raden, så vi kan filtrera och ta bort direkt.
+ */
+app.post('/cleanup-implausible-listings', async (req: Request, res: Response) => {
+  const IMPLAUSIBLE_LOW_PRICE = 20000
+  const MIN_AGE_YEARS_FOR_LOW_PRICE = 10
+  const MIN_MILEAGE_KM_FOR_LOW_PRICE = 150000
+  const MIN_YEAR = 2010
+  const currentYear = new Date().getFullYear()
+
+  const PAGE_SIZE = 1000
+  const rows: { id: string; year: number | null; price_sek: number | null; mileage_km: number | null }[] = []
+  for (let page = 0; ; page++) {
+    const { data, error } = await supabase
+      .from('market_listings')
+      .select('id, year, price_sek, mileage_km')
+      .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1)
+
+    if (error) {
+      return res.status(500).json({ error: error.message })
+    }
+    rows.push(...(data ?? []))
+    if (!data || data.length < PAGE_SIZE) break
+  }
+
+  console.log(`[cleanup-implausible] ${rows.length} rader att kontrollera`)
+
+  const isImplausible = (row: { year: number | null; price_sek: number | null; mileage_km: number | null }) => {
+    if (row.year == null || row.price_sek == null || row.mileage_km == null) return false
+    if (row.year < MIN_YEAR) return true
+    if (row.price_sek < IMPLAUSIBLE_LOW_PRICE) {
+      const ageYears = currentYear - row.year
+      if (ageYears < MIN_AGE_YEARS_FOR_LOW_PRICE && row.mileage_km < MIN_MILEAGE_KM_FOR_LOW_PRICE) return true
+    }
+    return false
+  }
+
+  const toRemove = rows.filter(isImplausible)
+  const stats = { checked: rows.length, removed: 0, kept: rows.length - toRemove.length }
+  const CONCURRENCY = 8
+
+  for (let i = 0; i < toRemove.length; i += CONCURRENCY) {
+    const chunk = toRemove.slice(i, i + CONCURRENCY)
+    await Promise.all(chunk.map(async (row: { id: string }) => {
+      const { error } = await supabase.from('market_listings').delete().eq('id', row.id)
+      if (!error) stats.removed++
+    }))
+  }
+
+  console.log('[cleanup-implausible] Klart:', stats)
+  return res.json(stats)
+})
+
 // ── Start ─────────────────────────────────────────────────────────────────────
 
 app.listen(PORT, () => {
