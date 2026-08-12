@@ -325,6 +325,22 @@ oavsett bilens ålder och alltså inte fångade den kända branta
   backloggen tömd på ungefär en vecka. **Bekräftat i produktion:**
   `{scored:1400, failed:0, total:1400}` — hela batchen lyckades.
   Betraktas som löst.
+
+  **Framtida trigger för Vercel Pro-uppgradering:** hela den här
+  lösningen (1400/dygn inom en enda daglig 60s-körning, Hobby-planens
+  tak) är en avvägning för DAGENS volym (~5 100 aktiva rader, ~400
+  nya/natt). Vercel Hobby tillåter bara dagliga crons — går det inte
+  längre att täcka dagsvolymen inom en 60s-körning (t.ex. om fler
+  bilmodeller läggs till i `referenceData.ts`/`TRACKED_MODELS`, fler
+  källor än Blocket/Wayke/Bytbil börjar skrapas i volym, eller
+  marknadsdatan bara växer naturligt över tid), finns inget mer att
+  vinna på snabbare kod eller större batch inom Hobbys begränsningar —
+  då krävs Vercel Pro för att kunna köra cronen oftare än en gång/dygn
+  (t.ex. varje timme, vilket redan är förberett/testat i denna session
+  men blockerades av just Hobby-planens dagliga-crons-restriktion).
+  Varningstecken att hålla utkik efter: `scored` börjar konsekvent
+  understiga `total` (batchen hinner inte klart inom 60s) eller
+  backloggen slutar krympa trots den dagliga körningen.
 - **Mätarställnings-bugg — RIKTIG rotorsak hittad och fixad (2026-08-12).**
   Jagade fel bov i flera omgångar innan den verkliga orsaken hittades.
   Facit: `scrapeAndParse()` i `scraper-service/parsers.ts` kör ALL
