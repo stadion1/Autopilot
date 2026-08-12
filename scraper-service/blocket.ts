@@ -145,13 +145,25 @@ const specs = ad.specifications ?? {}
       }
     }
 
+// blocket-api.se verkar ibland inte hunnit indexera Miltal/mileage för en
+// nyss inlagd "Ny bil till salu"-annons — verifierat: två separata
+// Volvo XC60-annonser gav mileage_km: undefined vid skrapning trots att en
+// manuell koll av samma annons-ID:n strax efteråt visade "0 mil" korrekt i
+// samma fält. Snarare än att låta hela analysen misslyckas (och senare
+// tyst poängsättas fel om undefined-värdet flöt vidare) är 0 ett tryggt
+// antagande just när Försäljningsform explicit säger "Ny bil till salu" —
+// till skillnad från en begagnad bil, där en saknad mätarställning ALDRIG
+// ska gissas.
+const parsedMileage = parseMileageStr(ad.mileage ?? specs['Miltal'])
+const mileageKm = parsedMileage ?? (specs['Försäljningsform'] === 'Ny bil till salu' ? 0 : undefined)
+
 const data: Partial<CarListing> = {
   brand:        specs['Märke'] ?? ad.title?.split(' ')[0],
   model:        specs['Modell'] ?? ad.title?.split(' ')[1],
   variant:      ad.subtitle ?? undefined,
   year:         parseInt(ad.model_year ?? specs['Modellår']) || undefined,
   price_sek:    parsePrice(ad.price),
-  mileage_km:   parseMileageStr(ad.mileage ?? specs['Miltal']),
+  mileage_km:   mileageKm,
   fuel_type:    parseFuelType(ad.fuel ?? specs['Drivmedel']),
   transmission: parseTransmission(ad.transmission ?? specs['Växellåda']),
   horsepower:   specs['Effekt'] ? parseInt(specs['Effekt'].replace(/\D/g, '')) || undefined : undefined,
