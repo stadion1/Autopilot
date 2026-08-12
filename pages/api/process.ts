@@ -72,7 +72,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const ai = await analyzeWithAI(completeCar, scores, confidence, pricing, risks, modelNotes)
     aiSummary = ai.summary
     verdict   = ai.verdict
-  } catch {
+  } catch (err: any) {
+    // Tidigare tystades felet helt här — upptäcktes bara för att
+    // användaren märkte att fallback-mallens text (nedan) återkom
+    // nästan hela tiden, inte via loggarna. Logga alltid orsaken nu.
+    console.error('[process] AI-analys misslyckades, faller tillbaka på mall', {
+      source_url: url, error: err?.message ?? String(err),
+    })
     aiSummary = fallbackSummary(completeCar, scores, pricing)
     verdict   = verdictFromScore(scores.deal)
   }

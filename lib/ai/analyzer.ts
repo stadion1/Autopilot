@@ -26,7 +26,14 @@ export async function analyzeWithAI(
   modelNotes?: string,
 ): Promise<AIAnalysisResult> {
   const message = await client.messages.create({
-    model:      'claude-sonnet-4-6',
+    // 'claude-sonnet-4-6' (tidigare värde här) matchar inget giltigt
+    // Claude-modell-ID — varje anrop till Anthropic-API:t misslyckades
+    // troligen tyst, vilket fick process.ts:s catch-block att falla
+    // tillbaka på den fasta fallbackSummary()-mallen istället för en
+    // riktig AI-sammanfattning. Upptäckt genom att användaren märkte att
+    // samma fraser (t.ex. den fasta sista meningen i fallback-mallen)
+    // återkom nästan hela tiden.
+    model:      'claude-sonnet-5',
     max_tokens: 700,
     system:     SYSTEM_PROMPT,
     messages:   [{ role: 'user', content: buildPrompt(car, scores, confidence, pricing, risks, modelNotes) }],
