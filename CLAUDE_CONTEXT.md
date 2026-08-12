@@ -301,13 +301,21 @@ oavsett bilens ålder och alltså inte fångade den kända branta
   användaren såg: en färsk analys (kör alltid senaste kod) gav annan
   deal-score än samma annons lagrade värde i `market_listings`, och
   "bättre alternativ"-jämförelser kunde använda månader-gamla scores.
-  Fixat: höjde `BATCH_SIZE` 150→400 och `vercel.json`s schema från en
-  gång/dygn till en gång/timme (24×400≈9 600/dygn mot ~5 500 dagligen
-  kvalificerade rader). La även till `maxDuration: 60` som saknades helt
-  på den routen. **Caveat:** Vercels Hobby-plan tillåter bara crons ner
-  till en gång/dygn — om projektet ligger på Hobby kan timschemat
-  avvisas eller tystas ner av plattformen. Inte verifierat vilken plan
-  som gäller.
+  **Första fixförsöket** (höj `BATCH_SIZE` + kör timvis istället för
+  dagligen) blockerade HELA Vercel-deployen — projektet ligger på Hobby-
+  planen, som bara tillåter dagliga crons; `vercel.json`s timschema fick
+  bygget att failas helt (inget nytt gick live, oavsett tidigare pushar).
+  **Andra (nuvarande) fixen**, inom dagligt schema: `scoreVehicle()` i
+  `engine.ts` gjorde tre databasuppslag (marknadsmedian, nybilspris,
+  mätarställnings-känslighet) i SEKVENS trots att inget av dem beror på
+  de andras resultat — körs nu parallellt med `Promise.all()`, ~3x
+  snabbare per bil. `BATCH_SIZE` höjd 150→2000, `CONCURRENCY` 10→20,
+  `maxDuration: 60` tillagd (saknades helt). Ej uppmätt i produktion om
+  2000 rader verkligen ryms inom 60s — kolla `scored`/`total` i cron-
+  svaret efter nästa körning och justera `SCORE_CRON_BATCH_SIZE`
+  (miljövariabel, ingen kodändring behövs) om det tar för lång tid.
+  Räkneexempel: 2000/dygn mot ~400 nya/natt ⇒ netto ~1600/dygn ⇒
+  ~5 100-raders backloggen tömd på ungefär en vecka.
 - **Mätarställnings-bugg — RIKTIG rotorsak hittad och fixad (2026-08-12).**
   Jagade fel bov i flera omgångar innan den verkliga orsaken hittades.
   Facit: `scrapeAndParse()` i `scraper-service/parsers.ts` kör ALL
