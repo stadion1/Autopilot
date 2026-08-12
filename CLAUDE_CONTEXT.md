@@ -152,7 +152,25 @@ oavsett bilens ålder och alltså inte fångade den kända branta
    (härleder årlig rate från två intilliggande punkter, klampad till
    -5%…40% för att skydda mot brusiga extremvärden), annars faller den
    tillbaka på den gamla platta procentsatsen. **Beräkningen (57 index)
-   kördes 2026-08-12** — resultatet inte ännu granskat tillsammans.
+   kördes 2026-08-12.**
+
+   **Granskning av resultatet (2026-08-12):** 199 kurvpunkter beräknade,
+   322 hoppade över av 521 möjliga modell/ålder-grupper (~38% täckning).
+   11 av 57 modeller fick noll punkter — de flesta (Mini Cooper, Mazda
+   CX-5, Nissan X-Trail, Hyundai IONIQ 5, Toyota Land Cruiser m.fl.) är
+   troligen bara `market_listings`-glesa ännu (löser sig med mer
+   nightly-data över tid, modellnamnen matchar korrekt mot Skatteverket —
+   verifierat direkt). Men BMW 3-serie/5-serie och Mercedes-Benz
+   C-klass/E-klass hade en RIKTIG matchningsbugg: Skatteverket skriver
+   aldrig ut seriebeteckningen bokstavligt (bara trimkoder som "320d
+   xDrive", "C 200 4MATIC..."), så substräng-matchningen mot
+   `new_car_prices.model_raw` kunde aldrig träffa. Fixat med ett nytt
+   `skatteverketModelPattern`-regex-fält på de fyra `ModelReference`-
+   posterna (index 19, 20, 28, 29 — se `data/referenceData.ts`).
+   **Måste köras om** för dessa fyra index efter deploy:
+   `0..0` ersätts med `19,20,28,29 | ForEach-Object { ... }` i samma
+   PowerShell-loop som tidigare. Övriga 53 index är redan korrekta och
+   behöver inte köras om.
 3. **Steg 3 (backlog, ej påbörjat):** finjustering för mätarställning —
    inom varje åldersgrupp, mät hur priset avviker med mätarställningens
    avvikelse från förväntat (`ref.avgMilPerYear × ålder`), ge en
