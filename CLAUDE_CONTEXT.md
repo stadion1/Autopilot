@@ -273,18 +273,23 @@ oavsett bilens ålder och alltså inte fångade den kända branta
      använder den istället när data finns (samma tecken-konvention,
      ingen omvandling behövs), med fallback till den gissade konstanten
      annars.
-4. **Steg 4 (backlog, ej påbörjat):** gör om
-   `recompute-depreciation-curves` till en schemalagd Vercel Cron (t.ex.
-   månadsvis, som `score-listings.ts`) istället för manuell körning.
-   Just nu förfinas kurvan INTE automatiskt — `market_listings` växer
-   varje natt men kurvan är en snapshot från senaste manuella körning,
-   och nya `referenceData.ts`-poster faller tyst tillbaka på den platta
-   procentsatsen tills någon kör om loopen för det indexet. Komplikation:
-   endpointen är medvetet begränsad till ett index per anrop (ingen
-   `maxDuration` satt, defaulten kan vara så låg som 10s) — en cron-version
-   behöver antingen en högre `maxDuration` (Vercel Pro) eller loopa ett
-   fåtal index per körning och fortsätta nästa gång tills alla 57 är
-   uppdaterade.
+4. **Steg 4 (byggt 2026-08-12, ej verifierat i produktion):** daglig
+   Vercel Cron (`pages/api/cron/recompute-depreciation-curves.ts`,
+   `0 4 * * *` i `vercel.json`). Kärnlogiken flyttad från admin-endpointen
+   till en delad `lib/depreciationCurve.ts` (samma funktion,
+   `recomputeDepreciationCurveForIndex()`, används av både admin-routen
+   och cronen). Samma Hobby-begränsning som `score-listings.ts` (bara
+   dagliga crons) — cyklar igenom alla 57 `MODEL_REFERENCES` ett antal i
+   taget (`BATCH_SIZE=9`, ~7 dagar per full cykel), vilket dagsvarv som
+   körs beräknas deterministiskt från dagens datum (dagar sedan epoch
+   modulo antal varv) utan egen cursor-tabell. Index inom en dags batch
+   körs med begränsad konkurrens (`CONCURRENCY=3`, båda miljövariabel-
+   justerbara). **Inte uppmätt hur lång tid en daglig batch faktiskt
+   tar** — kolla `durationMs` i cron-svaret efter första körningen.
+   **Oklart om Vercel Hobby har ett tak på ANTAL crons** (utöver
+   frekvenstaket vi redan stötte på för `score-listings`) — det här är
+   nu den tredje cronen i `vercel.json`, inte verifierat att deployen
+   går igenom.
 
 ## Kända begränsningar / öppna trådar
 
