@@ -31,27 +31,50 @@ export interface DepreciationCurvePoint {
 
 const MIN_CURVE_SAMPLES = 5
 
+function pointRate(p0: DepreciationCurvePoint, p1: DepreciationCurvePoint): number | null {
+  if (p0.sample_size < MIN_CURVE_SAMPLES || p1.sample_size < MIN_CURVE_SAMPLES) return null
+  if (!(p0.retained_pct > 0)) return null
+  const rate = 1 - p1.retained_pct / p0.retained_pct
+  if (!Number.isFinite(rate) || rate < -0.05 || rate > 0.40) return null
+  return rate
+}
+
 // Härleder årlig värdeminsknings-rate från två intilliggande kurvpunkter
 // (kvarvarande andel av nypriset vid ålder A respektive A+1). Faller
-// tillbaka på den platta referensdata-procenten om punkterna saknas, har
-// för få annonser bakom sig, eller ger ett resultat som är för orimligt
-// för att lita på (marknadsdata är brusig — en enskild årsklass kan råka
-// visa en negativ eller absurt hög rate av slumpvariation).
+// tillbaka på den platta referensdata-procenten om kurvan saknas helt,
+// eller om ens den extrapolerade sista kända raten (se nedan) är för
+// brusig för att lita på.
 function depreciationRateForAge(
   curve: DepreciationCurvePoint[] | undefined,
   ageFrom: number,
   fallbackRate: number,
 ): number {
-  if (!curve) return fallbackRate
+  if (!curve || curve.length === 0) return fallbackRate
+
   const p0 = curve.find(p => p.age_years === ageFrom)
   const p1 = curve.find(p => p.age_years === ageFrom + 1)
-  if (!p0 || !p1) return fallbackRate
-  if (p0.sample_size < MIN_CURVE_SAMPLES || p1.sample_size < MIN_CURVE_SAMPLES) return fallbackRate
-  if (!(p0.retained_pct > 0)) return fallbackRate
+  if (p0 && p1) {
+    const rate = pointRate(p0, p1)
+    if (rate !== null) return rate
+  }
 
-  const rate = 1 - p1.retained_pct / p0.retained_pct
-  if (!Number.isFinite(rate) || rate < -0.05 || rate > 0.40) return fallbackRate
-  return rate
+  // ageFrom ligger utanför (eller på kanten av) kurvans täckning — t.ex.
+  // en 8 år gammal bil vars kurva bara har stöd till ålder 9. Utan det
+  // här skulle nästa år tyst falla tillbaka på den platta
+  // referensprocenten, vilket ger ett synligt hack exakt där kurvans data
+  // tar slut (verifierat: en 8 år gammal XC60 visade nästan ingen
+  // värdeminskning år 1 — täckt av kurvan — och sen ett stort hopp år 2
+  // när kurvan tog slut). Fortsätt istället med samma rate som kurvans
+  // två äldsta punkter mätte, hellre än att byta till en orelaterad siffra.
+  const sorted = [...curve].sort((a, b) => a.age_years - b.age_years)
+  const oldest = sorted[sorted.length - 1]
+  if (ageFrom >= oldest.age_years && sorted.length >= 2) {
+    const secondOldest = sorted[sorted.length - 2]
+    const extrapolated = pointRate(secondOldest, oldest)
+    if (extrapolated !== null) return extrapolated
+  }
+
+  return fallbackRate
 }
 
 export type FinancingType = 'cash' | 'loan'
