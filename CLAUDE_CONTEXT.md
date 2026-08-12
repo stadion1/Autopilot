@@ -31,8 +31,10 @@ historiska skäl, ingen anledning att migrera).
   05:00 UTC): synkar Skatteverkets nybilspris-API (innevarande +
   föregående år) mot `new_car_prices`
 - `pages/api/admin/backfill-new-car-prices.ts` — engångsverktyg (ej
-  schemalagt): synkar EN historisk årgång per anrop, se pågående arbete
-  nedan
+  schemalagt): synkar EN historisk årgång Skatteverket-data per anrop
+- `pages/api/admin/recompute-depreciation-curves.ts` — engångsverktyg (ej
+  schemalagt): räknar fram EN `referenceData.ts`-post i `depreciation_curves`
+  per anrop, se "Pågående arbete" nedan
 - `lib/skatteverket.ts` — delad Skatteverket-synklogik (`syncSkatteverketYear()`)
   mellan cronen och backfillen
 - `lib/scoring/engine.ts` — poängmotorn: pris, mätarställning, ålder,
@@ -42,7 +44,10 @@ historiska skäl, ingen anledning att migrera).
   som slår upp Skatteverkets listpris för nästan-nya bilar istället för en
   platt `basePrice`
 - `lib/scoring/ownershipCost.ts` — beräknar ägandekostnad
-  (värdeminskning, service, försäkring, skatt, drivmedel, finansiering)
+  (värdeminskning, service, försäkring, skatt, drivmedel, finansiering).
+  Värdeminskningen använder numera en empirisk kurva
+  (`depreciation_curves`) när data finns, annars den gamla platta
+  procentsatsen — se "Pågående arbete" nedan
 - `lib/ai/analyzer.ts` — AI-sammanfattningen (prompt inkluderar
   nybils-specialfall)
 - `lib/supabase/client.ts` — all DB-åtkomst från huvudappen, bl.a.
@@ -74,7 +79,7 @@ medvetet mellan de två kodbaserna. Håll dem i synk manuellt vid ändringar.
 
 **Databastabeller** (Supabase/Postgres): `analyses`, `market_listings`
 (+ `deal_score`, `deal_score_updated_at`), `model_references`,
-`known_issues`, `analysis_feedback`, `new_car_prices`.
+`known_issues`, `analysis_feedback`, `new_car_prices`, `depreciation_curves`.
 
 ## Vad som är byggt (kronologiskt, senaste sessionerna)
 
@@ -127,32 +132,43 @@ behov:
 
 ## Pågående arbete: empirisk värdeminskningskurva
 
-Nuvarande värdeminskning (`lib/scoring/ownershipCost.ts`) är en platt,
-manuellt gissad årlig procentsats per modell (`referenceData.ts`), applicerad
-exponentiellt oavsett bilens ålder — fångar inte den kända branta
-år 1-nedgången. Beslutad plan (användaren har godkänt att vi bygger detta):
+Ersätter den gamla platta, manuellt gissade årliga värdeminsknings-
+procenten per modell (`referenceData.ts`) — som applicerades exponentiellt
+oavsett bilens ålder och alltså inte fångade den kända branta
+år 1-nedgången — med en riktig, uppmätt kurva per modell/generation.
 
-1. **Steg 1 (pågår):** engångs-backfill av Skatteverkets historiska
-   nybilspriser (2008–idag finns i deras dataset, vi siktar på 2010–idag
-   för att matcha `referenceData.ts`s golv) in i `new_car_prices`. Byggt:
-   `pages/api/admin/backfill-new-car-prices.ts?year=YYYY` (ett år per
-   anrop — ingen `maxDuration` är satt för appens serverless-funktioner så
-   defaulten kan vara så låg som 10s, och ett helt år i en loop hade
-   riskerat timeout). Delad synklogik flyttad till `lib/skatteverket.ts`.
-   **Ännu inte körd** — nästa steg är att faktiskt trigga anropet för
-   varje år 2010–innevarande år.
-2. **Steg 2 (ej påbörjat):** aggregeringslogik som räknar fram en
-   empirisk kurva per modell från `market_listings` (medianpris per
-   åldersår, ankrat i Skatteverkets nybilspris vid ålder 0), med fallback
-   till nuvarande platta procentsats när en modell/ålder-grupp har för få
-   annonser (tröskel ej fastställd, förslag: 5).
-3. **Steg 3 (ej påbörjat):** finjustering för mätarställning — inom
-   varje åldersgrupp, mät hur priset avviker med mätarställningens
+1. **Steg 1 (klart):** engångs-backfill av Skatteverkets historiska
+   nybilspriser 2010–2026 in i `new_car_prices`
+   (`pages/api/admin/backfill-new-car-prices.ts?year=YYYY`, ett år per
+   anrop). Kört och verifierat — ~70 000 rader jämnt spridda över hela
+   intervallet.
+2. **Steg 2 (klart):** `depreciation_curves`-tabellen (migration körd i
+   Supabase) + `pages/api/admin/recompute-depreciation-curves.ts?index=N`
+   (räknar fram EN `referenceData.ts`-post per anrop: medianpris per
+   åldersår i `market_listings`, delat med Skatteverkets nybilspris för
+   SAMMA tillverkningsår — inte dagens nypris). Kräver minst 5 annonser
+   per åldersgrupp för att spara en kurvpunkt. `calculateOwnershipCosts()`
+   i `lib/scoring/ownershipCost.ts` använder nu kurvan när den finns
+   (härleder årlig rate från två intilliggande punkter, klampad till
+   -5%…40% för att skydda mot brusiga extremvärden), annars faller den
+   tillbaka på den gamla platta procentsatsen. **Beräkningen (57 index)
+   kördes 2026-08-12** — resultatet inte ännu granskat tillsammans.
+3. **Steg 3 (backlog, ej påbörjat):** finjustering för mätarställning —
+   inom varje åldersgrupp, mät hur priset avviker med mätarställningens
    avvikelse från förväntat (`ref.avgMilPerYear × ålder`), ge en
    kr/mil-justering.
-4. **Steg 4 (ej påbörjat):** lagra kurvan (troligen ny tabell,
-   `depreciation_curves`) och koppla in i `calculateOwnershipCosts()`
-   istället för `ref.depreciation`.
+4. **Steg 4 (backlog, ej påbörjat):** gör om
+   `recompute-depreciation-curves` till en schemalagd Vercel Cron (t.ex.
+   månadsvis, som `score-listings.ts`) istället för manuell körning.
+   Just nu förfinas kurvan INTE automatiskt — `market_listings` växer
+   varje natt men kurvan är en snapshot från senaste manuella körning,
+   och nya `referenceData.ts`-poster faller tyst tillbaka på den platta
+   procentsatsen tills någon kör om loopen för det indexet. Komplikation:
+   endpointen är medvetet begränsad till ett index per anrop (ingen
+   `maxDuration` satt, defaulten kan vara så låg som 10s) — en cron-version
+   behöver antingen en högre `maxDuration` (Vercel Pro) eller loopa ett
+   fåtal index per körning och fortsätta nästa gång tills alla 57 är
+   uppdaterade.
 
 ## Kända begränsningar / öppna trådar
 
@@ -202,3 +218,8 @@ exponentiellt oavsett bilens ålder — fångar inte den kända branta
    användarvänt komplement till den tysta ingestion-filtreringen.
 4. Följ upp liggtids-påminnelsen när den triggas — avgör om datan
    räcker för att bygga "förväntad tid till sålt".
+5. Granska resultatet av värdeminskningskurve-körningen tillsammans
+   (hur många modeller fick riktiga kurvpunkter vs. föll tillbaka på
+   flat-rate), och gör `recompute-depreciation-curves` till en
+   schemalagd cron (se "Pågående arbete" ovan, steg 4) så den slutar
+   vara ett manuellt steg.
