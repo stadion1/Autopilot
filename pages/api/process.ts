@@ -23,14 +23,6 @@ import {
 } from '../../lib/supabase/client'
 import type { CarListing } from '../../types'
 
-// Vercels egen exekveringsgräns för serverless-funktioner är oberoende av
-// vår egen fetch-timeout mot Railway (32s, se callScraperService) — utan
-// den här höjs den annars till plattformens default (kan vara så kort som
-// 10s på vissa planer), vilket skulle döda anropet innan Railways
-// omförsök mot blocket-api.se (upp till ~15s, se scraper-service/blocket.ts)
-// hinner klart.
-export const config = { maxDuration: 60 }
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).end()
 
@@ -136,6 +128,13 @@ function fallbackSummary(car: CarListing, scores: any, pricing: any): string {
   return `${car.brand} ${car.model} ${car.year} är prissatt ungefär ${delta}% ${dir} estimerat marknadsmedian på ${(pricing.median/1000).toFixed(0)} 000 kr. Med ${mil.toLocaleString('sv-SE')} mil och deal-score ${scores.deal}/100 bedöms detta vara ${verdictFromScore(scores.deal).toLowerCase()}. Genomför alltid oberoende besiktning och begär servicehistorik.`
 }
 
+// maxDuration: Vercels egen exekveringsgräns för serverless-funktioner är
+// oberoende av vår egen fetch-timeout mot Railway (32s, se
+// callScraperService) — utan den här höjs den annars till plattformens
+// default (kan vara så kort som 10s på vissa planer), vilket skulle döda
+// anropet innan Railways omförsök mot blocket-api.se (upp till ~15s, se
+// scraper-service/blocket.ts) hinner klart.
 export const config = {
   api: { bodyParser: { sizeLimit: '1mb' } },
+  maxDuration: 60,
 }
