@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import styles from './page.module.css'
 import type { AnalysisResult } from '../../../types'
 import {
-  calculateOwnershipCosts, DEFAULT_FINANCING, OWNERSHIP_COST_CATEGORIES,
+  calculateOwnershipCosts, DEFAULT_FINANCING, OWNERSHIP_COST_CATEGORIES, getDefaultAnnualMil,
   type FinancingInput,
 } from '../../../lib/scoring/ownershipCost'
 import { UNKNOWN_MODEL_REASON } from '../../../lib/scoring/constants'
@@ -761,9 +761,10 @@ function OwnershipCostCard({
   mileageSensitivityKr?: number | null
 }) {
   const [financing, setFinancing] = useState<FinancingInput>(DEFAULT_FINANCING)
+  const [expectedAnnualMil, setExpectedAnnualMil] = useState(() => getDefaultAnnualMil(car))
   const costs = useMemo(
-    () => calculateOwnershipCosts(car, financing, 5, depreciationCurve, mileageSensitivityKr),
-    [car, financing, depreciationCurve, mileageSensitivityKr],
+    () => calculateOwnershipCosts(car, financing, 5, depreciationCurve, mileageSensitivityKr, expectedAnnualMil),
+    [car, financing, depreciationCurve, mileageSensitivityKr, expectedAnnualMil],
   )
   const maxTotal = Math.max(...costs.map(c => c.total), 1)
   const axisMax = niceAxisMax(maxTotal)
@@ -780,6 +781,20 @@ function OwnershipCostCard({
       </div>
 
       <FinancingSelector financing={financing} onChange={setFinancing} />
+
+      <div className={styles.financingRow}>
+        <label className={styles.financingField}>
+          <span>Din förväntade körsträcka</span>
+          <div className={styles.financingInputWrap}>
+            <input
+              type="number" min={0} max={10000} step={100}
+              value={expectedAnnualMil}
+              onChange={e => setExpectedAnnualMil(Math.max(0, Number(e.target.value)))}
+            />
+            <span>mil/år</span>
+          </div>
+        </label>
+      </div>
 
       <div
         className={styles.ownershipChart}
@@ -838,8 +853,9 @@ function OwnershipCostCard({
       </div>
 
       <p className={styles.ownershipDisclaimer}>
-        Värdeminskning bygger på modellens historiska prisutveckling. Service, försäkring, skatt och
-        bränsle är grova schablonvärden för genomsnittlig körning — inte en offert för just den här bilen.
+        Värdeminskning bygger på modellens historiska prisutveckling, justerat för din förväntade
+        körsträcka jämfört med modellens snitt. Service, försäkring, skatt och bränsle är grova
+        schablonvärden för genomsnittlig körning — inte en offert för just den här bilen.
       </p>
     </div>
   )

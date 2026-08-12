@@ -16,7 +16,7 @@
 import { CarListing, ConfidenceResult, DealScores, PriceRange, Risk } from '../../types'
 import { lookupModelReference } from '../../data/referenceData'
 import { lookupMarketMedian } from '../../data/marketMedians'
-import { getMarketMedian, getNewCarPrice } from '../supabase/client'
+import { getMarketMedian, getNewCarPrice, getMileageSensitivity } from '../supabase/client'
 import { UNKNOWN_MODEL_REASON } from './constants'
 
 export const SCORING_VERSION = '1.2.0'
@@ -814,8 +814,16 @@ export async function scoreVehicle(car: CarListing): Promise<ScoringOutput> {
     if (newCarPrice) { medianResult = { median: newCarPrice }; usedNewCarPrice = true }
   }
 
+  // Empiriskt uppmätt (från riktiga market_listings-annonser, se
+  // depreciation_curves-projektet i CLAUDE_CONTEXT.md) istället för den
+  // manuellt gissade ref.pricePer1000ExtraMil, när data finns — för XC60
+  // t.ex. -10 825 kr/1000 mil uppmätt mot -3000 gissat, över 3x starkare.
+  // Samma tecken-konvention (negativt), så inget omvänt behövs.
+  const mileageSensitivityKr = await getMileageSensitivity(car.brand, car.model, ref.yearFrom)
+  const effectivePricePer1000ExtraMil = mileageSensitivityKr ?? ref.pricePer1000ExtraMil
+
   const priceResult = scorePrice(
-    car, ref.avgMilPerYear, ref.pricePer1000ExtraMil,
+    car, ref.avgMilPerYear, effectivePricePer1000ExtraMil,
     ref.basePrice, ref.depreciation, medianResult,
   )
 
@@ -837,6 +845,7 @@ export async function scoreVehicle(car: CarListing): Promise<ScoringOutput> {
     age_years: Math.round(vehicleAgeYears(car) * 1000) / 1000,
     isDefaultRef: isDefault,
     liveMedian, usedMedian: priceResult.usedMedian, usedNewCarPrice,
+    mileageSensitivityKr, effectivePricePer1000ExtraMil,
     subScores, deal: scores.deal,
   }))
 
@@ -845,7 +854,7 @@ export async function scoreVehicle(car: CarListing): Promise<ScoringOutput> {
   )
   const pricing: PriceRange = calculatePricing(
     car, priceResult.usedMedian, ref.basePrice, ref.depreciation,
-    ref.avgMilPerYear, ref.pricePer1000ExtraMil, confidence, usedNewCarPrice,
+    ref.avgMilPerYear, effectivePricePer1000ExtraMil, confidence, usedNewCarPrice,
   )
   const risks = detectRisks(car, ref.notes, ref.avgMilPerYear)
   const pros  = generatePros(car, subScores, pricing, ref.avgMilPerYear)

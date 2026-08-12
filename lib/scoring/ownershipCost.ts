@@ -210,12 +210,21 @@ function annualLoanInterest(principal: number, annualRatePct: number, termYears:
   return interestByYear
 }
 
+// Om användaren inte anger en egen uppskattning, antas modellens
+// genomsnittliga körsträcka — samma default som körs internt om
+// expectedAnnualMil utelämnas. Exporteras så UI:t kan förifylla ett
+// inputfält med ett rimligt värde istället för att visa tomt/0.
+export function getDefaultAnnualMil(car: CarListing): number {
+  return lookupModelReference(car.brand, car.model, car.year).ref.avgMilPerYear
+}
+
 export function calculateOwnershipCosts(
   car: CarListing,
   financing: FinancingInput = DEFAULT_FINANCING,
   years = 5,
   curve?: DepreciationCurvePoint[],
   mileageSensitivityKr?: number | null,
+  expectedAnnualMil?: number,
 ): YearlyOwnershipCost[] {
   const { ref } = lookupModelReference(car.brand, car.model, car.year)
   const ageNow = Math.max(0, new Date().getFullYear() - car.year)
@@ -231,30 +240,36 @@ export function calculateOwnershipCosts(
       )
     : []
 
-  // Kurvans rate gäller en TYPISK bil av modellen/åldern — den här bilens
-  // egna mätarställning kan avvika (mer/mindre kört än förväntat för
-  // åldern), vilket den empiriskt uppmätta känsligheten (kr per 1000 mil
-  // avvikelse, se mileage_sensitivity i data/schema.sql) justerar för.
-  // Antar att avvikelsen i mil håller sig ungefär konstant framåt (vi har
-  // ingen prognos för framtida körvanor) — därför sprids samma totala
-  // justering jämnt över prognosåren istället för att ackumuleras/
-  // compoundas som en ränta.
-  const mileageDeviationMil = car.mileage_km / 10 - ageNow * ref.avgMilPerYear
-  const totalMileageAdjustment = mileageSensitivityKr != null
-    ? (mileageDeviationMil / 1000) * mileageSensitivityKr
-    : 0
-  const perYearMileageAdjustment = totalMileageAdjustment / years
+  // Kurvans rate gäller en TYPISK bil av modellen/åldern. Bilens NUVARANDE
+  // mätarställningsavvikelse (mer/mindre kört än förväntat för åldern) är
+  // redan inbakad i car.price_sek — marknaden har redan prissatt det. Vad
+  // som INTE är inbakat är hur avvikelsen utvecklas FRAMÅT, vilket beror
+  // på hur mycket den NYA ägaren faktiskt kör — inte på hur mycket
+  // föregående ägare körde. Om köparen kör i modellens genomsnittstakt
+  // (expectedAnnualMil === ref.avgMilPerYear, defaulten) förblir det
+  // absoluta gapet konstant och ingen extra justering behövs — kurvans
+  // rate applicerad på det redan rabatterade/premierade priset bevarar
+  // den relativa positionen automatiskt. Bara när köparens egen
+  // körsträcka AVVIKER från modellsnittet växer eller krymper gapet
+  // framåt, vilket den här justeringen fångar år för år.
+  const userAnnualMil = expectedAnnualMil ?? ref.avgMilPerYear
 
+  let curveValue = car.price_sek
   let value = car.price_sek
   const rows: YearlyOwnershipCost[] = []
 
   for (let y = 1; y <= years; y++) {
     const rate = depreciationRateForAge(curve, ageNow + y - 1, ref.depreciation)
-    // perYearMileageAdjustment är negativt för en bil med mer mil än
-    // väntat (extra värdeminskning) och positivt för mindre mil än väntat
-    // (mindre värdeminskning) — klampat så en enskild bil aldrig kan visas
-    // "öka i värde" ett enskilt år, bara depreciera långsammare.
-    const nextValue = Math.min(value, Math.max(0, value * (1 - rate) + perYearMileageAdjustment))
+    curveValue = curveValue * (1 - rate)
+
+    const incrementalDeviationMil = y * (userAnnualMil - ref.avgMilPerYear)
+    const mileageAdjustment = mileageSensitivityKr != null
+      ? (incrementalDeviationMil / 1000) * mileageSensitivityKr
+      : 0
+    // Negativt när köparen väntas köra MER än modellsnittet (extra
+    // värdeminskning, växer år för år), positivt vid MINDRE körning —
+    // klampat så ett enskilt år aldrig visar negativ värdeminskning.
+    const nextValue = Math.min(value, Math.max(0, curveValue + mileageAdjustment))
     const depreciation = Math.round(value - nextValue)
     value = nextValue
 
