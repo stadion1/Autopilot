@@ -34,7 +34,11 @@ export async function analyzeWithAI(
     // samma fraser (t.ex. den fasta sista meningen i fallback-mallen)
     // återkom nästan hela tiden.
     model:      'claude-sonnet-5',
-    max_tokens: 700,
+    // Höjd från 700 — en verklig (inte tyst felande) AI-analys kunde
+    // klippas av mitt i JSON-strängen om svaret råkade bli lite längre
+    // än så, vilket gav trasig JSON som (se buggen nedan i parseResponse)
+    // visades rakt av för användaren istället för att hanteras som ett fel.
+    max_tokens: 1024,
     system:     SYSTEM_PROMPT,
     messages:   [{ role: 'user', content: buildPrompt(car, scores, confidence, pricing, risks, modelNotes) }],
   })
@@ -158,19 +162,23 @@ function parseResponse(text: string, dealScore: number): AIAnalysisResult {
     dealScore >= 72 ? 'Bra affär' :
     dealScore >= 55 ? 'Okej affär' : 'Tveksam affär'
 
-  try {
-    const clean  = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
-    const parsed = JSON.parse(clean)
+  // Om JSON-parsningen misslyckas (t.ex. ett avkapat svar mitt i strängen)
+  // ska det INTE tyst returnera den råa, trasiga texten som om den vore
+  // ett giltigt sammandrag — det visade sig göra precis det tidigare,
+  // vilket lät en bruten JSON-blob visas rakt av för användaren istället
+  // för att hanteras som ett fel. Kastar nu istället, så process.ts:s
+  // redan befintliga try/catch runt analyzeWithAI() korrekt faller
+  // tillbaka på den rena fallbackSummary()-mallen (och loggar felet).
+  const clean  = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
+  const parsed = JSON.parse(clean)
 
-    const verdict: Verdict = VALID_VERDICTS.includes(parsed.verdict)
-      ? parsed.verdict
-      : fallbackVerdict
+  const verdict: Verdict = VALID_VERDICTS.includes(parsed.verdict)
+    ? parsed.verdict
+    : fallbackVerdict
 
-    return {
-      verdict,
-      summary: typeof parsed.summary === 'string' ? parsed.summary.trim() : text.trim(),
-    }
-  } catch {
-    return { verdict: fallbackVerdict, summary: text.trim() }
+  if (typeof parsed.summary !== 'string' || !parsed.summary.trim()) {
+    throw new Error('AI-svaret saknade ett giltigt summary-fält')
   }
+
+  return { verdict, summary: parsed.summary.trim() }
 }
