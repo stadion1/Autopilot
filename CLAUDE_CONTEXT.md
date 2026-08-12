@@ -228,17 +228,29 @@ oavsett bilens ålder och alltså inte fångade den kända branta
 
 ## Kända begränsningar / öppna trådar
 
-- **Öppen fråga (2026-08-12):** samma XC60-granskning som gav de två
-  fixarna ovan väckte även en tredje: analysen av
-  blocket.se/mobility/item/24166983 sägs ha visat mätarställning som en
-  bidragande orsak till lågt betyg, trots att annonsen har 0 mil.
-  `scoreMileage()` räknat för hand ger 96 (utmärkt) för mätarställning=0
-  — koden ser korrekt ut, mest sannolika förklaringen är att den
-  specifika analys-länken användaren tittade på beräknades vid ett
-  tidigare tillfälle (analyser är permanenta snapshots, räknas aldrig om)
-  snarare än en bugg i nuvarande kod. **Inte bekräftat** — väntar på
-  analys-länken (inte blocket-länken) för att kolla de faktiska lagrade
-  delbetygen.
+- **Olöst mätarställnings-bugg (2026-08-12), delvis skyddad men inte
+  rotorsaksbestämd.** Analysen `f96c7e1a-ff4d-4816-a8ce-3a5d632733b2`
+  (samma XC60, blocket.se/mobility/item/24166983, mätarställning=0)
+  visade `scores.mileage: 50` i den faktiska lagrade JSON:en (kollad via
+  `/api/analysis/[id]` direkt). 50 kan ENDAST komma från
+  `scoreMileage()`s "icke-ändligt ratio"-fallback ([engine.ts:349](lib/scoring/engine.ts:349))
+  — ingen av de vanliga ratio-grenarna ger just 50. Räknat för hand med
+  denna bils exakta data (mätarställning=0, avgMilPerYear=1400 för XC60)
+  borde ratio bli 0 (ändligt) och ge 96, inte 50 — så antingen var
+  `car.mileage_km` icke-ändligt (NaN/undefined) just vid scoring-
+  tillfället trots att `mileage_km:0` står lagrat i resultatet (inget
+  mellansteg mellan `saveCarData` och `scoreVehicle()` i `process.ts`
+  ändrar värdet, så det är inte en enkel omvandling jag kan se i koden),
+  eller en annan bugg jag inte hittat. **Rotorsaken är INTE fastställd.**
+  Skyddat mot symptomklassen (inte den exakta orsaken): lade till en
+  explicit finite-number-validering i `pages/api/process.ts` direkt efter
+  skrapningen (year/price_sek/mileage_km + brand/model) — en ofullständig
+  scrape ger nu ett tydligt analysfel istället för ett tyst missvisande
+  betyg. Om samma sak händer igen bör `markError`-meddelandet
+  ("Ofullständig annonsdata...") synas i `analyses`-tabellen och peka ut
+  vilket fält som var trasigt. Vercel-loggarna runt 2026-08-12T08:08:56 UTC
+  (sök `[scoreMileage] Non-finite ratio`) skulle kunna avslöja den exakta
+  orsaken om de fortfarande finns kvar.
 - **blocket-api.se är inte fullt pålitlig.** Två separata fall
   verifierade denna session: (1) speglar/cachar annonsdata och
   reflekterar INTE borttagning i realtid — därför bytte
