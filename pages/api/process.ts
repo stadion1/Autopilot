@@ -45,6 +45,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   await saveCarData(id, car)
   await saveMarketListing(car)   // best-effort — bidrar med verklig data till market_listings
 
+  // `car as CarListing` nedan är bara en typ-cast — inget körtidsstöd
+  // garanterar att fälten scoring-motorn räknar med faktiskt är giltiga
+  // tal. Ett saknat/felaktigt fält blir NaN så fort det används i en
+  // beräkning (t.ex. scoreMileage), vilket i sin tur tyst faller tillbaka
+  // på ett "neutralt" default-betyg — inte ett fel, bara en siffra som ser
+  // ut som ett äkta (men fel) resultat. Hellre ett tydligt analysfel än en
+  // missvisande poäng.
+  const REQUIRED_NUMERIC_FIELDS: (keyof CarListing)[] = ['year', 'price_sek', 'mileage_km']
+  const invalidField = REQUIRED_NUMERIC_FIELDS.find(f => !Number.isFinite(car[f] as number))
+  if (invalidField || !car.brand || !car.model) {
+    const msg = `Ofullständig annonsdata från scrapern${invalidField ? ` (${invalidField} saknas/ogiltigt)` : ''}`
+    console.error('[process] Invalid car data before scoring', { source_url: url, car })
+    await markError(id, msg)
+    return res.status(422).json({ error: msg })
+  }
+
   // 2. Scoring
   const completeCar = car as CarListing
   const { scores, confidence, pricing, pros, cons, risks, modelNotes } = await scoreVehicle(completeCar)
