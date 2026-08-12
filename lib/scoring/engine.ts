@@ -479,7 +479,15 @@ function calculateConfidence(
   const mil = car.mileage_km / 10
   if (mil > 20000) { score -= 12; reasons.push('Hög mätarställning ökar osäkerheten') }
 
-  if (!car.description || car.description.length < 50) {
+  // blocket-api.se (källan för alla Blocket-annonser) returnerar aldrig
+  // ett description-fält överhuvudtaget — verifierat direkt mot flera
+  // annonser, oavsett säljartyp eller märke. Wayke-parsern sätter det
+  // heller aldrig idag. Den här kollen skulle alltså slå till på VARJE
+  // Blocket/Wayke-analys oavsett hur utförlig annonsen faktiskt är, vilket
+  // gör poängavdraget och texten missvisande brus snarare än ett verkligt
+  // observerat "den här specifika annonsen är kort"-tillstånd. Bytbil-
+  // parsern skrapar en riktig annonstext, så där är signalen meningsfull.
+  if (car.source_site === 'bytbil' && (!car.description || car.description.length < 50)) {
     score -= 8
     reasons.push('Kort annons — begränsad information')
   }
@@ -506,6 +514,7 @@ function calculatePricing(
   avgMilPerYear: number,
   pricePer1000ExtraMil: number,
   confidence: ConfidenceResult,
+  usedNewCarPrice: boolean,
 ): PriceRange {
   const age      = Math.max(0, vehicleAgeYears(car))
   const midpoint = usedMedian ?? basePrice * Math.pow(1 - depreciation, age)
@@ -547,7 +556,10 @@ function calculatePricing(
   : delta < -0.03 ? `Priset är ungefär ${absPct}% över estimerat median`
   : 'Priset är i linje med estimerat median'
 
-  return { low, median, high, delta_pct: delta, interpretation }
+  return {
+    low, median, high, delta_pct: delta, interpretation,
+    medianSource: usedNewCarPrice ? 'new_car_list' : 'market',
+  }
 }
 
 // ─── Risks ────────────────────────────────────────────────────────────────────
@@ -693,8 +705,10 @@ function generatePros(car: CarListing, scores: Omit<DealScores,'deal'>,
     pros.push(`Bilen är i praktiken oanvänd (${mil.toLocaleString('sv-SE')} mil) — inga tidigare ägare eller slitage att ta hänsyn till.`)
   else if (scores.mileage >= 80)
     pros.push(`Mätarställningen (${mil.toLocaleString('sv-SE')} mil) är under genomsnittet för en ${age} år gammal bil — typiskt ${(age * avgMilPerYear).toLocaleString('sv-SE')} mil.`)
-  if (pricing.delta_pct > 0.04)
-    pros.push(`Priset är ${(pricing.delta_pct * 100).toFixed(0)}% under estimerat marknadsmedian — bra förhandlings­utrymme.`)
+  if (pricing.delta_pct > 0.04) {
+    const ref = pricing.medianSource === 'new_car_list' ? 'nybilspris' : 'marknadsmedian'
+    pros.push(`Priset är ${(pricing.delta_pct * 100).toFixed(0)}% under estimerat ${ref} — bra förhandlings­utrymme.`)
+  }
   if (car.transmission === 'Automat')
     pros.push('Automatväxellåda ger generellt bättre andrahandsvärde och bredare köparmarknad.')
   if (['El','Laddhybrid','Hybrid'].includes(car.fuel_type))
@@ -720,10 +734,11 @@ function generateCons(car: CarListing, scores: Omit<DealScores,'deal'>, pricing:
     cons.push('Ny bil — värdeminskningen är normalt som brantast under det första året, snabbare än för en redan begagnad bil av samma modell.')
 
   if (pricing.delta_pct < -0.04) {
+    const ref = pricing.medianSource === 'new_car_list' ? 'nybilspris' : 'marknadsmedian'
     if (premiumTrim) {
-      cons.push(`Priset är ${(Math.abs(pricing.delta_pct) * 100).toFixed(0)}% över estimerat marknadsmedian — men medianen tar inte hänsyn till utrustningsnivå, och den här bilen har utrustningspaketet "${premiumTrim}" som kan motivera en del av skillnaden.`)
+      cons.push(`Priset är ${(Math.abs(pricing.delta_pct) * 100).toFixed(0)}% över estimerat ${ref} — men det tar inte hänsyn till utrustningsnivå, och den här bilen har utrustningspaketet "${premiumTrim}" som kan motivera en del av skillnaden.`)
     } else {
-      cons.push(`Priset är ${(Math.abs(pricing.delta_pct) * 100).toFixed(0)}% över estimerat marknadsmedian — det finns utrymme att förhandla.`)
+      cons.push(`Priset är ${(Math.abs(pricing.delta_pct) * 100).toFixed(0)}% över estimerat ${ref} — det finns utrymme att förhandla.`)
     }
   }
   if (scores.ownership < 58)
@@ -830,7 +845,7 @@ export async function scoreVehicle(car: CarListing): Promise<ScoringOutput> {
   )
   const pricing: PriceRange = calculatePricing(
     car, priceResult.usedMedian, ref.basePrice, ref.depreciation,
-    ref.avgMilPerYear, ref.pricePer1000ExtraMil, confidence,
+    ref.avgMilPerYear, ref.pricePer1000ExtraMil, confidence, usedNewCarPrice,
   )
   const risks = detectRisks(car, ref.notes, ref.avgMilPerYear)
   const pros  = generatePros(car, subScores, pricing, ref.avgMilPerYear)

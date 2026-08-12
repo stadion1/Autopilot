@@ -47,6 +47,11 @@ export interface PriceRange {
   high: number
   delta_pct: number        // negative = listing is cheaper than median (good)
   interpretation: string
+  // true when `median` is Skatteverket's new-car list price for this exact
+  // trim (essentially-new cars, see isEssentiallyNewCar in engine.ts)
+  // rather than a median of comparable used-car sales — UI must label it
+  // differently, since "market median" implies the latter.
+  medianSource: 'market' | 'new_car_list'
 }
 
 export interface Risk {

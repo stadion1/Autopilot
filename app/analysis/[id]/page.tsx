@@ -624,7 +624,13 @@ const PRICE_TRACK_MEDIAN_PCT = 50
 const PRICE_TRACK_HIGH_PCT   = 62.5
 
 function PriceRangeCard({ car, pricing }: { car: any; pricing: any }) {
-  const { low, median, high, delta_pct, interpretation } = pricing
+  const { low, median, high, delta_pct, interpretation, medianSource } = pricing
+  // Nästan ny bil (se isEssentiallyNewCar i engine.ts): "medianen" är då
+  // Skatteverkets verkliga nybilslistpris för den trimmen, inte ett
+  // genomsnitt av andrahandsförsäljningar — måste märkas annorlunda,
+  // annars ser en handlares helt normala listprissättning ut som en
+  // osannolik slump ("annonserat pris = marknadsmedian").
+  const medianLabel = medianSource === 'new_car_list' ? 'Nybilspris (Skatteverket)' : 'Marknadsmedian'
   const bandWidth  = Math.max(1, high - low)
   const domainLow  = low  - bandWidth * PRICE_TRACK_PAD_FACTOR
   const domainHigh = high + bandWidth * PRICE_TRACK_PAD_FACTOR
@@ -658,7 +664,7 @@ function PriceRangeCard({ car, pricing }: { car: any; pricing: any }) {
           {/* Median marker */}
           <div className={`${styles.priceMarker} ${styles.priceMarkerMedian}`}
             style={{ left: `${PRICE_TRACK_MEDIAN_PCT}%` }}
-            title={`Marknadsmedian: ${median.toLocaleString('sv-SE')} kr`} />
+            title={`${medianLabel}: ${median.toLocaleString('sv-SE')} kr`} />
         </div>
         <div className={styles.priceTrackLabels}>
           <span style={{ left: `${PRICE_TRACK_LOW_PCT}%` }}>Lägst</span>
@@ -674,7 +680,7 @@ function PriceRangeCard({ car, pricing }: { car: any; pricing: any }) {
         <PriceCell label="Estimerat intervall"
           value={`${(low/1000).toFixed(0)} 000 – ${(high/1000).toFixed(0)} 000`}
           suffix="kr" neutral />
-        <PriceCell label="Marknadsmedian" value={median} dimmed />
+        <PriceCell label={medianLabel} value={median} dimmed />
       </div>
     </div>
   )
