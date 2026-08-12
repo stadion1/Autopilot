@@ -209,6 +209,22 @@ oavsett bilens ålder och alltså inte fångade den kända branta
    **Nästa steg:** kör om alla 57 index med den nya glättningslogiken
    (samma PowerShell-loop, `0..56`), och stäm av att t.ex. XC60-analysen
    nu visar en jämn kurva istället för zigzag.
+
+   **Ytterligare bugg hittad och fixad (2026-08-12):** en 8 år gammal
+   XC60 (registrerad 2018) visade nästan ingen värdeminskning år 1 men
+   ett stort hopp år 2. Orsak: `depreciation_curves` för XC60 har bara
+   punkter för ålder 0–9 (databegränsning, inte en bugg i sig). Bilens
+   prognosfönster (ålder 8→12) låg delvis innanför kurvans täckning
+   (år 1: ålder 8→9, täckt) och delvis utanför (år 2–5: ålder 9→10 osv,
+   otäckt) — `depreciationRateForAge()` föll tyst tillbaka på den platta
+   referensprocenten (12% för XC60) så fort ÅLDER+1 saknades i kurvan,
+   vilket gav ett hack exakt vid kurvans kant (låg kurv-rate år 1, hög
+   platt rate år 2–5). Fixat i `lib/scoring/ownershipCost.ts`: när en
+   bils ålder är vid eller bortom kurvans äldsta mätpunkt, extrapoleras
+   samma rate som kurvans två äldsta punkter mätte, istället för att
+   byta till den orelaterade platta procentsatsen. Gäller alla modeller
+   vars prognosfönster sträcker sig längre än kurvans datatäckning, inte
+   bara XC60.
 3. **Steg 3 (backlog, ej påbörjat):** finjustering för mätarställning —
    inom varje åldersgrupp, mät hur priset avviker med mätarställningens
    avvikelse från förväntat (`ref.avgMilPerYear × ålder`), ge en
