@@ -88,15 +88,20 @@ function sleep(ms: number) {
 }
 
 // blocket-api.se verkar ibland inte hunnit färdigindexera en väldigt nyss
-// inlagd "Ny bil till salu"-annons vid första förfrågan — verifierat: flera
-// Volvo XC60/XC90-annonser gav mileage: helt frånvarande (varken i
-// toppnivåfältet eller specifications.Miltal) vid skrapning, men en manuell
-// koll av exakt samma annons-ID några minuter senare visade "0 mil" korrekt
-// på BÅDA ställena. Eftersom hela specifications-objektet verkar vara
-// ofullständigt (inte bara Miltal-fältet för sig) räcker det inte att leta
-// efter en annan signal i samma svar — hela svaret måste hämtas om.
+// inlagd "Ny bil till salu"-annons vid första förfrågan — verifierat
+// upprepade gånger på flera Volvo XC60/V60/XC90-annonser: mileage helt
+// frånvarande (varken i toppnivåfältet eller specifications.Miltal) vid
+// skrapning, men en manuell koll av exakt samma annons-ID några minuter
+// senare visade "0 mil" korrekt på BÅDA ställena. Fördröjningen är INTE
+// konstant — ett första försök med bara ~4s total omförsökstid (1,5s+2,5s)
+// visade sig otillräckligt för vissa annonser trots att det räckte för
+// andra. Utökat till upp till 20s total väntetid, inom Railway-tjänstens
+// egen timeout-budget (se server.ts — höjd i samma ändring). Eftersom hela
+// specifications-objektet verkar vara ofullständigt (inte bara
+// Miltal-fältet för sig) räcker det inte att leta efter en annan signal i
+// samma svar — hela svaret måste hämtas om.
 async function fetchAdWithRetry(adId: string): Promise<any> {
-  const RETRY_DELAYS_MS = [1500, 2500]
+  const RETRY_DELAYS_MS = [1500, 2000, 3000, 4000, 4500]
 
   for (let attempt = 0; ; attempt++) {
     const res = await fetch(`https://blocket-api.se/v1/ad/car?id=${adId}`, {

@@ -87,7 +87,10 @@ app.get('/supported', (_req: Request, res: Response) => {
  * Body: { url: string }
  * Returns: ScraperResult (success, data, error)
  *
- * Timeout: 25 sekunder — Railway timeout är 30s
+ * Timeout: 27 sekunder — Railway timeout är 30s. Höjd från 25s för att
+ * rymma blocket.ts:s fetchAdWithRetry() (upp till ~15s omförsöksväntan när
+ * blocket-api.se inte hunnit indexera en nyss inlagd annons än, se
+ * kommentaren där) plus normal bearbetningstid.
  */
 app.post('/scrape', async (req: Request, res: Response) => {
   const { url } = req.body
@@ -103,9 +106,9 @@ app.post('/scrape', async (req: Request, res: Response) => {
   }
 
   // Timeout-wrapper — skyddar mot hängande Playwright-instanser
-  const timeoutMs = 25000
+  const timeoutMs = 27000
   const timeout   = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error('Scraping tog för lång tid (25s)')), timeoutMs)
+    setTimeout(() => reject(new Error('Scraping tog för lång tid (27s)')), timeoutMs)
   )
 
   try {

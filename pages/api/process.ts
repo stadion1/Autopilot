@@ -23,6 +23,14 @@ import {
 } from '../../lib/supabase/client'
 import type { CarListing } from '../../types'
 
+// Vercels egen exekveringsgräns för serverless-funktioner är oberoende av
+// vår egen fetch-timeout mot Railway (32s, se callScraperService) — utan
+// den här höjs den annars till plattformens default (kan vara så kort som
+// 10s på vissa planer), vilket skulle döda anropet innan Railways
+// omförsök mot blocket-api.se (upp till ~15s, se scraper-service/blocket.ts)
+// hinner klart.
+export const config = { maxDuration: 60 }
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).end()
 
@@ -103,7 +111,9 @@ async function callScraperService(url: string): Promise<Partial<CarListing>> {
       'x-scraper-secret': process.env.SCRAPER_SECRET ?? '',
     },
     body:   JSON.stringify({ url }),
-    signal: AbortSignal.timeout(28000),
+    // Måste vara längre än server.ts's egna 27s-timeout, annars ger vi
+    // upp innan Railway hunnit svara med sitt eget graciösa timeout-fel.
+    signal: AbortSignal.timeout(32000),
   })
 
   if (!res.ok) {
