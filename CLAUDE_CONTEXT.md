@@ -161,6 +161,21 @@ medvetet mellan de två kodbaserna. Håll dem i synk manuellt vid ändringar.
   `sample_size` 15→13, ny median 135 000 kr — matchade en manuell
   handuträkning exakt. Ingen klientkodsändring behövdes (samma RPC-
   signatur).
+- **AI-sammanfattningen troligen trasig sen okänt lång tid, fixad
+  (2026-08-12).** Användaren märkte att samma fraser återkom i nästan
+  varje analys. Orsak: `analyzeWithAI()` i `lib/ai/analyzer.ts` använde
+  modell-ID:t `claude-sonnet-4-6`, som inte matchar något giltigt
+  Claude-modell-ID (aktuell familj: `claude-sonnet-5`/`opus-5`/`fable-5`,
+  `claude-haiku-4-5-*`). `pages/api/process.ts`s `try/catch` runt anropet
+  tystade felet HELT (ingen loggning alls) och föll tillbaka på
+  `fallbackSummary()` — en fast mening-mall där bara siffrorna varierar;
+  sista meningen ("Genomför alltid oberoende besiktning och begär
+  servicehistorik") är alltid ordagrant identisk. Fixat: modell-ID:t
+  ändrat till `claude-sonnet-5`, och lade till `console.error`-loggning
+  i catch-blocket så ett framtida liknande fel syns i loggarna istället
+  för att bara märkas via misstänkt repetitiv text. **Inte verifierat i
+  produktion än** — testa en ny analys och se om sammanfattningen känns
+  mer varierad/naturlig och den fasta avslutningsmeningen försvinner.
 
 ### Engångs-admin-endpoints på scraper-service (Railway)
 
