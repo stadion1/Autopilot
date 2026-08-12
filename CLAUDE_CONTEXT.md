@@ -116,6 +116,22 @@ medvetet mellan de två kodbaserna. Håll dem i synk manuellt vid ändringar.
   `/cleanup-implausible-listings` för att städa redan inlagda rader
   mot samma regler, inklusive ett extra mätarställnings-tak
   (>1 000 000km, fångar uppenbara inmatningsfel i annonstexten)
+- **Två fynd vid manuell granskning av en nybils-analys** (Volvo XC60,
+  blocket.se/mobility/item/24166983), fixade 2026-08-12: (1) "Kort
+  annons — begränsad information" i `calculateConfidence()` slog till
+  ovillkorligen på VARJE Blocket-analys — verifierat mot 4 olika annonser
+  att blocket-api.se aldrig returnerar ett `description`-fält
+  överhuvudtaget, oavsett annonsens faktiska längd. Kollen är nu scopad
+  till `source_site === 'bytbil'`, den enda parsern som faktiskt skrapar
+  riktig annonstext. (2) Priskortet visade alltid "Marknadsmedian" även
+  för i praktiken nya bilar, där referenspriset egentligen är
+  Skatteverkets nybilslistpris för den trimmen (`isEssentiallyNewCar()`)
+  — en handlare som prissätter en fabriksbeställd bil till listpris är
+  helt normalt, men etiketten fick det att se ut som en osannolik
+  slump. `usedNewCarPrice`-flaggan fanns redan i `scoreVehicle()` men
+  nådde bara en `console.log`; lade till `PriceRange.medianSource`
+  (`'market' | 'new_car_list'`) så UI:t (priskort + pros/cons-texter)
+  kan visa "Nybilspris (Skatteverket)" istället när det stämmer.
 
 ### Engångs-admin-endpoints på scraper-service (Railway)
 
@@ -212,6 +228,17 @@ oavsett bilens ålder och alltså inte fångade den kända branta
 
 ## Kända begränsningar / öppna trådar
 
+- **Öppen fråga (2026-08-12):** samma XC60-granskning som gav de två
+  fixarna ovan väckte även en tredje: analysen av
+  blocket.se/mobility/item/24166983 sägs ha visat mätarställning som en
+  bidragande orsak till lågt betyg, trots att annonsen har 0 mil.
+  `scoreMileage()` räknat för hand ger 96 (utmärkt) för mätarställning=0
+  — koden ser korrekt ut, mest sannolika förklaringen är att den
+  specifika analys-länken användaren tittade på beräknades vid ett
+  tidigare tillfälle (analyser är permanenta snapshots, räknas aldrig om)
+  snarare än en bugg i nuvarande kod. **Inte bekräftat** — väntar på
+  analys-länken (inte blocket-länken) för att kolla de faktiska lagrade
+  delbetygen.
 - **blocket-api.se är inte fullt pålitlig.** Två separata fall
   verifierade denna session: (1) speglar/cachar annonsdata och
   reflekterar INTE borttagning i realtid — därför bytte
