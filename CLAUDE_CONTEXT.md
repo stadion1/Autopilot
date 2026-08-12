@@ -173,9 +173,20 @@ medvetet mellan de två kodbaserna. Håll dem i synk manuellt vid ändringar.
   servicehistorik") är alltid ordagrant identisk. Fixat: modell-ID:t
   ändrat till `claude-sonnet-5`, och lade till `console.error`-loggning
   i catch-blocket så ett framtida liknande fel syns i loggarna istället
-  för att bara märkas via misstänkt repetitiv text. **Inte verifierat i
-  produktion än** — testa en ny analys och se om sammanfattningen känns
-  mer varierad/naturlig och den fasta avslutningsmeningen försvinner.
+  för att bara märkas via misstänkt repetitiv text.
+
+  **Uppföljningsbugg samma dag:** med modellen faktiskt igång dök en NY
+  felkälla upp — ett svar kunde klippas av mitt i JSON-strängen (700
+  `max_tokens` var snålt tilltaget för 2–3 stycken svensk text inbakat i
+  JSON), och `parseResponse()`s catch-block returnerade då tyst den råa,
+  TRASIGA JSON-texten som om den vore ett giltigt sammandrag —
+  `analyzeWithAI()` "lyckades" enligt anroparen, så `process.ts`s
+  fallback-mekanism (som redan fixades ovan) triggades aldrig. Användaren
+  fick se en avbruten JSON-blob rakt av i UI:t. Fixat: `max_tokens`
+  höjd till 1024, och `parseResponse()` kastar nu istället för att
+  returnera den trasiga texten, så den korrekt faller igenom till
+  `process.ts`s befintliga (loggande) fallback. **Inte verifierat i
+  produktion än** — testa en ny analys.
 
 ### Engångs-admin-endpoints på scraper-service (Railway)
 
