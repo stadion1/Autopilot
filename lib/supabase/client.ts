@@ -17,6 +17,7 @@ import {
   Risk,
   Verdict,
 } from '../../types'
+import { NEW_CAR_MAX_MIL_KM } from '../scoring/constants'
 
 // ─── Client ──────────────────────────────────────────────────────────────────
 
@@ -535,6 +536,17 @@ export async function saveListingScore(id: string, dealScore: number): Promise<v
 // to a similar year range and price band so "better" means a genuinely
 // comparable alternative, not just any higher-scoring car of the same model
 // regardless of budget.
+//
+// Also restricted to the SAME essentially-new/used category as the analyzed
+// car (mileage_km <= NEW_CAR_MAX_MIL_KM, matching isEssentiallyNewCar in
+// engine.ts). Essentially-new listings get their deal_score from a
+// comparison against Skatteverket's new-car list price, not the market
+// median a used car is scored against — those are two different valuation
+// bases, so a high score on one side doesn't mean the same thing as a high
+// score on the other. Found via a real case: a used XC60 (5 870 mil,
+// 559 000 kr) was shown "better" pre-order stock cars (0 mil, 604-640k kr,
+// scored against list price) that were both more expensive and a
+// fundamentally different kind of purchase — not actually a fair comparison.
 
 const BETTER_DEAL_SCORE_MARGIN = 8
 const BETTER_DEAL_YEAR_WINDOW   = 2
@@ -545,8 +557,9 @@ export async function getBetterDeals(car: CarListing, dealScore: number): Promis
   try {
     const minPrice = Math.round(car.price_sek * (1 - BETTER_DEAL_PRICE_BAND))
     const maxPrice = Math.round(car.price_sek * (1 + BETTER_DEAL_PRICE_BAND))
+    const isEssentiallyNew = car.mileage_km <= NEW_CAR_MAX_MIL_KM
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('market_listings')
       .select('brand, model, variant, year, price_sek, mileage_km, location, deal_score, source_url, source_site')
       .ilike('brand', car.brand)
@@ -559,6 +572,12 @@ export async function getBetterDeals(car: CarListing, dealScore: number): Promis
       .gte('price_sek', minPrice)
       .lte('price_sek', maxPrice)
       .neq('source_url', car.source_url)
+
+    query = isEssentiallyNew
+      ? query.lte('mileage_km', NEW_CAR_MAX_MIL_KM)
+      : query.gt('mileage_km', NEW_CAR_MAX_MIL_KM)
+
+    const { data, error } = await query
       .order('deal_score', { ascending: false })
       .limit(BETTER_DEAL_LIMIT)
 

@@ -17,7 +17,7 @@ import { CarListing, ConfidenceResult, DealScores, PriceRange, Risk } from '../.
 import { lookupModelReference } from '../../data/referenceData'
 import { lookupMarketMedian } from '../../data/marketMedians'
 import { getMarketMedian, getNewCarPrice, getMileageSensitivity } from '../supabase/client'
-import { UNKNOWN_MODEL_REASON } from './constants'
+import { UNKNOWN_MODEL_REASON, NEW_CAR_MAX_MIL_KM } from './constants'
 
 export const SCORING_VERSION = '1.2.0'
 
@@ -40,14 +40,6 @@ function vehicleAgeYears(car: CarListing): number {
   }
   return CURRENT_YEAR - car.year
 }
-
-// Mätarställning ensam, inte årsmodell — en förbeställd "nästa års modell"
-// (t.ex. Blockets "Ny bil till salu"-annonser) kan visa ett modellår som
-// ligger EFTER innevarande år, vilket ger en förvirrande eller rentav
-// negativ ålder om man räknar (CURRENT_YEAR - årsmodell). Mätarställning
-// nära noll är ett robust, entydigt "det här är i praktiken en ny bil"-
-// tecken oavsett hur årsmodellen råkar vara satt.
-const NEW_CAR_MAX_MIL_KM = 500
 
 function isEssentiallyNewCar(car: CarListing): boolean {
   return car.mileage_km <= NEW_CAR_MAX_MIL_KM
