@@ -783,22 +783,40 @@ export interface ScoringOutput {
 export async function scoreVehicle(car: CarListing): Promise<ScoringOutput> {
   const { ref, isDefault } = lookupModelReference(car.brand, car.model, car.year)
 
-  // Live data (verkliga Blocket-annonser i market_listings) föredras framför
-  // den statiska MARKET_MEDIANS-tabellen när det finns tillräckligt underlag —
-  // se getMarketMedian() i lib/supabase/client.ts för sample-size-tröskeln.
-  const liveMedian = await getMarketMedian(car.brand, car.model, car.year)
+  // De tre uppslagen nedan är oberoende av varandra (ingen använder någon
+  // annans resultat) så de körs parallellt istället för i sekvens — med
+  // score-listings.ts:s dagliga cron begränsad till Vercel Hobbys 60s
+  // maxDuration och tusentals rader att hinna med per körning räknas varje
+  // sparad databas-tur-och-retur. isEssentiallyNewCar avgörs en gång här
+  // så newCarPrice-anropet bara görs när det faktiskt kan användas.
+  const isNewCar = isEssentiallyNewCar(car)
+  const [liveMedian, mileageSensitivityKr, newCarPrice] = await Promise.all([
+    // Live data (verkliga Blocket-annonser i market_listings) föredras
+    // framför den statiska MARKET_MEDIANS-tabellen när det finns
+    // tillräckligt underlag — se getMarketMedian() i lib/supabase/client.ts
+    // för sample-size-tröskeln.
+    getMarketMedian(car.brand, car.model, car.year),
+    // Empiriskt uppmätt (från riktiga market_listings-annonser, se
+    // depreciation_curves-projektet i CLAUDE_CONTEXT.md) istället för den
+    // manuellt gissade ref.pricePer1000ExtraMil, när data finns — för XC60
+    // t.ex. -10 825 kr/1000 mil uppmätt mot -3000 gissat, över 3x starkare.
+    // Samma tecken-konvention (negativt), så inget omvänt behövs.
+    getMileageSensitivity(car.brand, car.model, ref.yearFrom),
+    // En i praktiken oanvänd bil har ingen egen prishistorik att mätas
+    // mot — "medianen" för en nypremiärad modell är antingen tunn (för få
+    // sålda exemplar) eller obefintlig. Skatteverkets nybilspriser
+    // (verkliga listpriser per märke/modell/UTRUSTNINGSNIVÅ) är då en
+    // bättre referens än den enda platta basePrice-siffran per modell i
+    // referenceData.ts, som inte kan skilja en baspris-trim från en
+    // toppmodell.
+    isNewCar ? getNewCarPrice(car.brand, car.model, car.variant, car.year) : Promise.resolve(null),
+  ])
+
   let medianResult: { median: number; sample_size?: number } | null =
     liveMedian ?? lookupMarketMedian(car.brand, car.model, car.year)
 
-  // En i praktiken oanvänd bil har ingen egen prishistorik att mätas mot —
-  // "medianen" för en nypremiärad modell är antingen tunn (för få sålda
-  // exemplar) eller obefintlig. Skatteverkets nybilspriser (verkliga
-  // listpriser per märke/modell/UTRUSTNINGSNIVÅ) är då en bättre referens
-  // än den enda platta basePrice-siffran per modell i referenceData.ts,
-  // som inte kan skilja en baspris-trim från en toppmodell.
   let usedNewCarPrice = false
-  if (isEssentiallyNewCar(car)) {
-    const newCarPrice = await getNewCarPrice(car.brand, car.model, car.variant, car.year)
+  if (isNewCar) {
     console.log('[scoreVehicle] new-car price lookup', {
       source_url: car.source_url, brand: car.brand, model: car.model,
       variant: car.variant, year: car.year, matchedPrice: newCarPrice,
@@ -806,12 +824,6 @@ export async function scoreVehicle(car: CarListing): Promise<ScoringOutput> {
     if (newCarPrice) { medianResult = { median: newCarPrice }; usedNewCarPrice = true }
   }
 
-  // Empiriskt uppmätt (från riktiga market_listings-annonser, se
-  // depreciation_curves-projektet i CLAUDE_CONTEXT.md) istället för den
-  // manuellt gissade ref.pricePer1000ExtraMil, när data finns — för XC60
-  // t.ex. -10 825 kr/1000 mil uppmätt mot -3000 gissat, över 3x starkare.
-  // Samma tecken-konvention (negativt), så inget omvänt behövs.
-  const mileageSensitivityKr = await getMileageSensitivity(car.brand, car.model, ref.yearFrom)
   const effectivePricePer1000ExtraMil = mileageSensitivityKr ?? ref.pricePer1000ExtraMil
 
   const priceResult = scorePrice(

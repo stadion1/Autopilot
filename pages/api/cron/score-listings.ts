@@ -27,11 +27,21 @@
  * (nullsFirst-sortering på deal_score_updated_at). 150/dygn < 400 nya/natt
  * — backloggen av redan poängsatta men nu inaktuella rader fick alltså
  * ALDRIG någon budget kvar, den var permanent fastlåst, inte bara några
- * dagar efter. Höjt BATCH_SIZE och vercel.json:s schema körs nu varje
- * timme istället för en gång/dygn (se crons-arrayen) — 24 körningar × 400
- * ≈ 9 600/dygn, gott om marginal mot ~5 500 dagligen kvalificerade rader.
- * Frekvens hellre än en enda jättebatch, för att hålla varje körning kort
- * och inte chansa på ett långt maxDuration.
+ * dagar efter.
+ *
+ * Försökte först lösa det med ett timschema (24 körningar/dygn istället för
+ * 1) — men Vercel Hobby tillåter bara dagliga crons, så deployen blockerades
+ * helt (byggfel, ingen ny deployment gick igenom alls). Löst inom dagligt
+ * schema istället genom att göra VARJE körning mycket snabbare: scoreVehicle()
+ * i engine.ts gjorde tre databasuppslag (marknadsmedian, nybilspris,
+ * mätarställnings-känslighet) i SEKVENS trots att de är oberoende av
+ * varandra — kör dem nu parallellt med Promise.all, vilket tar bort ~2 av 3
+ * databas-tur-och-retur per bil. Höjt BATCH_SIZE och CONCURRENCY i linje med
+ * det, så en enda daglig körning hinner betydligt mer inom 60s-taket.
+ * Tömmer inte hela backloggen på en dag, men gör stadigt och hållbart
+ * framsteg (se räkneexemplet nedan) — kolla `scored`/`total` i loggarna
+ * efter nästa körning och justera SCORE_CRON_BATCH_SIZE-miljövariabeln om
+ * det visar sig ta för lång tid.
  */
 
 import { NextApiRequest, NextApiResponse } from 'next'
@@ -41,8 +51,14 @@ import type { CarListing, FuelType, Transmission, SupportedSite, SellerType } fr
 
 export const config = { maxDuration: 60 }
 
-const BATCH_SIZE  = parseInt(process.env.SCORE_CRON_BATCH_SIZE ?? '400', 10)
-const CONCURRENCY = 10
+// Efter parallelliseringen ovan är per-bil-kostnaden ~1 databas-tur-och-
+// retur istället för ~3 — vid CONCURRENCY=20 bör 2000 rader hinnas med
+// gott om marginal inom 60s (grov uppskattning, inte uppmätt: 2000/20=100
+// "vågor" × ~300-500ms ≈ 30-50s). 2000/dygn mot ~400 nya/natt ger ett
+// netto på ~1600/dygn — tömmer ~5 100-raders backloggen på ungefär en
+// vecka, håller sedan jämna steg med god marginal.
+const BATCH_SIZE  = parseInt(process.env.SCORE_CRON_BATCH_SIZE ?? '2000', 10)
+const CONCURRENCY = 20
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (process.env.CRON_SECRET) {
