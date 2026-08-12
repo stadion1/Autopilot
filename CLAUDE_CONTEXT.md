@@ -215,7 +215,39 @@ medvetet mellan de två kodbaserna. Håll dem i synk manuellt vid ändringar.
   text med radbyten är helt ofarligt i det formatet). Övervägde att
   sanera bort kontrolltecken före `JSON.parse()` istället, men bedömde
   det för riskabelt (kan sönderdela strukturell whitespace om modellen
-  prettyprintat JSON:en). **Inte verifierat i produktion än.**
+  prettyprintat JSON:en). **Bekräftat i produktion** — en riktig,
+  varierad AI-text kom tillbaka (efter att den specifika stale-cachade
+  raden togs bort manuellt, se cache-anmärkningen nedan). Hela
+  AI-sammanfattnings-sagan (fel modell-ID → tyst catch → avkapad JSON →
+  råa radbyten i JSON) betraktas nu som löst.
+
+  **Cache-fälla, samma mönster som mätarställnings-sagan tidigare
+  idag:** att skicka in SAMMA Blocket-URL igen för att "testa fixen"
+  returnerar bara den gamla cachade (trasiga) analysen om den är
+  <24h gammal (`getCachedAnalysis()` matchar även `status='done'`-rader
+  med trasigt AI-svar). Verifierades genom att jämföra `meta.analyzed_at`
+  mot logg-tidsstämpeln för det ursprungliga felet — identiska.
+  Snabbaste sättet att tvinga fram en omkörning: `delete from analyses
+  where id = '<uuid>'` och skicka in URL:en på nytt.
+
+  **Ytterligare fynd, samma dag:** användaren frågade hur prisestimatet
+  räknas fram för en bil där `pricing.medianSource` visade sig vara
+  felmärkt — se `get_market_median()`/prisestimat-posten nedan.
+- **"Marknadsmedian" felmärkt när priset är en ren teoretisk gissning
+  (2026-08-12).** Tredje och sista fallet av samma mislabeling-bugg som
+  nybilspris-fixen tidigare idag (och som hittades genom att användaren
+  frågade "hur räknas prisestimatet"): när VARKEN live- eller statisk
+  marknadsmedian finns faller `calculatePricing()` tillbaka på en ren
+  formel (`basePrice × (1-depreciation)^ålder` från `referenceData.ts`)
+  — men `medianSource` särskiljde bara "nybilspris" från ett
+  catch-all "market", så den teoretiska gissningen kallades
+  "Marknadsmedian" i priskortet, pros/cons-texterna OCH AI-prompten,
+  trots att `confidence.reasons` redan sa "Ingen marknadsmedian
+  tillgänglig — teoretiskt estimat används" på samma sida. Fixat: nytt
+  `'theoretical'`-läge i `PriceRange.medianSource`, trätt igenom
+  priskortet ("Teoretisk uppskattning"), båda pros/cons-textrader i
+  `engine.ts`, och AI-prompten (som nu explicit får veta att ingen
+  riktig marknadsdata ligger bakom siffran).
 
 ### Engångs-admin-endpoints på scraper-service (Railway)
 
