@@ -142,6 +142,25 @@ medvetet mellan de två kodbaserna. Håll dem i synk manuellt vid ändringar.
   nådde bara en `console.log`; lade till `PriceRange.medianSource`
   (`'market' | 'new_car_list'`) så UI:t (priskort + pros/cons-texter)
   kan visa "Nybilspris (Skatteverket)" istället när det stämmer.
+- **`get_market_median()` gjord robust mot extremvärden (2026-08-12).**
+  Undersökte FÖRST om det var ett verkligt problem innan något byggdes —
+  hittade `market_listings`-grupper med upp till 5x spridning mellan
+  lägsta/högsta pris inom samma märke/modell/år, men manuell koll av tre
+  värsta fallen visade att den råa medianen redan var ganska robust
+  (median matematiskt okänslig för svansextremer, till skillnad från ett
+  medelvärde). Facit per fall: en trolig ex-taxi Mercedes E-klass
+  (830 000 km, prissatt rimligt för sitt skick — inget fel), en äkta
+  bred marknad för högmilade diesel-Passater (inget fel, bara verklig
+  spridning), och en BMW M3 ("F80"-chassikod) felaktigt grupperad med
+  vanliga 3-serie-bilar (ett RIKTIGT klassificeringsfel). Byggde en
+  tvåstegs MAD-baserad (median absolute deviation) outlier-filtrering i
+  `get_market_median()`: preliminär median → MAD → uteslut annonser mer
+  än 3,5 "modifierade z-score"-enheter bort → räkna om medianen på det
+  som blir kvar. Verifierat mot BMW-fallet: filtrerade bort både M3:an
+  OCH en gränsfalls-annons (313hk M Sport, precis över tröskeln),
+  `sample_size` 15→13, ny median 135 000 kr — matchade en manuell
+  handuträkning exakt. Ingen klientkodsändring behövdes (samma RPC-
+  signatur).
 
 ### Engångs-admin-endpoints på scraper-service (Railway)
 
@@ -391,9 +410,6 @@ oavsett bilens ålder och alltså inte fångade den kända branta
   körts mot data som redan fanns; om Wayke/Bytbil har liknande gamla
   skräprader har de städats i samma körning (ingen `source_site`-filtrering
   i cleanup-queryn), men det är inte specifikt verifierat.
-- **`get_market_median()` är inte robust mot outliers** — ingen trimmad
-  percentil eller MAD-baserad beräkning. Föreslaget men inte byggt,
-  användaren har inte bekräftat att de vill ha det.
 - **Ingen orimligt-pris-varning på enskilda analyser** — om en
   användare klistrar in en annons med implausibelt pris (t.ex. en
   leasingövertag som klarar sig förbi `saveMarketListing()`s
@@ -410,19 +426,9 @@ oavsett bilens ålder och alltså inte fångade den kända branta
 
 ## Prioriterade nästa steg (föreslagna, ej bekräftade av användaren)
 
-1. Kör en ny SQL-koll på min/max-priser per modell för att bekräfta att
-   städningen höll (gjordes en gång, resultatet var rent — värt att
-   återupprepa efter nästa nightly-körning för att se att inget nytt
-   läcker in).
-2. Ta ställning till `get_market_median()`-robusthet (trimmad
-   percentil/MAD) — relevant nu när ingestion är strängare men
-   fortfarande inte immun mot enstaka extremvärden.
-3. Ta ställning till orimligt-pris-varning per analys, som ett
+1. Ta ställning till orimligt-pris-varning per analys, som ett
    användarvänt komplement till den tysta ingestion-filtreringen.
-4. Följ upp liggtids-påminnelsen när den triggas — avgör om datan
+2. Följ upp liggtids-påminnelsen när den triggas — avgör om datan
    räcker för att bygga "förväntad tid till sålt".
-5. Granska resultatet av värdeminskningskurve-körningen tillsammans
-   (hur många modeller fick riktiga kurvpunkter vs. föll tillbaka på
-   flat-rate), och gör `recompute-depreciation-curves` till en
-   schemalagd cron (se "Pågående arbete" ovan, steg 4) så den slutar
-   vara ett manuellt steg.
+3. Vercel Pro-tröskeln (se ovan) — inget att göra nu, men bevaka
+   `scored`/`total` i `score-listings`-loggarna över tid.
