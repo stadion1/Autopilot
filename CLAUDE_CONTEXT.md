@@ -228,23 +228,30 @@ oavsett bilens ålder och alltså inte fångade den kända branta
 
 ## Kända begränsningar / öppna trådar
 
-- **Mätarställnings-bugg LÖST (2026-08-12).** Rotorsak hittad via
-  Vercel-loggarna för `[process] Invalid car data before scoring`
-  (validerings­skyddet i `process.ts` från samma dag fångade det innan
-  det kunde ge ett tyst fel betyg): två nyinlagda "Ny bil till salu"
-  Volvo XC60-annonser (24164196, 25617721) kom tillbaka från Railway-
-  scrapern med `mileage_km` HELT FRÅNVARANDE i JSON:en (inte 0, inte
-  null — nyckeln fanns inte, dvs. `parseMileageStr()` gav `undefined`).
-  Manuell koll av exakt samma annons-ID:n strax efteråt visade "0 mil"
-  korrekt i både `ad.mileage` och `specs['Miltal']`. `parseMileageStr()`
-  själv har alltid använt `isNaN()` (aldrig en trasig falsy-check för 0,
-  kollat git-historiken) — slutsats: blocket-api.se hinner inte
-  indexera mätarställningsfältet för väldigt nyss inlagda
-  handlarlager-annonser vid första skrapningen. Fixat i
-  `scraper-service/blocket.ts`: när parsning misslyckas OCH
-  `Försäljningsform === 'Ny bil till salu'`, antas mätarställning=0
-  (säkert för en uttalat ny bil) istället för att lämna fältet odefinierat.
-  Begagnade bilar med saknad mätarställning gissas fortfarande aldrig.
+- **Mätarställnings-bugg — två iterationer, andra försöket verkar hålla
+  (2026-08-12).** Rotorsak hittad via Vercel-loggarna för
+  `[process] Invalid car data before scoring` (valideringsskyddet i
+  `process.ts` fångade det innan det kunde ge ett tyst fel betyg): nyss
+  inlagda "Ny bil till salu"-annonser (flera Volvo XC60/XC90) kom
+  tillbaka från Railway-scrapern med `mileage_km` HELT FRÅNVARANDE i
+  JSON:en. Manuell koll av exakt samma annons-ID:n någon minut senare
+  visade inte bara mätarställningen korrekt, utan HELA
+  `specifications`-objektet fullständigt ifyllt — dvs. blocket-api.se
+  svarar med ett genuint ofullständigt objekt på första förfrågan för en
+  väldigt nyss inlagd handlarannons och fyller i det inom någon minut.
+  **Första fixförsöket** (falla tillbaka på mätarställning=0 när
+  `Försäljningsform === 'Ny bil till salu'`) var otillräckligt — verifierat
+  via Railway-deploy-bekräftelse + nya Vercel-loggar som fortfarande
+  visade `mileage_km` frånvarande — eftersom `Försäljningsform` ligger i
+  SAMMA (då ofullständiga) `specifications`-objekt som `Miltal`, så
+  signalen saknades av samma anledning som datan den skulle kompensera
+  för. **Andra fixförsöket:** `fetchAdWithRetry()` hämtar om HELA
+  annonsen (inte bara mätarställningsfältet) upp till 2 extra gånger
+  med kort fördröjning (1,5s, 2,5s) om mätarställning saknas i både
+  toppnivåfältet och `specifications.Miltal`. "Ny bil till salu"→0-
+  fallbacken finns kvar som absolut sista skyddsnät efter uttömda
+  omförsök, inte som primär mekanism. **Inte ännu verifierat av
+  användaren i produktion** — vänta på Railway-redeploy och testa om.
 - **blocket-api.se är inte fullt pålitlig.** Tre separata fall
   verifierade denna session: (1) speglar/cachar annonsdata och
   reflekterar INTE borttagning i realtid — därför bytte
