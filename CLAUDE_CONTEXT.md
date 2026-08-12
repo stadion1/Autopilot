@@ -305,17 +305,26 @@ oavsett bilens ålder och alltså inte fångade den kända branta
   dagligen) blockerade HELA Vercel-deployen — projektet ligger på Hobby-
   planen, som bara tillåter dagliga crons; `vercel.json`s timschema fick
   bygget att failas helt (inget nytt gick live, oavsett tidigare pushar).
-  **Andra (nuvarande) fixen**, inom dagligt schema: `scoreVehicle()` i
-  `engine.ts` gjorde tre databasuppslag (marknadsmedian, nybilspris,
-  mätarställnings-känslighet) i SEKVENS trots att inget av dem beror på
-  de andras resultat — körs nu parallellt med `Promise.all()`, ~3x
-  snabbare per bil. `BATCH_SIZE` höjd 150→2000, `CONCURRENCY` 10→20,
-  `maxDuration: 60` tillagd (saknades helt). Ej uppmätt i produktion om
-  2000 rader verkligen ryms inom 60s — kolla `scored`/`total` i cron-
-  svaret efter nästa körning och justera `SCORE_CRON_BATCH_SIZE`
-  (miljövariabel, ingen kodändring behövs) om det tar för lång tid.
-  Räkneexempel: 2000/dygn mot ~400 nya/natt ⇒ netto ~1600/dygn ⇒
-  ~5 100-raders backloggen tömd på ungefär en vecka.
+  **Andra fixen**, inom dagligt schema: `scoreVehicle()` i `engine.ts`
+  gjorde tre databasuppslag (marknadsmedian, nybilspris, mätarställnings-
+  känslighet) i SEKVENS trots att inget av dem beror på de andras
+  resultat — körs nu parallellt med `Promise.all()`, ~3x snabbare per
+  bil. `maxDuration: 60` tillagd (saknades helt).
+
+  **Körd och uppmätt i produktion (2026-08-12):** första körningen med
+  `BATCH_SIZE=2000` gav bara `{scored:1000, failed:0, total:1000}` —
+  `getListingsNeedingScore()` använde bara `.limit()`, som
+  Supabase/PostgREST tyst begränsar till 1000 rader/fråga oavsett
+  begärt värde (samma buggmönster som redan setts två gånger tidigare
+  denna session). **Tredje fixen:** lade till `.range()`-paginering i
+  `getListingsNeedingScore()`. Mätning: 1000 rader tog 33,23s vid
+  `CONCURRENCY=20` (~30 rader/sek) — 2000 hade landat på ~66s, över
+  60s-taket. Satte `BATCH_SIZE=1400` (~46,5s uppskattat, ~13,5s
+  marginal) baserat på den uppmätta hastigheten istället för att gissa.
+  1400/dygn mot ~400 nya/natt ⇒ netto ~1000/dygn ⇒ ~5 100-raders
+  backloggen tömd på ungefär en vecka. **Fortsatt att göra:** kör och
+  bekräfta att 1400-batchen faktiskt håller sig inom 60s (bara 1000-
+  körningen är uppmätt hittills).
 - **Mätarställnings-bugg — RIKTIG rotorsak hittad och fixad (2026-08-12).**
   Jagade fel bov i flera omgångar innan den verkliga orsaken hittades.
   Facit: `scrapeAndParse()` i `scraper-service/parsers.ts` kör ALL
