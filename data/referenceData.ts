@@ -33,6 +33,15 @@ export interface ModelReference {
   reliabilityBase: number
   resaleBase: number
   notes?: string
+  // Regex-källsträng (case-insensitive) för att matcha mot Skatteverkets
+  // new_car_prices.model_raw, för modeller där `model` är en serie-
+  // beteckning som ALDRIG förekommer bokstavligt i Skatteverkets data —
+  // de listar bara trimkoder (BMW "320d xDrive", Mercedes "C 200
+  // 4MATIC..."), aldrig "3-serie"/"C-klass". Utan detta fält matchas
+  // model_raw med en enkel substräng (ILIKE %model%), vilket räcker för de
+  // flesta modeller (RAV4, Corolla, Cooper, CX-5 m.fl. förekommer
+  // bokstavligt). Används av pages/api/admin/recompute-depreciation-curves.ts.
+  skatteverketModelPattern?: string
 }
 
 export const MODEL_REFERENCES: ModelReference[] = [
@@ -213,6 +222,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
     avgMilPerYear: 1500, pricePer1000ExtraMil: -3000,
     reliabilityBase: 62, resaleBase: 70,
     notes: 'G20-generationen (2018+) mer pålitlig än F30. N20 4-cylindrig motor (äldre) — kontrollera timing chain. Räkna med 20 000–30 000 kr/år i service.',
+    skatteverketModelPattern: '^M?3\\d{2}',
   },
   {
     brand: 'BMW', model: '5-serie',
@@ -221,6 +231,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
     avgMilPerYear: 1600, pricePer1000ExtraMil: -3500,
     reliabilityBase: 60, resaleBase: 68,
     notes: 'G30-generationen (2016+) har fler elektronisk­problem än föregångaren. Hög servicekostnad. 530e PHEV kräver batterikontroll.',
+    skatteverketModelPattern: '^M?5\\d{2}',
   },
   {
     brand: 'BMW', model: 'X3',
@@ -295,6 +306,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
     avgMilPerYear: 1500, pricePer1000ExtraMil: -3000,
     reliabilityBase: 63, resaleBase: 68,
     notes: 'W205 (2014–2021): kända problem med rost på bakre fjädring och infotainment-fel. W206 (2021+) mer pålitlig. Höga servicekostnader.',
+    skatteverketModelPattern: '^C\\s',
   },
   {
     brand: 'Mercedes-Benz', model: 'E-klass',
@@ -303,6 +315,7 @@ export const MODEL_REFERENCES: ModelReference[] = [
     avgMilPerYear: 1600, pricePer1000ExtraMil: -3500,
     reliabilityBase: 62, resaleBase: 67,
     notes: 'W213 (2016+). Komplex elektronik — undvika tidiga exemplar. 300de PHEV kräver batterikontroll. Hög servicekostnad men starkt andrahandsvärde.',
+    skatteverketModelPattern: '^E\\s',
   },
   {
     brand: 'Mercedes-Benz', model: 'GLC',

@@ -69,18 +69,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (listingsErr) return res.status(500).json({ error: listingsErr.message })
       if (!listings || listings.length < MIN_SAMPLES) { skipped++; continue }
 
-      const { data: newPrices, error: newPricesErr } = await supabase
-        .from('new_car_prices')
-        .select('price_sek')
-        .ilike('brand', ref.brand)
-        .ilike('model_raw', `%${ref.model}%`)
-        .eq('manufacturing_year', vintageYear)
+      // Vissa modeller (BMW "3-serie", Mercedes "C-klass" m.fl.) är
+      // seriebeteckningar som ALDRIG förekommer bokstavligt i Skatteverkets
+      // data — de listar bara trimkoder ("320d xDrive", "C 200 4MATIC...").
+      // För dem hämtas alla trimmar för märke+år och filtreras med regexet
+      // i skatteverketModelPattern istället för en substräng-matchning.
+      let newPricesRaw: { price_sek: number }[] | null
+      if (ref.skatteverketModelPattern) {
+        const { data, error: newPricesErr } = await supabase
+          .from('new_car_prices')
+          .select('price_sek, model_raw')
+          .ilike('brand', ref.brand)
+          .eq('manufacturing_year', vintageYear)
 
-      if (newPricesErr) return res.status(500).json({ error: newPricesErr.message })
-      if (!newPrices || newPrices.length === 0) { skipped++; continue }
+        if (newPricesErr) return res.status(500).json({ error: newPricesErr.message })
+        const pattern = new RegExp(ref.skatteverketModelPattern, 'i')
+        newPricesRaw = (data ?? []).filter((p: { model_raw: string }) => pattern.test(p.model_raw))
+      } else {
+        const { data, error: newPricesErr } = await supabase
+          .from('new_car_prices')
+          .select('price_sek')
+          .ilike('brand', ref.brand)
+          .ilike('model_raw', `%${ref.model}%`)
+          .eq('manufacturing_year', vintageYear)
+
+        if (newPricesErr) return res.status(500).json({ error: newPricesErr.message })
+        newPricesRaw = data
+      }
+
+      if (!newPricesRaw || newPricesRaw.length === 0) { skipped++; continue }
 
       const observedMedian = median(listings.map((l: { price_sek: number }) => l.price_sek))
-      const anchorMedian = median(newPrices.map((p: { price_sek: number }) => p.price_sek))
+      const anchorMedian = median(newPricesRaw.map((p: { price_sek: number }) => p.price_sek))
       if (!Number.isFinite(observedMedian) || !Number.isFinite(anchorMedian) || anchorMedian <= 0) {
         skipped++
         continue
