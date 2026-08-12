@@ -242,14 +242,27 @@ oavsett bilens ålder och alltså inte fångade den kända branta
    229 annonser), en modell (Audi A6, 94 annonser) träffade klamptaket
    (-15 000) exakt — den råa regressionen gav ett ännu mer extremt värde.
 
-   **Observation, inte åtgärdad:** den empiriskt uppmätta XC60-känsligheten
-   (-10 825 kr/1000 mil) är över 3x starkare än den manuellt gissade
-   `pricePer1000ExtraMil: -3000` som redan används i `referenceData.ts`
-   för prisjämförelsen på enskilda annonser (`scorePrice`/
-   `calculatePricing` i `engine.ts`) — en annan, separat del av kodbasen
-   som inte rördes av det här arbetet. Skulle kunna uppdateras till att
-   använda samma mätta `mileage_sensitivity`-data, men inte begärt eller
-   byggt.
+   **Två uppföljningar byggda samma dag, efter användarens invändning:**
+   - **Kausalitetsfix:** den ursprungliga versionen antog att bilens
+     NUVARANDE mätarställningsavvikelse ligger still framåt — vilket
+     tyst antar att köparen kör exakt som föregående ägare. Fel: dagens
+     avvikelse är redan inbakad i `car.price_sek` (marknaden har redan
+     prissatt den), det som INTE är känt är hur avvikelsen växer/krymper
+     framåt, vilket beror på DEN NYA ägarens egen körning. Löst:
+     `calculateOwnershipCosts()` tar nu en valfri `expectedAnnualMil`
+     (nytt inputfält "Din förväntade körsträcka" i UI:t, bredvid
+     Kontant/Billån, förifyllt med modellens snitt via ny
+     `getDefaultAnnualMil()`-export). Varje års justering räknas som
+     `år × (användarens mil/år − modellens snitt)` — kör man i
+     modellsnittet blir justeringen 0 (kurvans rate på det redan
+     rabatterade priset bevarar redan den relativa positionen korrekt då).
+   - **Prisjämförelsen förbättrad:** `scorePrice()`/`calculatePricing()`
+     i `engine.ts` använde fortfarande den gissade
+     `pricePer1000ExtraMil` från `referenceData.ts`. `scoreVehicle()`
+     slår nu upp `mileage_sensitivity` via `getMileageSensitivity()` och
+     använder den istället när data finns (samma tecken-konvention,
+     ingen omvandling behövs), med fallback till den gissade konstanten
+     annars.
 4. **Steg 4 (backlog, ej påbörjat):** gör om
    `recompute-depreciation-curves` till en schemalagd Vercel Cron (t.ex.
    månadsvis, som `score-listings.ts`) istället för manuell körning.
