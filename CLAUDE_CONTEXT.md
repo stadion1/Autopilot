@@ -510,6 +510,34 @@ oavsett bilens ålder och alltså inte fångade den kända branta
   scraper-service/TypeScript-ändringar denna session har verifierats
   via läsning + manuell brace-balansräkning, inte kompilering/körning.
   Bra att köra en riktig typecheck/build vid nästa tillfälle det går.
+- **Bränsleförbrukning per modell — inte byggt, research påbörjad
+  (2026-08-12).** `estimateAnnualFuelCost()` använder idag bara en platt
+  schablon per drivmedelstyp (t.ex. 0,68 l/mil för ALL bensin oavsett
+  modell), vilket begränsar både ägandekostnads-estimatet och AI-
+  sammanfattningens förmåga att kommentera bränslekostnad specifikt.
+  Undersökte blocket-api.se:s eget per-annons-förbrukningsfält (curl mot
+  4 riktiga annons-ID:n): finns med riktiga värden på två ÄLDRE annonser
+  (6,5 l/100km, 5,1 l/100km), saknas helt på två NYARE (inkl. en
+  laddhybrid), och fältnyckeln själv är en instabil, lång beskrivande
+  sträng ("Bränsleförbrukning(NEDC)NEDC var..."), inte en fast nyckel —
+  kräver fuzzy substräng-matchning, ingen pålitlig primärkälla.
+  Efterforskade alternativa öppna datakällor: Transportstyrelsens
+  API-portal (`tsopendata.portal.azure-api.net`) hittades men gick inte
+  att inspektera (WebFetch: "Socket is closed", två försök). EU:s
+  miljöbyrå EEA har en öppen CO2-utsläppsdatabas för alla nyregistrerade
+  bilar i EU (inkl. Sverige) sedan år 2000, per märke/modell/variant,
+  med CO2-utsläpp (omräkningsbart till förbrukning) och elförbrukning
+  för elbilar — mest lovande fyndet, men är en BULK-nedladdning
+  (CSV/Excel, 2000–2024, hela EU, sannolikt miljontals rader), inte en
+  fråga-per-anrop-API som Skatteverkets. Skulle kräva ett eget
+  filtrerings-/bearbetningssteg (plocka ut Sverige-relevanta
+  modeller/fält) — en klart större insats än Skatteverket-integrationen.
+  Länkar: nedladdning `https://sdi.eea.europa.eu/data/d8ab6710-65b1-438c-bf48-f29fc12848ff`,
+  interaktiv utforskare `http://co2cars.apps.eea.europa.eu/`.
+  **Inte klart:** faktisk filstorlek/kolumnstruktur, om Sverige går att
+  filtrera rent, och om det här är genuint bättre/pålitligare i praktiken
+  än vad vi redan har. Sparat till en egen framtida session (för stort
+  för att klämma in i en pågående) — se prioriterad lista nedan.
 
 ## Prioriterade nästa steg (föreslagna, ej bekräftade av användaren)
 
@@ -519,3 +547,9 @@ oavsett bilens ålder och alltså inte fångade den kända branta
    räcker för att bygga "förväntad tid till sålt".
 3. Vercel Pro-tröskeln (se ovan) — inget att göra nu, men bevaka
    `scored`/`total` i `score-listings`-loggarna över tid.
+4. Bränsleförbrukning per modell (se ovan) — i en egen session: verifiera
+   EEA-datasetets faktiska struktur/storlek och Sverige-filtrering
+   (helst via direkt nedladdning/inspektion av riktiga rader, inte bara
+   metadata), ta ett nytt försök på Transportstyrelsens API-portal via
+   en annan metod än direkt WebFetch, och lägg fram en rekommendation
+   (bygg pipeline / avstå) innan någon kod skrivs.
