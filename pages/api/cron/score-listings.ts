@@ -51,13 +51,15 @@ import type { CarListing, FuelType, Transmission, SupportedSite, SellerType } fr
 
 export const config = { maxDuration: 60 }
 
-// Efter parallelliseringen ovan är per-bil-kostnaden ~1 databas-tur-och-
-// retur istället för ~3 — vid CONCURRENCY=20 bör 2000 rader hinnas med
-// gott om marginal inom 60s (grov uppskattning, inte uppmätt: 2000/20=100
-// "vågor" × ~300-500ms ≈ 30-50s). 2000/dygn mot ~400 nya/natt ger ett
-// netto på ~1600/dygn — tömmer ~5 100-raders backloggen på ungefär en
-// vecka, håller sedan jämna steg med god marginal.
-const BATCH_SIZE  = parseInt(process.env.SCORE_CRON_BATCH_SIZE ?? '2000', 10)
+// Uppmätt i produktion (2026-08-12): 1000 rader tog 33,23s vid
+// CONCURRENCY=20, dvs ~30 rader/sek. 2000 hade landat på ~66s — över 60s-
+// taket. 1400 ger ~46,5s, en marginal på ~13,5s mot variation i
+// nätverk/databaslast. getListingsNeedingScore() paginerar numera med
+// .range() (Supabase/PostgREST-taket på 1000 rader/fråga gäller annars
+// oavsett .limit()) så BATCH_SIZE kan nu faktiskt överstiga 1000.
+// 1400/dygn mot ~400 nya/natt ger ett netto på ~1000/dygn — tömmer
+// ~5 100-raders backloggen på ungefär en vecka.
+const BATCH_SIZE  = parseInt(process.env.SCORE_CRON_BATCH_SIZE ?? '1400', 10)
 const CONCURRENCY = 20
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

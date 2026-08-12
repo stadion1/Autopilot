@@ -510,16 +510,30 @@ export interface ListingToScore {
 export async function getListingsNeedingScore(limit: number): Promise<ListingToScore[]> {
   const staleCutoff = new Date(Date.now() - SCORE_STALE_AFTER_HOURS * 3600_000).toISOString()
 
-  const { data, error } = await supabase
-    .from('market_listings')
-    .select('id, brand, model, variant, year, price_sek, mileage_km, fuel_type, transmission, location, seller_type, source_url, source_site, registration_number, vin')
-    .is('sold_at', null)
-    .or(`deal_score_updated_at.is.null,deal_score_updated_at.lt.${staleCutoff}`)
-    .order('deal_score_updated_at', { ascending: true, nullsFirst: true })
-    .limit(limit)
+  // Supabase/PostgREST caps results at 1000 rows per request regardless of
+  // .limit() — bit fetchStaleCandidates and the sold-verification backfill
+  // earlier this session too. score-listings.ts asks for well over 1000 per
+  // run now, so page through with .range() until `limit` is reached or a
+  // page comes back short.
+  const PAGE_SIZE = 1000
+  const results: ListingToScore[] = []
 
-  if (error || !data) return []
-  return data as ListingToScore[]
+  for (let offset = 0; results.length < limit; offset += PAGE_SIZE) {
+    const pageSize = Math.min(PAGE_SIZE, limit - results.length)
+    const { data, error } = await supabase
+      .from('market_listings')
+      .select('id, brand, model, variant, year, price_sek, mileage_km, fuel_type, transmission, location, seller_type, source_url, source_site, registration_number, vin')
+      .is('sold_at', null)
+      .or(`deal_score_updated_at.is.null,deal_score_updated_at.lt.${staleCutoff}`)
+      .order('deal_score_updated_at', { ascending: true, nullsFirst: true })
+      .range(offset, offset + pageSize - 1)
+
+    if (error) break
+    results.push(...((data ?? []) as ListingToScore[]))
+    if (!data || data.length < pageSize) break
+  }
+
+  return results
 }
 
 export async function saveListingScore(id: string, dealScore: number): Promise<void> {
