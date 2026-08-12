@@ -102,6 +102,22 @@ function normalize(
   url: string,
   site: SupportedSite
 ): Partial<CarListing> {
+  // `raw.mileage_km && ...` (truthy check) silently threw away a genuine
+  // 0 — 0 is falsy in JS, so `0 && anything` short-circuits to 0/falsy
+  // before the range check even runs, turning a correctly-parsed "0 mil"
+  // into undefined. Found by tracing a "0 mil" new-car listing all the
+  // way through: parseBlocket() logged mileage:0 correctly, but this
+  // function (called right after, in scrapeAndParse — nothing logs its
+  // output) silently dropped it. Number.isFinite() doesn't have this
+  // problem — same fix pattern used everywhere else numeric fields are
+  // validated in this codebase.
+  const priceSek = Number.isFinite(raw.price_sek) && raw.price_sek! > 5000 && raw.price_sek! < 10_000_000
+    ? raw.price_sek : undefined
+  const mileageKm = Number.isFinite(raw.mileage_km) && raw.mileage_km! >= 0 && raw.mileage_km! < 1_000_000
+    ? raw.mileage_km : undefined
+  const year = Number.isFinite(raw.year) && raw.year! >= 1980 && raw.year! <= new Date().getFullYear() + 1
+    ? raw.year : undefined
+
   return {
     ...raw,
     source_url:  url,
@@ -110,12 +126,9 @@ function normalize(
     model:       raw.model?.trim(),
     variant:     raw.variant?.trim() || undefined,
     description: raw.description?.slice(0, 4000).trim() || undefined,
-    price_sek:   raw.price_sek && raw.price_sek > 5000 && raw.price_sek < 10_000_000
-                   ? raw.price_sek : undefined,
-    mileage_km:  raw.mileage_km && raw.mileage_km >= 0 && raw.mileage_km < 1_000_000
-                   ? raw.mileage_km : undefined,
-    year:        raw.year && raw.year >= 1980 && raw.year <= new Date().getFullYear() + 1
-                   ? raw.year : undefined,
+    price_sek:   priceSek,
+    mileage_km:  mileageKm,
+    year,
   }
 }
 
