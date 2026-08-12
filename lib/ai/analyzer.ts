@@ -69,13 +69,16 @@ ABSOLUTA REGLER:
 6. Du skriver ALDRIG exakta siffror som ett exakt värde — alltid intervall eller "ungefär".
 7. Max 3 korta stycken. Inga rubriker. Ingen punktlista. Ren löpande text.
 8. Upprepa INTE risker som redan listas separat — de visas för användaren på annat ställe.
-9. Returnera ENBART valid JSON enligt formatet nedan. Ingenting utanför JSON.
+9. Svara EXAKT i formatet nedan — ingenting före "VERDICT:", ingenting efter sista stycket.
 
-FORMAT:
-{
-  "verdict": "Bra affär" | "Okej affär" | "Tveksam affär",
-  "summary": "2–3 stycken naturlig svenska, avsluta med konkret rekommendation"
-}
+FORMAT (bokstavligt, inte JSON):
+VERDICT: Bra affär|Okej affär|Tveksam affär
+SUMMARY:
+Första stycket...
+
+Andra stycket...
+
+Tredje stycket med rekommendationen...
 `.trim()
 
 // ─── Prompt builder ───────────────────────────────────────────────────────────
@@ -179,23 +182,32 @@ function parseResponse(text: string, dealScore: number): AIAnalysisResult {
     dealScore >= 72 ? 'Bra affär' :
     dealScore >= 55 ? 'Okej affär' : 'Tveksam affär'
 
-  // Om JSON-parsningen misslyckas (t.ex. ett avkapat svar mitt i strängen)
-  // ska det INTE tyst returnera den råa, trasiga texten som om den vore
-  // ett giltigt sammandrag — det visade sig göra precis det tidigare,
-  // vilket lät en bruten JSON-blob visas rakt av för användaren istället
-  // för att hanteras som ett fel. Kastar nu istället, så process.ts:s
-  // redan befintliga try/catch runt analyzeWithAI() korrekt faller
-  // tillbaka på den rena fallbackSummary()-mallen (och loggar felet).
-  const clean  = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
-  const parsed = JSON.parse(clean)
+  // Bytte från JSON-format till "VERDICT: ...\nSUMMARY: ..." efter att ha
+  // sett riktiga svar krascha JSON.parse() — modellen skrev naturliga
+  // stycken med RÅA radbyten inuti "summary"-strängen (helt normalt sätt
+  // att skriva flerstycken-text), men råa kontrolltecken är ogiltiga
+  // inuti en JSON-sträng enligt specen ("Bad control character in string
+  // literal"). Att sanera bort/escapa kontrolltecken i efterhand är
+  // riskabelt (kan lika gärna förstöra strukturell whitespace mellan
+  // JSON-token om modellen prettyprintat), så enklare och robustare att
+  // helt undvika att paketera fri text i strikt JSON. Om parsningen ändå
+  // misslyckas ska det INTE tyst returnera den råa texten som om den vore
+  // ett giltigt sammandrag (det gjorde en tidigare version, vilket lät
+  // trasig text visas rakt av för användaren) — kastar istället, så
+  // process.ts:s befintliga try/catch faller tillbaka på
+  // fallbackSummary()-mallen och loggar felet.
+  const verdictMatch = text.match(/VERDICT:\s*(.+)/i)
+  const summaryMatch = text.match(/SUMMARY:\s*([\s\S]*)/i)
 
-  const verdict: Verdict = VALID_VERDICTS.includes(parsed.verdict)
-    ? parsed.verdict
+  const rawVerdict = verdictMatch?.[1]?.trim()
+  const verdict: Verdict = VALID_VERDICTS.includes(rawVerdict as Verdict)
+    ? (rawVerdict as Verdict)
     : fallbackVerdict
 
-  if (typeof parsed.summary !== 'string' || !parsed.summary.trim()) {
-    throw new Error('AI-svaret saknade ett giltigt summary-fält')
+  const summary = summaryMatch?.[1]?.trim()
+  if (!summary) {
+    throw new Error('AI-svaret saknade ett SUMMARY-avsnitt')
   }
 
-  return { verdict, summary: parsed.summary.trim() }
+  return { verdict, summary }
 }
