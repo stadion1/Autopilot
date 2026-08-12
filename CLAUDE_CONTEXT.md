@@ -228,30 +228,21 @@ oavsett bilens ålder och alltså inte fångade den kända branta
 
 ## Kända begränsningar / öppna trådar
 
-- **Mätarställnings-bugg — två iterationer, andra försöket verkar hålla
-  (2026-08-12).** Rotorsak hittad via Vercel-loggarna för
-  `[process] Invalid car data before scoring` (valideringsskyddet i
-  `process.ts` fångade det innan det kunde ge ett tyst fel betyg): nyss
-  inlagda "Ny bil till salu"-annonser (flera Volvo XC60/XC90) kom
-  tillbaka från Railway-scrapern med `mileage_km` HELT FRÅNVARANDE i
-  JSON:en. Manuell koll av exakt samma annons-ID:n någon minut senare
-  visade inte bara mätarställningen korrekt, utan HELA
-  `specifications`-objektet fullständigt ifyllt — dvs. blocket-api.se
-  svarar med ett genuint ofullständigt objekt på första förfrågan för en
-  väldigt nyss inlagd handlarannons och fyller i det inom någon minut.
-  **Första fixförsöket** (falla tillbaka på mätarställning=0 när
-  `Försäljningsform === 'Ny bil till salu'`) var otillräckligt — verifierat
-  via Railway-deploy-bekräftelse + nya Vercel-loggar som fortfarande
-  visade `mileage_km` frånvarande — eftersom `Försäljningsform` ligger i
-  SAMMA (då ofullständiga) `specifications`-objekt som `Miltal`, så
-  signalen saknades av samma anledning som datan den skulle kompensera
-  för. **Andra fixförsöket:** `fetchAdWithRetry()` hämtar om HELA
-  annonsen (inte bara mätarställningsfältet) upp till 2 extra gånger
-  med kort fördröjning (1,5s, 2,5s) om mätarställning saknas i både
-  toppnivåfältet och `specifications.Miltal`. "Ny bil till salu"→0-
-  fallbacken finns kvar som absolut sista skyddsnät efter uttömda
-  omförsök, inte som primär mekanism. **Inte ännu verifierat av
-  användaren i produktion** — vänta på Railway-redeploy och testa om.
+- **Mätarställnings-bugg LÖST och verifierad i produktion (2026-08-12).**
+  Rotorsak: blocket-api.se svarar ibland med ett genuint ofullständigt
+  objekt (hela `specifications` saknas, inte bara `Miltal`) på första
+  förfrågan för en väldigt nyss inlagd "Ny bil till salu"-handlarannons,
+  och fyller i det inom någon minut. Ett första fixförsök (falla tillbaka
+  på mätarställning=0 via `Försäljningsform`-fältet) var otillräckligt
+  eftersom den signalen ligger i samma ofullständiga objekt. Löst med
+  `fetchAdWithRetry()` i `scraper-service/blocket.ts`: hämtar om HELA
+  annonsen upp till 2 extra gånger (1,5s/2,5s paus) om mätarställning
+  saknas. Verifierad via Railway-loggar: en annons som tidigare gav "0
+  mil" direkt på första försöket funkade utan omförsök; ett skenbart
+  kvarvarande fel visade sig vara en felskriven URL (7 siffror istället
+  för 8, ett annat/obefintligt annons-ID, 404 — inte relaterat till
+  mätarställningsbuggen). Rätt URL gav `PARSED: {..., mileage:0}`,
+  `Klar: OK`.
 - **blocket-api.se är inte fullt pålitlig.** Tre separata fall
   verifierade denna session: (1) speglar/cachar annonsdata och
   reflekterar INTE borttagning i realtid — därför bytte
