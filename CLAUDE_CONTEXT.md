@@ -188,6 +188,20 @@ medvetet mellan de två kodbaserna. Håll dem i synk manuellt vid ändringar.
   `process.ts`s befintliga (loggande) fallback. **Inte verifierat i
   produktion än** — testa en ny analys.
 
+  **Förbättring samma dag:** användaren frågade om AI-sammanfattningen
+  kunde kommentera specifika ägandekostnads-drivare (dyr att försäkra,
+  ovanligt hög skatt, hög bränsleförbrukning, höga/låga servicekostnader)
+  — den kunde inte, `analyzeWithAI()` fick bara en enda sammanslagen
+  "Ägandekostnad: X/100"-siffra, aldrig den faktiska kr-uppdelningen som
+  `OwnershipCostCard` redan visar. `process.ts` kör nu
+  `calculateOwnershipCosts()` (utan kurva/mätarställnings-känslighet —
+  de hämtas bara vid läsning i `pages/api/analysis/[id].ts`, den platta
+  modellsnitts-raten räcker för AI:ns kvalitativa kommentar) och skickar
+  år 1:s uppdelning (värdeminskning/service/försäkring/skatt/bränsle) in
+  i prompten, med en instruktion att peka ut kategorier som sticker ut.
+  Modellanteckningar och risker skickades redan sedan tidigare — inget
+  gap där.
+
 ### Engångs-admin-endpoints på scraper-service (Railway)
 
 Kräver header `x-scraper-secret`. Inte schemalagda — körs manuellt vid
