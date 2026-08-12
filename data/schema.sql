@@ -218,6 +218,9 @@ CREATE INDEX ON analysis_feedback (analysis_id);
 
 
 -- ─── Helper function for market median ───────────────────────────────────────
+-- SUPERSEDED 2026-08-12 by the MAD-robust version further down in this file
+-- (same function name, CREATE OR REPLACE — kept here only as a historical
+-- record of the original, simpler version).
 
 CREATE OR REPLACE FUNCTION get_market_median(
   p_brand TEXT,
@@ -505,3 +508,77 @@ CREATE INDEX ON mileage_sensitivity (brand, model, year_from);
 ALTER TABLE mileage_sensitivity ENABLE ROW LEVEL SECURITY;
 -- No public policy — only the service role (used server-side) reads/writes
 -- this table, same as the rest of the scoring pipeline's internal tables.
+
+
+-- ============================================================
+-- Migration: get_market_median() — MAD-robust version
+-- Run this once in Supabase Dashboard → SQL Editor → New Query
+-- ============================================================
+-- Investigated 2026-08-12 after finding market_listings groups with huge
+-- min/max spread (up to 5x within the same brand/model/year). Checked the
+-- actual listings behind three worst cases: a likely ex-taxi Mercedes
+-- E-klass (830 000 km, priced consistently with its condition — not an
+-- error), a genuinely wide market for high-mileage diesel VW Passats (no
+-- error, just real spread), and a BMW M3 (chassis code "F80") lumped into
+-- the plain "3-serie" bucket alongside ordinary 320d Tourings (a real
+-- classification mismatch, not a data error).
+--
+-- The plain median (PERCENTILE_CONT(0.5)) turned out to already be fairly
+-- robust to single tail extremes — that's the whole point of a median vs.
+-- a mean. Manually recomputing it for the E-klass case landed right in
+-- the middle of the normal-trim cluster, unmoved by the taxi or the AMG S.
+-- The real weak spot is SMALL SAMPLES: with only MIN_LIVE_MEDIAN_SAMPLE_SIZE
+-- (5, in lib/supabase/client.ts) listings, an unusual one can BE the
+-- middle-ranked value directly, with no other listings around it to
+-- buffer the estimate.
+--
+-- Fix: a two-pass MAD (median absolute deviation) outlier filter before
+-- taking the final median. First compute a preliminary median, then MAD
+-- (the median of each listing's absolute deviation from that preliminary
+-- median — itself robust, unlike a standard deviation), then exclude any
+-- listing whose price is more than MAD_THRESHOLD "modified z-score" units
+-- away (the 1.4826 constant scales MAD to be comparable to a normal
+-- distribution's standard deviation; 3.5 is the conventional threshold
+-- from Iglewicz & Hoya's modified z-score method) before recomputing the
+-- median on what's left. Returns the FILTERED sample_size (not the raw
+-- count) so the existing MIN_LIVE_MEDIAN_SAMPLE_SIZE check in
+-- getMarketMedian() reflects how much data the returned median is
+-- actually resting on.
+
+CREATE OR REPLACE FUNCTION get_market_median(
+  p_brand TEXT,
+  p_model TEXT,
+  p_year  INT
+)
+RETURNS TABLE (median NUMERIC, sample_size BIGINT)
+LANGUAGE SQL STABLE AS $$
+  WITH base AS (
+    SELECT price_sek
+    FROM market_listings
+    WHERE
+      LOWER(brand) = LOWER(p_brand)
+      AND LOWER(model) = LOWER(p_model)
+      AND year = p_year
+      AND scraped_at > NOW() - INTERVAL '90 days'
+      AND sold_at IS NULL
+      AND price_sek > 0
+  ),
+  prelim AS (
+    SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY price_sek) AS prelim_median
+    FROM base
+  ),
+  mad AS (
+    SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY ABS(base.price_sek - prelim.prelim_median)) AS mad_value
+    FROM base, prelim
+  ),
+  filtered AS (
+    SELECT base.price_sek
+    FROM base, prelim, mad
+    WHERE mad.mad_value = 0
+       OR ABS(base.price_sek - prelim.prelim_median) <= 3.5 * 1.4826 * mad.mad_value
+  )
+  SELECT
+    PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY price_sek)::NUMERIC AS median,
+    COUNT(*) AS sample_size
+  FROM filtered;
+$$;
