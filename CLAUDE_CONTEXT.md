@@ -228,21 +228,29 @@ oavsett bilens ålder och alltså inte fångade den kända branta
 
 ## Kända begränsningar / öppna trådar
 
-- **Mätarställnings-bugg LÖST och verifierad i produktion (2026-08-12).**
+- **Mätarställnings-bugg — begränsat, inte garanterat, löst (2026-08-12).**
   Rotorsak: blocket-api.se svarar ibland med ett genuint ofullständigt
   objekt (hela `specifications` saknas, inte bara `Miltal`) på första
   förfrågan för en väldigt nyss inlagd "Ny bil till salu"-handlarannons,
-  och fyller i det inom någon minut. Ett första fixförsök (falla tillbaka
-  på mätarställning=0 via `Försäljningsform`-fältet) var otillräckligt
-  eftersom den signalen ligger i samma ofullständiga objekt. Löst med
-  `fetchAdWithRetry()` i `scraper-service/blocket.ts`: hämtar om HELA
-  annonsen upp till 2 extra gånger (1,5s/2,5s paus) om mätarställning
-  saknas. Verifierad via Railway-loggar: en annons som tidigare gav "0
-  mil" direkt på första försöket funkade utan omförsök; ett skenbart
-  kvarvarande fel visade sig vara en felskriven URL (7 siffror istället
-  för 8, ett annat/obefintligt annons-ID, 404 — inte relaterat till
-  mätarställningsbuggen). Rätt URL gav `PARSED: {..., mileage:0}`,
-  `Klar: OK`.
+  och fyller i det inom någon minut — men FÖRDRÖJNINGEN VARIERAR. Tre
+  iterationer:
+  1. Fallback på mätarställning=0 via `Försäljningsform`-fältet —
+     otillräckligt, den signalen ligger i samma ofullständiga objekt.
+  2. `fetchAdWithRetry()` med ~4s total omförsöksväntan (1,5s+2,5s) —
+     fungerade för vissa annonser (verifierat i Railway-loggar), men en
+     annan annons (18529270) misslyckades ändå — fördröjningen kan
+     uppenbarligen överstiga 4s.
+  3. Utökad omförsöksbudget till ~15s (5 omförsök: 1,5/2/3/4/4,5s), plus
+     höjda timeouts hela vägen upp så inget dödar anropet i förtid:
+     `server.ts`s interna scrape-timeout 25s→27s, `process.ts`s fetch mot
+     Railway 28s→32s, och en explicit `export const config = { maxDuration: 60 }`
+     i `process.ts` (Vercels egen exekveringsgräns är annars oberoende av
+     båda ovanstående och kan vara så kort som 10s på vissa planer —
+     skulle ha dödat hela kedjan oavsett fetch-timeouts).
+  **Fortfarande INTE en garanti** — bara en bredare budget. Om
+  blocket-api.se:s fördröjning i något fall överstiger ~15s kommer felet
+  fortfarande dyka upp. Inte verifierat i produktion sen senaste ändringen
+  (2026-08-12, sent på dagen).
 - **blocket-api.se är inte fullt pålitlig.** Tre separata fall
   verifierade denna session: (1) speglar/cachar annonsdata och
   reflekterar INTE borttagning i realtid — därför bytte
