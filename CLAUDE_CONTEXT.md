@@ -228,39 +228,35 @@ oavsett bilens ålder och alltså inte fångade den kända branta
 
 ## Kända begränsningar / öppna trådar
 
-- **Olöst mätarställnings-bugg (2026-08-12), delvis skyddad men inte
-  rotorsaksbestämd.** Analysen `f96c7e1a-ff4d-4816-a8ce-3a5d632733b2`
-  (samma XC60, blocket.se/mobility/item/24166983, mätarställning=0)
-  visade `scores.mileage: 50` i den faktiska lagrade JSON:en (kollad via
-  `/api/analysis/[id]` direkt). 50 kan ENDAST komma från
-  `scoreMileage()`s "icke-ändligt ratio"-fallback ([engine.ts:349](lib/scoring/engine.ts:349))
-  — ingen av de vanliga ratio-grenarna ger just 50. Räknat för hand med
-  denna bils exakta data (mätarställning=0, avgMilPerYear=1400 för XC60)
-  borde ratio bli 0 (ändligt) och ge 96, inte 50 — så antingen var
-  `car.mileage_km` icke-ändligt (NaN/undefined) just vid scoring-
-  tillfället trots att `mileage_km:0` står lagrat i resultatet (inget
-  mellansteg mellan `saveCarData` och `scoreVehicle()` i `process.ts`
-  ändrar värdet, så det är inte en enkel omvandling jag kan se i koden),
-  eller en annan bugg jag inte hittat. **Rotorsaken är INTE fastställd.**
-  Skyddat mot symptomklassen (inte den exakta orsaken): lade till en
-  explicit finite-number-validering i `pages/api/process.ts` direkt efter
-  skrapningen (year/price_sek/mileage_km + brand/model) — en ofullständig
-  scrape ger nu ett tydligt analysfel istället för ett tyst missvisande
-  betyg. Om samma sak händer igen bör `markError`-meddelandet
-  ("Ofullständig annonsdata...") synas i `analyses`-tabellen och peka ut
-  vilket fält som var trasigt. Vercel-loggarna runt 2026-08-12T08:08:56 UTC
-  (sök `[scoreMileage] Non-finite ratio`) skulle kunna avslöja den exakta
-  orsaken om de fortfarande finns kvar.
-- **blocket-api.se är inte fullt pålitlig.** Två separata fall
+- **Mätarställnings-bugg LÖST (2026-08-12).** Rotorsak hittad via
+  Vercel-loggarna för `[process] Invalid car data before scoring`
+  (validerings­skyddet i `process.ts` från samma dag fångade det innan
+  det kunde ge ett tyst fel betyg): två nyinlagda "Ny bil till salu"
+  Volvo XC60-annonser (24164196, 25617721) kom tillbaka från Railway-
+  scrapern med `mileage_km` HELT FRÅNVARANDE i JSON:en (inte 0, inte
+  null — nyckeln fanns inte, dvs. `parseMileageStr()` gav `undefined`).
+  Manuell koll av exakt samma annons-ID:n strax efteråt visade "0 mil"
+  korrekt i både `ad.mileage` och `specs['Miltal']`. `parseMileageStr()`
+  själv har alltid använt `isNaN()` (aldrig en trasig falsy-check för 0,
+  kollat git-historiken) — slutsats: blocket-api.se hinner inte
+  indexera mätarställningsfältet för väldigt nyss inlagda
+  handlarlager-annonser vid första skrapningen. Fixat i
+  `scraper-service/blocket.ts`: när parsning misslyckas OCH
+  `Försäljningsform === 'Ny bil till salu'`, antas mätarställning=0
+  (säkert för en uttalat ny bil) istället för att lämna fältet odefinierat.
+  Begagnade bilar med saknad mätarställning gissas fortfarande aldrig.
+- **blocket-api.se är inte fullt pålitlig.** Tre separata fall
   verifierade denna session: (1) speglar/cachar annonsdata och
   reflekterar INTE borttagning i realtid — därför bytte
   sold-verifieringen till att kolla riktiga blocket.se-sidan istället;
   (2) ad-detalj-endpointens `Miltal`-fält kan avvika från vad som
   faktiskt lagrades via sök-endpointen för samma annons (en Mercedes
   visade "256 387 mil" via ad-detalj men 23 900 mil i databasen — troligen
-  ett fel/glapp i den tredjepartsdata, inte i vår kod). Lärdom: verifiera
-  alltid mot databasens faktiska lagrade värden innan en hypotes om
-  "orimlig data" antas stämma.
+  ett fel/glapp i den tredjepartsdata, inte i vår kod); (3) hinner inte
+  alltid indexera mätarställning för väldigt nyss inlagda annonser (se
+  mätarställnings-buggen ovan). Lärdom: verifiera alltid mot databasens
+  faktiska lagrade värden innan en hypotes om "orimlig data" antas
+  stämma.
 - **Ingen backfill/cleanup finns ännu för Wayke/Bytbil-källor** —
   årsmodell-golvet och prisheuristiken gäller `saveMarketListing()`
   generellt (alla källor), men `/cleanup-implausible-listings` har bara
