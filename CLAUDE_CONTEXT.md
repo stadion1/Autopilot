@@ -147,30 +147,52 @@ oavsett bilens ålder och alltså inte fångade den kända branta
    (räknar fram EN `referenceData.ts`-post per anrop: medianpris per
    åldersår i `market_listings`, delat med Skatteverkets nybilspris för
    SAMMA tillverkningsår — inte dagens nypris). Kräver minst 5 annonser
-   per åldersgrupp för att spara en kurvpunkt. `calculateOwnershipCosts()`
-   i `lib/scoring/ownershipCost.ts` använder nu kurvan när den finns
-   (härleder årlig rate från två intilliggande punkter, klampad till
-   -5%…40% för att skydda mot brusiga extremvärden), annars faller den
-   tillbaka på den gamla platta procentsatsen. **Beräkningen (57 index)
-   kördes 2026-08-12.**
+   per åldersgrupp för att räknas som en råpunkt. `calculateOwnershipCosts()`
+   i `lib/scoring/ownershipCost.ts` använder kurvan när den finns
+   (härleder årlig rate från två intilliggande lagrade punkter, klampad
+   till -5%…40% som sista skyddsnät), annars faller den tillbaka på den
+   gamla platta procentsatsen. **Beräkningen (57 index) kördes
+   2026-08-12.**
 
-   **Granskning av resultatet (2026-08-12):** 199 kurvpunkter beräknade,
-   322 hoppade över av 521 möjliga modell/ålder-grupper (~38% täckning).
-   11 av 57 modeller fick noll punkter — de flesta (Mini Cooper, Mazda
-   CX-5, Nissan X-Trail, Hyundai IONIQ 5, Toyota Land Cruiser m.fl.) är
-   troligen bara `market_listings`-glesa ännu (löser sig med mer
-   nightly-data över tid, modellnamnen matchar korrekt mot Skatteverket —
-   verifierat direkt). Men BMW 3-serie/5-serie och Mercedes-Benz
-   C-klass/E-klass hade en RIKTIG matchningsbugg: Skatteverket skriver
-   aldrig ut seriebeteckningen bokstavligt (bara trimkoder som "320d
-   xDrive", "C 200 4MATIC..."), så substräng-matchningen mot
-   `new_car_prices.model_raw` kunde aldrig träffa. Fixat med ett nytt
-   `skatteverketModelPattern`-regex-fält på de fyra `ModelReference`-
-   posterna (index 19, 20, 28, 29 — se `data/referenceData.ts`).
-   **Omkörning bekräftad (2026-08-12):** index 19/20/28/29 gick från 0
-   till 7/10/8/9 punkter vardera efter fixen. Total täckning nu 233/521
-   grupper (~45%, upp från ~38%). Steg 1–2 betraktas som klara och
-   verifierade.
+   **Bugg upptäckt via en riktig analys (2026-08-12):** en Volvo XC60
+   visade nästan ingen värdeminskning år 1, en spik på 89 000 kr år 2,
+   sen nästan ingen igen år 4–5. Orsak: den ursprungliga versionen
+   lagrade råa medianer per åldersår och lät `ownershipCost.ts` derivera
+   varje års rate från bara TVÅ INTILLIGGANDE punkter — med 20–30
+   annonser (olika trim/utrustning) per åldersgrupp studsar medianen
+   tillräckligt mellan grannår att derivatan blir brusig, verifierat
+   genom att räkna igenom XC60:ns faktiska siffror för hand och
+   återskapa exakt samma 13k/89k/80k/37k/25k som i skärmdumpen. **Fixat:**
+   glättning sker nu VID LAGRING istället för vid läsning — ålder 0→1
+   (den kända branta nedgången) mäts direkt, ålder ≥1 får EN gemensam
+   glättad rate från en viktad log-linjär regression över alla
+   tillgängliga punkter, klampad 2%–35%/år. `ownershipCost.ts` behövde
+   ingen ändring — den lagrade sekvensen ÄR redan den glättade kurvan.
+   **Alla 57 index måste köras om** (inte bara de tidigare noll-punkts-
+   modellerna) eftersom lagringsformatet/värdena ändrats i grunden för
+   varenda modell.
+
+   **Historik från FÖRE glättningsfixen ovan** (siffrorna gäller den
+   gamla, nu ersatta råpunkts-metoden — täckningsprocenten kommer se
+   annorlunda ut efter omkörningen, se ovan): granskning 2026-08-12 gav
+   199/521 kurvpunkter (~38%). 11 av 57 modeller fick noll punkter — de
+   flesta (Mini Cooper, Mazda CX-5, Nissan X-Trail, Hyundai IONIQ 5,
+   Toyota Land Cruiser m.fl.) troligen bara `market_listings`-glesa
+   (löser sig med mer nightly-data över tid, modellnamnen matchar
+   korrekt mot Skatteverket — verifierat direkt). BMW 3-serie/5-serie och
+   Mercedes-Benz C-klass/E-klass hade däremot en RIKTIG, separat
+   matchningsbugg (fortfarande relevant/fixad, påverkas INTE av
+   glättningsfixen): Skatteverket skriver aldrig ut seriebeteckningen
+   bokstavligt (bara trimkoder som "320d xDrive", "C 200 4MATIC..."), så
+   substräng-matchningen mot `new_car_prices.model_raw` kunde aldrig
+   träffa. Fixat med ett `skatteverketModelPattern`-regex-fält på de fyra
+   `ModelReference`-posterna (index 19, 20, 28, 29 — se
+   `data/referenceData.ts`), bekräftat med omkörning (0 → 7/10/8/9
+   punkter).
+
+   **Nästa steg:** kör om alla 57 index med den nya glättningslogiken
+   (samma PowerShell-loop, `0..56`), och stäm av att t.ex. XC60-analysen
+   nu visar en jämn kurva istället för zigzag.
 3. **Steg 3 (backlog, ej påbörjat):** finjustering för mätarställning —
    inom varje åldersgrupp, mät hur priset avviker med mätarställningens
    avvikelse från förväntat (`ref.avgMilPerYear × ålder`), ge en
