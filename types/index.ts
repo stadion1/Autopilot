@@ -47,11 +47,14 @@ export interface PriceRange {
   high: number
   delta_pct: number        // negative = listing is cheaper than median (good)
   interpretation: string
-  // true when `median` is Skatteverket's new-car list price for this exact
-  // trim (essentially-new cars, see isEssentiallyNewCar in engine.ts)
-  // rather than a median of comparable used-car sales — UI must label it
-  // differently, since "market median" implies the latter.
-  medianSource: 'market' | 'new_car_list'
+  // What `median` actually is — UI must label each differently, since
+  // "market median" implies real comparable sales data:
+  // - 'market': a real median from live or static market_listings data
+  // - 'new_car_list': Skatteverket's new-car list price for this exact
+  //   trim (essentially-new cars, see isEssentiallyNewCar in engine.ts)
+  // - 'theoretical': neither was available — basePrice × (1-depreciation)^age
+  //   from referenceData.ts, a formula guess, not real observed data
+  medianSource: 'market' | 'new_car_list' | 'theoretical'
 }
 
 export interface Risk {

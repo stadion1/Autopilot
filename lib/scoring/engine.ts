@@ -548,10 +548,18 @@ function calculatePricing(
   : delta < -0.03 ? `Priset är ungefär ${absPct}% över estimerat median`
   : 'Priset är i linje med estimerat median'
 
-  return {
-    low, median, high, delta_pct: delta, interpretation,
-    medianSource: usedNewCarPrice ? 'new_car_list' : 'market',
-  }
+  // 'market' kallades tidigare allt som INTE var Skatteverkets nybilspris
+  // — inklusive fallet där varken live- eller statisk marknadsmedian
+  // fanns och midpoint istället kom från den rent teoretiska formeln
+  // (basePrice × (1-depreciation)^ålder). Priskortet kallade det
+  // "Marknadsmedian" trots att confidence.reasons redan sa "Ingen
+  // marknadsmedian tillgänglig — teoretiskt estimat används" — samma
+  // sorts mislabeling som nybilspris-fixen tidigare, bara ett tredje
+  // fall jag missade då.
+  const medianSource: PriceRange['medianSource'] =
+    usedNewCarPrice ? 'new_car_list' : usedMedian != null ? 'market' : 'theoretical'
+
+  return { low, median, high, delta_pct: delta, interpretation, medianSource }
 }
 
 // ─── Risks ────────────────────────────────────────────────────────────────────
@@ -698,7 +706,9 @@ function generatePros(car: CarListing, scores: Omit<DealScores,'deal'>,
   else if (scores.mileage >= 80)
     pros.push(`Mätarställningen (${mil.toLocaleString('sv-SE')} mil) är under genomsnittet för en ${age} år gammal bil — typiskt ${(age * avgMilPerYear).toLocaleString('sv-SE')} mil.`)
   if (pricing.delta_pct > 0.04) {
-    const ref = pricing.medianSource === 'new_car_list' ? 'nybilspris' : 'marknadsmedian'
+    const ref = pricing.medianSource === 'new_car_list' ? 'nybilspris'
+      : pricing.medianSource === 'theoretical' ? 'teoretiskt uppskattat pris'
+      : 'marknadsmedian'
     pros.push(`Priset är ${(pricing.delta_pct * 100).toFixed(0)}% under estimerat ${ref} — bra förhandlings­utrymme.`)
   }
   if (car.transmission === 'Automat')
@@ -726,7 +736,9 @@ function generateCons(car: CarListing, scores: Omit<DealScores,'deal'>, pricing:
     cons.push('Ny bil — värdeminskningen är normalt som brantast under det första året, snabbare än för en redan begagnad bil av samma modell.')
 
   if (pricing.delta_pct < -0.04) {
-    const ref = pricing.medianSource === 'new_car_list' ? 'nybilspris' : 'marknadsmedian'
+    const ref = pricing.medianSource === 'new_car_list' ? 'nybilspris'
+      : pricing.medianSource === 'theoretical' ? 'teoretiskt uppskattat pris'
+      : 'marknadsmedian'
     if (premiumTrim) {
       cons.push(`Priset är ${(Math.abs(pricing.delta_pct) * 100).toFixed(0)}% över estimerat ${ref} — men det tar inte hänsyn till utrustningsnivå, och den här bilen har utrustningspaketet "${premiumTrim}" som kan motivera en del av skillnaden.`)
     } else {

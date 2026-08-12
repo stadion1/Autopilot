@@ -630,7 +630,9 @@ function PriceRangeCard({ car, pricing }: { car: any; pricing: any }) {
   // genomsnitt av andrahandsförsäljningar — måste märkas annorlunda,
   // annars ser en handlares helt normala listprissättning ut som en
   // osannolik slump ("annonserat pris = marknadsmedian").
-  const medianLabel = medianSource === 'new_car_list' ? 'Nybilspris (Skatteverket)' : 'Marknadsmedian'
+  const medianLabel = medianSource === 'new_car_list' ? 'Nybilspris (Skatteverket)'
+    : medianSource === 'theoretical' ? 'Teoretisk uppskattning'
+    : 'Marknadsmedian'
   const bandWidth  = Math.max(1, high - low)
   const domainLow  = low  - bandWidth * PRICE_TRACK_PAD_FACTOR
   const domainHigh = high + bandWidth * PRICE_TRACK_PAD_FACTOR

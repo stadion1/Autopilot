@@ -114,11 +114,20 @@ function buildPrompt(
   // kan (trots instruktionen att bara förklara givna siffror) hitta på en
   // egen uppskattning istället för att spegla den verkliga, obetydliga skillnaden.
   const deltaPctAbs = Math.abs(pricing.delta_pct * 100).toFixed(1)
+  // "Marknadsmedian" är bara sant när medianSource faktiskt är 'market' —
+  // annars (Skatteverkets nybilspris, eller den teoretiska basePrice ×
+  // (1-depreciation)^ålder-formeln när ingen marknadsdata alls fanns) ska
+  // modellen inte prata om en "marknadsmedian" som om jämförbara
+  // annonser låg bakom siffran, annars säger den något som INTE stöds av
+  // fakta i prompten (bryter mot ABSOLUTA REGEL 1).
+  const priceRefLabel = pricing.medianSource === 'new_car_list' ? 'nybilspriset'
+    : pricing.medianSource === 'theoretical' ? 'det teoretiskt uppskattade priset (INGEN riktig marknadsdata fanns — nämn det)'
+    : 'marknadsmedianen'
   const priceSignal = pricing.delta_pct > 0.03
-    ? `${deltaPctAbs}% UNDER estimerat median — gynnsamt för köparen`
+    ? `${deltaPctAbs}% UNDER ${priceRefLabel} — gynnsamt för köparen`
     : pricing.delta_pct < -0.03
-    ? `${deltaPctAbs}% ÖVER estimerat median`
-    : `Ungefär i linje med estimerat median (${deltaPctAbs}% ${pricing.delta_pct >= 0 ? 'under' : 'över'})`
+    ? `${deltaPctAbs}% ÖVER ${priceRefLabel}`
+    : `Ungefär i linje med ${priceRefLabel} (${deltaPctAbs}% ${pricing.delta_pct >= 0 ? 'under' : 'över'})`
 
   const highRisks = risks.filter(r => r.level === 'high')
   const medRisks  = risks.filter(r => r.level === 'medium')
