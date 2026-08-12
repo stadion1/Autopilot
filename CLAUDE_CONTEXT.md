@@ -322,9 +322,9 @@ oavsett bilens ålder och alltså inte fångade den kända branta
   60s-taket. Satte `BATCH_SIZE=1400` (~46,5s uppskattat, ~13,5s
   marginal) baserat på den uppmätta hastigheten istället för att gissa.
   1400/dygn mot ~400 nya/natt ⇒ netto ~1000/dygn ⇒ ~5 100-raders
-  backloggen tömd på ungefär en vecka. **Fortsatt att göra:** kör och
-  bekräfta att 1400-batchen faktiskt håller sig inom 60s (bara 1000-
-  körningen är uppmätt hittills).
+  backloggen tömd på ungefär en vecka. **Bekräftat i produktion:**
+  `{scored:1400, failed:0, total:1400}` — hela batchen lyckades.
+  Betraktas som löst.
 - **Mätarställnings-bugg — RIKTIG rotorsak hittad och fixad (2026-08-12).**
   Jagade fel bov i flera omgångar innan den verkliga orsaken hittades.
   Facit: `scrapeAndParse()` i `scraper-service/parsers.ts` kör ALL
