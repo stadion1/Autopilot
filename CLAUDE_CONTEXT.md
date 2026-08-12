@@ -225,7 +225,7 @@ oavsett bilens ålder och alltså inte fångade den kända branta
    byta till den orelaterade platta procentsatsen. Gäller alla modeller
    vars prognosfönster sträcker sig längre än kurvans datatäckning, inte
    bara XC60.
-3. **Steg 3 (byggt 2026-08-12, ej kört/verifierat):** finjustering för
+3. **Steg 3 (klart och verifierat, 2026-08-12):** finjustering för
    mätarställning. Ny tabell `mileage_sensitivity` — ett värde per
    (brand, model, year_from): kr per 1000 mil avvikelse från förväntad
    mätarställning (`ref.avgMilPerYear × ålder`), regressat ur samma
@@ -235,10 +235,21 @@ oavsett bilens ålder och alltså inte fångade den kända branta
    sprider den bilspecifika totala justeringen jämnt över prognosåren
    (antar att mätarställnings-avvikelsen håller sig konstant framåt),
    klampat så ett enskilt år aldrig kan visa negativ värdeminskning.
-   **Måste köras**: SQL-migrationen för `mileage_sensitivity` i Supabase,
-   sedan `recompute-depreciation-curves` för alla 57 index igen (samma
-   PowerShell-loop) — befintlig kurvdata rörs inte, det här lägger bara
-   till en ny separat tabell.
+   Migrationen körd, alla 57 index beräknade (0/1/2 fick tillfälliga
+   proxy-nätverksfel första gången, gick igenom vid omkörning — inte en
+   kodbugg). Granskad: alla värden negativa som förväntat (t.ex. XC60
+   -10 825 kr/1000 mil, 271 annonser; Passat -4 738 kr/1000 mil,
+   229 annonser), en modell (Audi A6, 94 annonser) träffade klamptaket
+   (-15 000) exakt — den råa regressionen gav ett ännu mer extremt värde.
+
+   **Observation, inte åtgärdad:** den empiriskt uppmätta XC60-känsligheten
+   (-10 825 kr/1000 mil) är över 3x starkare än den manuellt gissade
+   `pricePer1000ExtraMil: -3000` som redan används i `referenceData.ts`
+   för prisjämförelsen på enskilda annonser (`scorePrice`/
+   `calculatePricing` i `engine.ts`) — en annan, separat del av kodbasen
+   som inte rördes av det här arbetet. Skulle kunna uppdateras till att
+   använda samma mätta `mileage_sensitivity`-data, men inte begärt eller
+   byggt.
 4. **Steg 4 (backlog, ej påbörjat):** gör om
    `recompute-depreciation-curves` till en schemalagd Vercel Cron (t.ex.
    månadsvis, som `score-listings.ts`) istället för manuell körning.
