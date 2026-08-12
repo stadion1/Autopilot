@@ -202,6 +202,21 @@ medvetet mellan de två kodbaserna. Håll dem i synk manuellt vid ändringar.
   Modellanteckningar och risker skickades redan sedan tidigare — inget
   gap där.
 
+  **Tredje bugg i samma saga, hittad via loggarna:** trots modellfixen
+  och max_tokens-höjningen fortsatte fallback-mallen dyka upp på vissa
+  annonser. Loggen (nu synlig tack vare loggnings-fixet) visade den
+  riktiga orsaken: `"Bad control character in string literal in JSON"`
+  — modellen skrev helt naturliga stycken med RÅA radbyten inuti
+  `summary`-JSON-strängen, vilket är ogiltigt enligt JSON-specen. Inte
+  ett avkapat svar den här gången, ett giltigt men strikt-JSON-ogiltigt
+  svar. Löst genom att helt överge JSON-formatet för svaret — bytt till
+  ett enkelt `VERDICT: ...` / `SUMMARY: ...`-textformat där resten av
+  texten efter "SUMMARY:" fångas rakt av (ingen escaping inblandad, fri
+  text med radbyten är helt ofarligt i det formatet). Övervägde att
+  sanera bort kontrolltecken före `JSON.parse()` istället, men bedömde
+  det för riskabelt (kan sönderdela strukturell whitespace om modellen
+  prettyprintat JSON:en). **Inte verifierat i produktion än.**
+
 ### Engångs-admin-endpoints på scraper-service (Railway)
 
 Kräver header `x-scraper-secret`. Inte schemalagda — körs manuellt vid
