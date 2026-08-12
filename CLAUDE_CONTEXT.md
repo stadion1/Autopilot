@@ -228,29 +228,33 @@ oavsett bilens ålder och alltså inte fångade den kända branta
 
 ## Kända begränsningar / öppna trådar
 
-- **Mätarställnings-bugg — begränsat, inte garanterat, löst (2026-08-12).**
-  Rotorsak: blocket-api.se svarar ibland med ett genuint ofullständigt
-  objekt (hela `specifications` saknas, inte bara `Miltal`) på första
-  förfrågan för en väldigt nyss inlagd "Ny bil till salu"-handlarannons,
-  och fyller i det inom någon minut — men FÖRDRÖJNINGEN VARIERAR. Tre
-  iterationer:
-  1. Fallback på mätarställning=0 via `Försäljningsform`-fältet —
-     otillräckligt, den signalen ligger i samma ofullständiga objekt.
-  2. `fetchAdWithRetry()` med ~4s total omförsöksväntan (1,5s+2,5s) —
-     fungerade för vissa annonser (verifierat i Railway-loggar), men en
-     annan annons (18529270) misslyckades ändå — fördröjningen kan
-     uppenbarligen överstiga 4s.
-  3. Utökad omförsöksbudget till ~15s (5 omförsök: 1,5/2/3/4/4,5s), plus
-     höjda timeouts hela vägen upp så inget dödar anropet i förtid:
-     `server.ts`s interna scrape-timeout 25s→27s, `process.ts`s fetch mot
-     Railway 28s→32s, och en explicit `export const config = { maxDuration: 60 }`
-     i `process.ts` (Vercels egen exekveringsgräns är annars oberoende av
-     båda ovanstående och kan vara så kort som 10s på vissa planer —
-     skulle ha dödat hela kedjan oavsett fetch-timeouts).
-  **Fortfarande INTE en garanti** — bara en bredare budget. Om
-  blocket-api.se:s fördröjning i något fall överstiger ~15s kommer felet
-  fortfarande dyka upp. Inte verifierat i produktion sen senaste ändringen
-  (2026-08-12, sent på dagen).
+- **Mätarställnings-bugg — RIKTIG rotorsak hittad och fixad (2026-08-12).**
+  Jagade fel bov i flera omgångar innan den verkliga orsaken hittades.
+  Facit: `scrapeAndParse()` i `scraper-service/parsers.ts` kör ALL
+  parserdata (Blocket, Wayke, Bytbil) genom en `normalize()`-funktion
+  direkt efter parsern returnerar — ett steg som ALDRIG loggas. Den hade
+  `mileage_km: raw.mileage_km && raw.mileage_km >= 0 && ... ? raw.mileage_km : undefined`
+  — en klassisk JS-fälla: `0 && vad_som_helst` kortsluter till `0`
+  (falsy) INNAN gränskontrollen ens körs, så en korrekt tolkad "0 mil"
+  kastades bort och blev `undefined`. `parseBlocket()` (i `blocket.ts`)
+  hade ALDRIG fel — Railway-loggarnas `PARSED: {...,"mileage":0}` visade
+  alltid rätt värde, bara ett steg tidigare i kedjan än där buggen satt.
+  Detta förklarar även den allra första gåtan (`scores.mileage: 50` i den
+  ursprungliga XC60-analysen): `normalize()` kastade bort mätarställningen
+  före scoring, `saveCarData` lagrade NULL, och `getAnalysis()`s
+  visningsfallback `row.mileage_km ?? 0` DOLDE att det lagrade värdet var
+  NULL genom att visa "0" ändå — vilket fick hela utredningen att gå fel
+  håll i flera timmar. Fixat: bytte alla tre numeriska kontroller i
+  `normalize()` (`price_sek`, `mileage_km`, `year`) till `Number.isFinite()`
+  istället för truthy-checks. Sökte igenom resten av scraper-service och
+  huvudappen efter samma mönster — inga fler träffar.
+
+  De tidigare fixarna i `blocket.ts` (`fetchAdWithRetry()`,
+  "Ny bil till salu"→0-fallbacken, den utökade timeout-budgeten) löser
+  ett verkligt men mindre problem (blocket-api.se är ibland trögt med att
+  indexera en helt nyss inlagd annons — bekräftat separat via direkta
+  curl-jämförelser) och lämnas kvar som extra skyddsnät, men det var INTE
+  huvudorsaken till felen användaren såg.
 - **blocket-api.se är inte fullt pålitlig.** Tre separata fall
   verifierade denna session: (1) speglar/cachar annonsdata och
   reflekterar INTE borttagning i realtid — därför bytte
