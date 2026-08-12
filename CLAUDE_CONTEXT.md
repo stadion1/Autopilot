@@ -225,10 +225,20 @@ oavsett bilens ålder och alltså inte fångade den kända branta
    byta till den orelaterade platta procentsatsen. Gäller alla modeller
    vars prognosfönster sträcker sig längre än kurvans datatäckning, inte
    bara XC60.
-3. **Steg 3 (backlog, ej påbörjat):** finjustering för mätarställning —
-   inom varje åldersgrupp, mät hur priset avviker med mätarställningens
-   avvikelse från förväntat (`ref.avgMilPerYear × ålder`), ge en
-   kr/mil-justering.
+3. **Steg 3 (byggt 2026-08-12, ej kört/verifierat):** finjustering för
+   mätarställning. Ny tabell `mileage_sensitivity` — ett värde per
+   (brand, model, year_from): kr per 1000 mil avvikelse från förväntad
+   mätarställning (`ref.avgMilPerYear × ålder`), regressat ur samma
+   `market_listings`-rader som redan hämtas för kurvan (prisavvikelse mot
+   ÅLDERSGRUPPENS EGEN median, poolat över alla åldrar). Beräknas i samma
+   `recompute-depreciation-curves.ts`-endpoint. `calculateOwnershipCosts()`
+   sprider den bilspecifika totala justeringen jämnt över prognosåren
+   (antar att mätarställnings-avvikelsen håller sig konstant framåt),
+   klampat så ett enskilt år aldrig kan visa negativ värdeminskning.
+   **Måste köras**: SQL-migrationen för `mileage_sensitivity` i Supabase,
+   sedan `recompute-depreciation-curves` för alla 57 index igen (samma
+   PowerShell-loop) — befintlig kurvdata rörs inte, det här lägger bara
+   till en ny separat tabell.
 4. **Steg 4 (backlog, ej påbörjat):** gör om
    `recompute-depreciation-curves` till en schemalagd Vercel Cron (t.ex.
    månadsvis, som `score-listings.ts`) istället för manuell körning.
