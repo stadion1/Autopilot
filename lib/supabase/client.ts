@@ -681,3 +681,29 @@ export async function getDepreciationCurve(
     return []
   }
 }
+
+// ─── Mileage sensitivity (empirical, see data/schema.sql) ─────────────────────
+// Kr per 1000 mil avvikelse från förväntad mätarställning, beräknat av
+// samma admin-endpoint som depreciation_curves. Ett värde per
+// (brand, model, year_from), inte per ålder.
+
+export async function getMileageSensitivity(
+  brand: string,
+  model: string,
+  yearFrom: number,
+): Promise<number | null> {
+  try {
+    const { data, error } = await supabase
+      .from('mileage_sensitivity')
+      .select('kr_per_1000_mil_deviation')
+      .eq('brand', brand)
+      .eq('model', model)
+      .eq('year_from', yearFrom)
+      .maybeSingle()
+
+    if (error || !data) return null
+    return data.kr_per_1000_mil_deviation
+  } catch {
+    return null
+  }
+}

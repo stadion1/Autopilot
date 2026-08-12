@@ -80,6 +80,7 @@ export interface AnalysisResult {
   ai_summary: string
   better_deals?: BetterDeal[]
   depreciation_curve?: { age_years: number; retained_pct: number; sample_size: number }[]
+  mileage_sensitivity_kr?: number | null
   meta: {
     analyzed_at: string
     scoring_version: string

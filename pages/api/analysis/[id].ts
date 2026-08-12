@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { supabase, getAnalysis, getBetterDeals, getDepreciationCurve } from '../../../lib/supabase/client'
+import { supabase, getAnalysis, getBetterDeals, getDepreciationCurve, getMileageSensitivity } from '../../../lib/supabase/client'
 import { lookupModelReference } from '../../../data/referenceData'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -33,8 +33,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const { ref } = lookupModelReference(analysis.car.brand, analysis.car.model, analysis.car.year)
   const depreciationCurve = await getDepreciationCurve(analysis.car.brand, analysis.car.model, ref.yearFrom)
+  const mileageSensitivityKr = await getMileageSensitivity(analysis.car.brand, analysis.car.model, ref.yearFrom)
 
   return res.status(200).json({
-    status: 'done', ...analysis, better_deals: betterDeals, depreciation_curve: depreciationCurve,
+    status: 'done', ...analysis, better_deals: betterDeals,
+    depreciation_curve: depreciationCurve, mileage_sensitivity_kr: mileageSensitivityKr,
   })
 }

@@ -30,6 +30,16 @@
  * år. Den lagrade retained_pct-sekvensen är alltså en glättad/fittad kurva,
  * inte de råa medianerna — ownershipCost.ts:s befintliga two-point-
  * derivering behöver därför ingen ändring.
+ *
+ * MÄTARSTÄLLNINGS-KÄNSLIGHET (steg 3): utöver kurvan beräknas och lagras
+ * (i mileage_sensitivity) hur mycket priset avviker per 1000 mil
+ * avvikelse från förväntad mätarställning (ref.avgMilPerYear × ålder),
+ * inom samma åldersgrupp — en enskild annons regressionsvärde per
+ * referenspost, inte per ålder. Poolar annonser över ALLA åldersgrupper
+ * (samma data som redan hämtas för kurvan ovan) eftersom mätarställnings-
+ * effekten antas vara ungefär densamma oavsett bilens ålder. Klampad till
+ * [-15000, 0] kr/1000 mil — aldrig positivt (mer mil ska aldrig öka
+ * priset), och en nedre gräns för att skydda mot brusigt underlag.
  */
 
 import { NextApiRequest, NextApiResponse } from 'next'
@@ -70,6 +80,24 @@ function weightedLogLinearSlope(points: { age: number; retainedPct: number; weig
   return (sumW * sumWXY - sumWX * sumWY) / denom
 }
 
+// Enkel (oviktad) minsta-kvadrat-lutning för y mot x — används för
+// mätarställnings-känsligheten: y = prisavvikelse i kr mot samma
+// åldersgrupps medianpris, x = mätarställningsavvikelse i mil mot
+// förväntat (ref.avgMilPerYear × ålder). Varje punkt är en enskild
+// annons, inte en median, så ingen extra viktning behövs utöver att
+// varje annons redan räknas en gång.
+function linearSlope(points: { x: number; y: number }[]): number | null {
+  if (points.length < 2) return null
+  const n = points.length
+  let sumX = 0, sumY = 0, sumXX = 0, sumXY = 0
+  for (const p of points) {
+    sumX += p.x; sumY += p.y; sumXX += p.x * p.x; sumXY += p.x * p.y
+  }
+  const denom = n * sumXX - sumX * sumX
+  if (denom === 0) return null
+  return (n * sumXY - sumX * sumY) / denom
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
@@ -95,6 +123,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   let insufficientSamples = 0
   let noAnchorMatch = 0
 
+  // Mätarställnings-känslighet (steg 3): poolas över ALLA åldersgrupper för
+  // den här referensposten. x = mätarställningsavvikelse i mil mot
+  // förväntat (ref.avgMilPerYear × ålder), y = prisavvikelse i kr mot
+  // ÅLDERSGRUPPENS EGEN median (inte modellens övergripande nypris) — så
+  // åldersskillnader inte läcker in i mätarställnings-signalen.
+  const mileagePoints: { x: number; y: number }[] = []
+
   try {
     for (let vintageYear = ref.yearFrom; vintageYear <= toYear; vintageYear++) {
       const age = currentYear - vintageYear
@@ -102,7 +137,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const { data: listings, error: listingsErr } = await supabase
         .from('market_listings')
-        .select('price_sek')
+        .select('price_sek, mileage_km')
         .eq('brand', ref.brand)
         .eq('model', ref.model)
         .eq('year', vintageYear)
@@ -110,6 +145,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (listingsErr) return res.status(500).json({ error: listingsErr.message })
       if (!listings || listings.length < MIN_SAMPLES) { insufficientSamples++; continue }
+
+      const ageGroupMedianPrice = median(listings.map((l: { price_sek: number }) => l.price_sek))
+      if (Number.isFinite(ageGroupMedianPrice) && ageGroupMedianPrice > 0) {
+        const expectedMil = age * ref.avgMilPerYear
+        for (const l of listings as { price_sek: number; mileage_km: number | null }[]) {
+          if (l.mileage_km == null) continue
+          const deviationMil = l.mileage_km / 10 - expectedMil
+          mileagePoints.push({ x: deviationMil, y: l.price_sek - ageGroupMedianPrice })
+        }
+      }
 
       // Vissa modeller (BMW "3-serie", Mercedes "C-klass" m.fl.) är
       // seriebeteckningar som ALDRIG förekommer bokstavligt i Skatteverkets
@@ -141,7 +186,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (!newPricesRaw || newPricesRaw.length === 0) { noAnchorMatch++; continue }
 
-      const observedMedian = median(listings.map((l: { price_sek: number }) => l.price_sek))
+      const observedMedian = ageGroupMedianPrice
       const anchorMedian = median(newPricesRaw.map((p: { price_sek: number }) => p.price_sek))
       if (!Number.isFinite(observedMedian) || !Number.isFinite(anchorMedian) || anchorMedian <= 0) {
         noAnchorMatch++
@@ -158,10 +203,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       raw.push({ age, retainedPct, sampleSize: listings.length })
     }
 
+    // Mätarställnings-känslighet: oberoende av om kurvan ovan kunde byggas
+    // (den behöver ingen Skatteverket-ankare, bara jämförelse inom samma
+    // åldersgrupp), så beräknas och lagras den även om `raw` blev tom.
+    const MIN_MILEAGE_SAMPLES = 15
+    let mileageSensitivityKr: number | null = null
+    if (mileagePoints.length >= MIN_MILEAGE_SAMPLES) {
+      const slope = linearSlope(mileagePoints)
+      if (slope !== null && Number.isFinite(slope)) {
+        // Rimliga gränser: aldrig positivt (mer mil ska aldrig öka priset)
+        // och aldrig mer extremt än -15 000 kr/1000 mil — ett tecken på
+        // brusigt/otillräckligt underlag snarare än en äkta effekt.
+        const krPer1000 = Math.min(0, Math.max(-15000, slope * 1000))
+        mileageSensitivityKr = krPer1000
+        const { error: sensErr } = await supabase
+          .from('mileage_sensitivity')
+          .upsert(
+            {
+              brand: ref.brand, model: ref.model, year_from: ref.yearFrom,
+              kr_per_1000_mil_deviation: krPer1000, sample_size: mileagePoints.length,
+              computed_at: new Date().toISOString(),
+            },
+            { onConflict: 'brand,model,year_from' },
+          )
+        if (sensErr) return res.status(500).json({ error: sensErr.message })
+      }
+    }
+
     if (raw.length === 0) {
       return res.status(200).json({
         index, brand: ref.brand, model: ref.model, yearFrom: ref.yearFrom, yearTo: ref.yearTo,
         rawPoints: 0, pointsStored: 0, insufficientSamples, noAnchorMatch,
+        mileagePoints: mileagePoints.length, mileageSensitivityKr,
       })
     }
 
@@ -212,6 +285,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       rawPoints: raw.length, pointsStored: fitted.length,
       rateFirstYear: rateA, rateSteadyState: rateB,
       insufficientSamples, noAnchorMatch,
+      mileagePoints: mileagePoints.length, mileageSensitivityKr,
     })
   } catch (err: any) {
     return res.status(500).json({ error: err?.message ?? String(err) })

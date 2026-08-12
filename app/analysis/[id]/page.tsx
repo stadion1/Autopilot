@@ -154,7 +154,7 @@ export default function AnalysisPage() {
 
   if (!data) return null
 
-  const { car, scores, confidence, pricing, pros, cons, risks, verdict, ai_summary, meta, better_deals, depreciation_curve } = data
+  const { car, scores, confidence, pricing, pros, cons, risks, verdict, ai_summary, meta, better_deals, depreciation_curve, mileage_sensitivity_kr } = data
   const mileageMil = Math.round(car.mileage_km / 10)
 
   function handleShare() {
@@ -316,7 +316,7 @@ export default function AnalysisPage() {
 
         {/* ── Ownership cost over time ── */}
         <div className={`anim-fade-up delay-6`}>
-          <OwnershipCostCard car={car} depreciationCurve={depreciation_curve} />
+          <OwnershipCostCard car={car} depreciationCurve={depreciation_curve} mileageSensitivityKr={mileage_sensitivity_kr} />
         </div>
 
         {/* ── Pros / Cons — den som matchar omdömet visas först ── */}
@@ -754,15 +754,16 @@ function formatAxisValue(n: number): string {
 }
 
 function OwnershipCostCard({
-  car, depreciationCurve,
+  car, depreciationCurve, mileageSensitivityKr,
 }: {
   car: any
   depreciationCurve?: { age_years: number; retained_pct: number; sample_size: number }[]
+  mileageSensitivityKr?: number | null
 }) {
   const [financing, setFinancing] = useState<FinancingInput>(DEFAULT_FINANCING)
   const costs = useMemo(
-    () => calculateOwnershipCosts(car, financing, 5, depreciationCurve),
-    [car, financing, depreciationCurve],
+    () => calculateOwnershipCosts(car, financing, 5, depreciationCurve, mileageSensitivityKr),
+    [car, financing, depreciationCurve, mileageSensitivityKr],
   )
   const maxTotal = Math.max(...costs.map(c => c.total), 1)
   const axisMax = niceAxisMax(maxTotal)

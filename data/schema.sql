@@ -473,3 +473,35 @@ ALTER TABLE depreciation_curves ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE analyses ADD COLUMN IF NOT EXISTS median_source TEXT
   CHECK (median_source IN ('market','new_car_list')) DEFAULT 'market';
+
+
+-- ============================================================
+-- Migration: mileage_sensitivity (steg 3 av värdeminskningskurve-projektet)
+-- Run this once in Supabase Dashboard → SQL Editor → New Query
+-- ============================================================
+-- Hur mycket priset avviker per 1000 mil avvikelse från förväntad
+-- mätarställning (ref.avgMilPerYear × ålder), inom samma åldersgrupp —
+-- separerar mätarställningens effekt från åldern istället för att låta
+-- den vara brus i depreciation_curves medianer. Ett värde per
+-- (brand, model, year_from), inte per ålder — beräknas genom att poola
+-- alla annonser (alla åldrar) för samma referenspost och regrediera
+-- prisavvikelse mot mätarställningsavvikelse. Beräknas av
+-- pages/api/admin/recompute-depreciation-curves.ts (samma endpoint,
+-- samma data redan hämtad per ålder).
+
+CREATE TABLE mileage_sensitivity (
+  id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  brand                   TEXT NOT NULL,
+  model                   TEXT NOT NULL,
+  year_from               INT NOT NULL,
+  kr_per_1000_mil_deviation NUMERIC NOT NULL,  -- normalt negativt: mer mil än förväntat -> lägre pris
+  sample_size             INT NOT NULL,        -- summan av annonser över alla åldersgrupper
+  computed_at             TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (brand, model, year_from)
+);
+
+CREATE INDEX ON mileage_sensitivity (brand, model, year_from);
+
+ALTER TABLE mileage_sensitivity ENABLE ROW LEVEL SECURITY;
+-- No public policy — only the service role (used server-side) reads/writes
+-- this table, same as the rest of the scoring pipeline's internal tables.
