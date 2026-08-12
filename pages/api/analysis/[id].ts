@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { supabase, getAnalysis, getBetterDeals } from '../../../lib/supabase/client'
+import { supabase, getAnalysis, getBetterDeals, getDepreciationCurve } from '../../../lib/supabase/client'
+import { lookupModelReference } from '../../../data/referenceData'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') return res.status(405).end()
@@ -30,5 +31,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const betterDeals = await getBetterDeals(analysis.car, analysis.scores.deal)
 
-  return res.status(200).json({ status: 'done', ...analysis, better_deals: betterDeals })
+  const { ref } = lookupModelReference(analysis.car.brand, analysis.car.model, analysis.car.year)
+  const depreciationCurve = await getDepreciationCurve(analysis.car.brand, analysis.car.model, ref.yearFrom)
+
+  return res.status(200).json({
+    status: 'done', ...analysis, better_deals: betterDeals, depreciation_curve: depreciationCurve,
+  })
 }

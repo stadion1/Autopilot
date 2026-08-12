@@ -418,3 +418,40 @@ CREATE INDEX ON new_car_prices (brand, manufacturing_year);
 ALTER TABLE new_car_prices ENABLE ROW LEVEL SECURITY;
 -- No public policy — only the service role (used server-side) reads/writes
 -- this table, same as the rest of the scoring pipeline's internal tables.
+
+
+-- ============================================================
+-- Migration: depreciation_curves (empirical value-retention curve)
+-- Run this once in Supabase Dashboard → SQL Editor → New Query
+-- ============================================================
+-- Replaces the flat, hand-guessed `depreciation` % per model in
+-- data/referenceData.ts with an empirically measured curve: for a given
+-- (brand, model, generation, age in years), what fraction of the car's
+-- ORIGINAL new price (from new_car_prices, at the vintage it was actually
+-- built) does the market still pay for it today? Computed by
+-- pages/api/admin/recompute-depreciation-curves.ts from market_listings +
+-- new_car_prices. year_from mirrors the referenceData.ts generation's
+-- yearFrom so two generations of the same model name (e.g. an older vs.
+-- newer XC60) aren't averaged together as if they were the same car.
+--
+-- calculateOwnershipCosts() derives the year-over-year rate from two
+-- consecutive retained_pct points; falls back to referenceData.ts's flat
+-- rate for any age transition without enough samples here.
+
+CREATE TABLE depreciation_curves (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  brand        TEXT NOT NULL,
+  model        TEXT NOT NULL,
+  year_from    INT NOT NULL,    -- which referenceData.ts generation this covers
+  age_years    INT NOT NULL,
+  retained_pct NUMERIC NOT NULL,  -- observed median price ÷ Skatteverket new price for that vintage
+  sample_size  INT NOT NULL,      -- how many market_listings rows fed the median
+  computed_at  TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (brand, model, year_from, age_years)
+);
+
+CREATE INDEX ON depreciation_curves (brand, model, year_from);
+
+ALTER TABLE depreciation_curves ENABLE ROW LEVEL SECURITY;
+-- No public policy — only the service role (used server-side) reads/writes
+-- this table, same as the rest of the scoring pipeline's internal tables.

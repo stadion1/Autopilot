@@ -642,3 +642,36 @@ export async function getNewCarPrice(
     return null
   }
 }
+
+// ─── Depreciation curve (empirical, see data/schema.sql) ──────────────────────
+// Computed by pages/api/admin/recompute-depreciation-curves.ts from
+// market_listings + new_car_prices. Queried here at request time (not
+// bundled client-side — see the comment on DepreciationCurvePoint in
+// lib/scoring/ownershipCost.ts for why that type is duplicated there
+// instead of imported from this file).
+
+export interface DepreciationCurveRow {
+  age_years: number
+  retained_pct: number
+  sample_size: number
+}
+
+export async function getDepreciationCurve(
+  brand: string,
+  model: string,
+  yearFrom: number,
+): Promise<DepreciationCurveRow[]> {
+  try {
+    const { data, error } = await supabase
+      .from('depreciation_curves')
+      .select('age_years, retained_pct, sample_size')
+      .eq('brand', brand)
+      .eq('model', model)
+      .eq('year_from', yearFrom)
+
+    if (error || !data) return []
+    return data as DepreciationCurveRow[]
+  } catch {
+    return []
+  }
+}

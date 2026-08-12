@@ -74,6 +74,7 @@ export interface AnalysisResult {
   verdict: Verdict
   ai_summary: string
   better_deals?: BetterDeal[]
+  depreciation_curve?: { age_years: number; retained_pct: number; sample_size: number }[]
   meta: {
     analyzed_at: string
     scoring_version: string

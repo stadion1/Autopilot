@@ -17,6 +17,43 @@
 import type { CarListing } from '../../types'
 import { lookupModelReference } from '../../data/referenceData'
 
+// Empirisk värdeminskningskurva (se data/schema.sql:s depreciation_curves-
+// migration och pages/api/admin/recompute-depreciation-curves.ts). Ren
+// datatyp, ingen import av lib/supabase/client här — den filen drar in
+// Supabase-service-role-klienten, och den här modulen buntas till klienten
+// via app/analysis/[id]/page.tsx ('use client'). Kurvan hämtas server-side
+// i pages/api/analysis/[id].ts och skickas med i AnalysisResult-JSON:en.
+export interface DepreciationCurvePoint {
+  age_years: number
+  retained_pct: number
+  sample_size: number
+}
+
+const MIN_CURVE_SAMPLES = 5
+
+// Härleder årlig värdeminsknings-rate från två intilliggande kurvpunkter
+// (kvarvarande andel av nypriset vid ålder A respektive A+1). Faller
+// tillbaka på den platta referensdata-procenten om punkterna saknas, har
+// för få annonser bakom sig, eller ger ett resultat som är för orimligt
+// för att lita på (marknadsdata är brusig — en enskild årsklass kan råka
+// visa en negativ eller absurt hög rate av slumpvariation).
+function depreciationRateForAge(
+  curve: DepreciationCurvePoint[] | undefined,
+  ageFrom: number,
+  fallbackRate: number,
+): number {
+  if (!curve) return fallbackRate
+  const p0 = curve.find(p => p.age_years === ageFrom)
+  const p1 = curve.find(p => p.age_years === ageFrom + 1)
+  if (!p0 || !p1) return fallbackRate
+  if (p0.sample_size < MIN_CURVE_SAMPLES || p1.sample_size < MIN_CURVE_SAMPLES) return fallbackRate
+  if (!(p0.retained_pct > 0)) return fallbackRate
+
+  const rate = 1 - p1.retained_pct / p0.retained_pct
+  if (!Number.isFinite(rate) || rate < -0.05 || rate > 0.40) return fallbackRate
+  return rate
+}
+
 export type FinancingType = 'cash' | 'loan'
 
 export interface FinancingInput {
@@ -153,7 +190,8 @@ function annualLoanInterest(principal: number, annualRatePct: number, termYears:
 export function calculateOwnershipCosts(
   car: CarListing,
   financing: FinancingInput = DEFAULT_FINANCING,
-  years = 5
+  years = 5,
+  curve?: DepreciationCurvePoint[],
 ): YearlyOwnershipCost[] {
   const { ref } = lookupModelReference(car.brand, car.model, car.year)
   const ageNow = Math.max(0, new Date().getFullYear() - car.year)
@@ -173,7 +211,8 @@ export function calculateOwnershipCosts(
   const rows: YearlyOwnershipCost[] = []
 
   for (let y = 1; y <= years; y++) {
-    const nextValue = value * (1 - ref.depreciation)
+    const rate = depreciationRateForAge(curve, ageNow + y - 1, ref.depreciation)
+    const nextValue = value * (1 - rate)
     const depreciation = Math.round(value - nextValue)
     value = nextValue
 
