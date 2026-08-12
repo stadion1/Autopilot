@@ -77,6 +77,7 @@ interface AnalysisRow {
   fair_price_median?: number
   fair_price_high?: number
   price_delta_pct?: number
+  median_source?: string
 
   // Analysis
   pros?: string[]
@@ -187,6 +188,7 @@ export async function saveAnalysisResult(
     ...numericFields,
     confidence_tier:      confidence.tier,
     confidence_reasons:   confidence.reasons,
+    median_source:        pricing.medianSource,
     pros,
     cons,
     risks,
@@ -260,6 +262,10 @@ export async function getAnalysis(id: string): Promise<AnalysisResult | null> {
       high:          row.fair_price_high ?? 0,
       delta_pct:     row.price_delta_pct ?? 0,
       interpretation: formatDeltaInterpretation(row.price_delta_pct ?? 0),
+      // Rader sparade innan median_source-kolumnen fanns saknar värdet —
+      // 'market' är samma sak som den ursprungliga, alltid-"Marknadsmedian"
+      // etiketten, så det är ett säkert default för gammal data.
+      medianSource:  (row.median_source as 'market' | 'new_car_list' | undefined) ?? 'market',
     },
     pros:      row.pros ?? [],
     cons:      row.cons ?? [],

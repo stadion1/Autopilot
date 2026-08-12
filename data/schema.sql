@@ -55,6 +55,10 @@ CREATE TABLE analyses (
   fair_price_median   INT,
   fair_price_high     INT,
   price_delta_pct     NUMERIC(6,3),
+  -- 'new_car_list' when fair_price_median is Skatteverket's new-car list
+  -- price (essentially-new cars, see isEssentiallyNewCar in engine.ts)
+  -- rather than a real market median — UI labels it differently.
+  median_source       TEXT CHECK (median_source IN ('market','new_car_list')) DEFAULT 'market',
 
   -- AI analysis output
   pros        TEXT[],
@@ -455,3 +459,17 @@ CREATE INDEX ON depreciation_curves (brand, model, year_from);
 ALTER TABLE depreciation_curves ENABLE ROW LEVEL SECURITY;
 -- No public policy — only the service role (used server-side) reads/writes
 -- this table, same as the rest of the scoring pipeline's internal tables.
+
+
+-- ============================================================
+-- Migration: analyses.median_source
+-- Run this once in Supabase Dashboard → SQL Editor → New Query
+-- ============================================================
+-- Existing analyses table already deployed — this ALTER adds the column
+-- for databases created before this migration (a fresh CREATE TABLE
+-- analyses already includes it, see above). Distinguishes a real market
+-- median from Skatteverket's new-car list price (essentially-new cars),
+-- which the price card and pros/cons text now label differently.
+
+ALTER TABLE analyses ADD COLUMN IF NOT EXISTS median_source TEXT
+  CHECK (median_source IN ('market','new_car_list')) DEFAULT 'market';
