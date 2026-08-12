@@ -83,6 +83,39 @@ function parseTitle(title: string): { brand?: string; model?: string; variant?: 
   return { brand: tokens[0], model: tokens[1], variant: tokens.slice(2).join(' ') || undefined }
 }
 
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+// blocket-api.se verkar ibland inte hunnit färdigindexera en väldigt nyss
+// inlagd "Ny bil till salu"-annons vid första förfrågan — verifierat: flera
+// Volvo XC60/XC90-annonser gav mileage: helt frånvarande (varken i
+// toppnivåfältet eller specifications.Miltal) vid skrapning, men en manuell
+// koll av exakt samma annons-ID några minuter senare visade "0 mil" korrekt
+// på BÅDA ställena. Eftersom hela specifications-objektet verkar vara
+// ofullständigt (inte bara Miltal-fältet för sig) räcker det inte att leta
+// efter en annan signal i samma svar — hela svaret måste hämtas om.
+async function fetchAdWithRetry(adId: string): Promise<any> {
+  const RETRY_DELAYS_MS = [1500, 2500]
+
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(`https://blocket-api.se/v1/ad/car?id=${adId}`, {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'bilanalys/1.0',
+      },
+    })
+    if (!res.ok) throw new Error(`blocket-api.se svarade med ${res.status}`)
+
+    const ad = await res.json()
+    const hasMileage = typeof ad.mileage === 'string' || typeof ad.specifications?.['Miltal'] === 'string'
+    if (hasMileage || attempt >= RETRY_DELAYS_MS.length) return ad
+
+    console.log(`  blocket-api.se saknar mileage för ${adId}, försöker igen om ${RETRY_DELAYS_MS[attempt]}ms (försök ${attempt + 1})`)
+    await sleep(RETRY_DELAYS_MS[attempt])
+  }
+}
+
 export async function parseBlocket(_: unknown, url: string): Promise<ScraperResult> {
   try {
     const adId = extractAdId(url)
@@ -90,18 +123,12 @@ export async function parseBlocket(_: unknown, url: string): Promise<ScraperResu
 
     console.log(`  Anropar blocket-api.se för annons ${adId}`)
 
-    const res = await fetch(`https://blocket-api.se/v1/ad/car?id=${adId}`, {
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'bilanalys/1.0',
-      },
-    })
-
-    if (!res.ok) {
-      return { success: false, error: `blocket-api.se svarade med ${res.status}` }
+    let ad: any
+    try {
+      ad = await fetchAdWithRetry(adId)
+    } catch (err: any) {
+      return { success: false, error: err.message ?? `blocket-api.se svarade inte` }
     }
-
-    const ad = await res.json()
     console.log('RAW_AD:', JSON.stringify(ad).slice(0, 1000))
     console.log('AD_KEYS:', JSON.stringify(Object.keys(ad)))
 
@@ -145,15 +172,11 @@ const specs = ad.specifications ?? {}
       }
     }
 
-// blocket-api.se verkar ibland inte hunnit indexera Miltal/mileage för en
-// nyss inlagd "Ny bil till salu"-annons — verifierat: två separata
-// Volvo XC60-annonser gav mileage_km: undefined vid skrapning trots att en
-// manuell koll av samma annons-ID:n strax efteråt visade "0 mil" korrekt i
-// samma fält. Snarare än att låta hela analysen misslyckas (och senare
-// tyst poängsättas fel om undefined-värdet flöt vidare) är 0 ett tryggt
-// antagande just när Försäljningsform explicit säger "Ny bil till salu" —
-// till skillnad från en begagnad bil, där en saknad mätarställning ALDRIG
-// ska gissas.
+// fetchAdWithRetry ovan tar hand om det vanliga fallet (mileage saknas för
+// att blocket-api.se inte hunnit indexera klart). Om det ändå är borta
+// efter alla omförsök, och annonsen explicit är taggad "Ny bil till salu",
+// är 0 ett tryggt sista-utväg-antagande — till skillnad från en begagnad
+// bil, där en saknad mätarställning ALDRIG ska gissas.
 const parsedMileage = parseMileageStr(ad.mileage ?? specs['Miltal'])
 const mileageKm = parsedMileage ?? (specs['Försäljningsform'] === 'Ny bil till salu' ? 0 : undefined)
 
