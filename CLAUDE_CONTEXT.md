@@ -89,7 +89,17 @@ medvetet mellan de två kodbaserna. Håll dem i synk manuellt vid ändringar.
 - Skatteverkets nybilsprisdata integrerad för nästan-nya bilar
   (≤500km) — trim-nivå-listpriser istället för en platt modellpris
 - "Bättre alternativ"-kort: daglig scoring av HELA `market_listings`,
-  visar jämförbara annonser med minst +8 poäng bättre deal score
+  visar jämförbara annonser med minst +8 poäng bättre deal score.
+  **Fixat 2026-08-12**: `getBetterDeals()` matchade tidigare bara på
+  år (±2) och pris (±30%), aldrig mätarställning — en begagnad bil kunde
+  få "bättre alternativ" som i praktiken var nya lagerbilar (0 mil),
+  poängsatta mot Skatteverkets nybilslistpris istället för
+  marknadsmedian (helt olika värderingsgrund, inte jämförbara deal
+  scores). Nu begränsat till samma kategori (`mileage_km <=
+  NEW_CAR_MAX_MIL_KM`, samma tröskel som `isEssentiallyNewCar()` i
+  `engine.ts` — flyttad till den delade `lib/scoring/constants.ts` för
+  att undvika en cirkulär import mellan `engine.ts` och
+  `lib/supabase/client.ts`).
 - Ny logga (SVG, integrerad från användarens design, med runtime
   `getBBox()`-mätning för att fixa font-metrik-mismatch mellan
   designverktyg och riktig webbläsarrendering)
