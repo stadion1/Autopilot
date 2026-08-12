@@ -167,10 +167,10 @@ oavsett bilens ålder och alltså inte fångade den kända branta
    `new_car_prices.model_raw` kunde aldrig träffa. Fixat med ett nytt
    `skatteverketModelPattern`-regex-fält på de fyra `ModelReference`-
    posterna (index 19, 20, 28, 29 — se `data/referenceData.ts`).
-   **Måste köras om** för dessa fyra index efter deploy:
-   `0..0` ersätts med `19,20,28,29 | ForEach-Object { ... }` i samma
-   PowerShell-loop som tidigare. Övriga 53 index är redan korrekta och
-   behöver inte köras om.
+   **Omkörning bekräftad (2026-08-12):** index 19/20/28/29 gick från 0
+   till 7/10/8/9 punkter vardera efter fixen. Total täckning nu 233/521
+   grupper (~45%, upp från ~38%). Steg 1–2 betraktas som klara och
+   verifierade.
 3. **Steg 3 (backlog, ej påbörjat):** finjustering för mätarställning —
    inom varje åldersgrupp, mät hur priset avviker med mätarställningens
    avvikelse från förväntat (`ref.avgMilPerYear × ålder`), ge en
