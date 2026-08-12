@@ -1,14 +1,16 @@
 /**
- * AI analysis layer — v1.1
+ * AI analysis layer — v1.2
  *
- * Ändringar från v1.0:
- * - Tar emot modelNotes från scoring-motorn och lägger in det i prompten
- * - Klarare instruktion om att INTE upprepa risker som redan listats
- * - Lägger till ett explicit avsnitt i prompten för modell­specifika varningar
+ * Ändringar från v1.1:
+ * - Tar emot en ägandekostnads-uppdelning (bränsle/service/försäkring/skatt/
+ *   värdeminskning, år 1) så sammanfattningen kan peka ut VILKEN kategori
+ *   som faktiskt drar iväg (eller är ovanligt låg) istället för att bara
+ *   se en enda sammanslagen "Ägandekostnad: X/100"-siffra.
  */
 
 import Anthropic from '@anthropic-ai/sdk'
 import { CarListing, ConfidenceResult, DealScores, PriceRange, Risk, Verdict } from '../../types'
+import type { YearlyOwnershipCost } from '../scoring/ownershipCost'
 
 const client = new Anthropic()
 
@@ -24,6 +26,7 @@ export async function analyzeWithAI(
   pricing: PriceRange,
   risks: Risk[],
   modelNotes?: string,
+  ownershipYear1?: YearlyOwnershipCost,
 ): Promise<AIAnalysisResult> {
   const message = await client.messages.create({
     // 'claude-sonnet-4-6' (tidigare värde här) matchar inget giltigt
@@ -40,7 +43,7 @@ export async function analyzeWithAI(
     // visades rakt av för användaren istället för att hanteras som ett fel.
     max_tokens: 1024,
     system:     SYSTEM_PROMPT,
-    messages:   [{ role: 'user', content: buildPrompt(car, scores, confidence, pricing, risks, modelNotes) }],
+    messages:   [{ role: 'user', content: buildPrompt(car, scores, confidence, pricing, risks, modelNotes, ownershipYear1) }],
   })
 
   const text = message.content
@@ -84,6 +87,7 @@ function buildPrompt(
   pricing: PriceRange,
   risks: Risk[],
   modelNotes?: string,
+  ownershipYear1?: YearlyOwnershipCost,
 ): string {
   const age        = new Date().getFullYear() - car.year
   const mil        = Math.round(car.mileage_km / 10)
@@ -134,7 +138,18 @@ PRISANALYS:
 - Estimerat intervall: ${(pricing.low/1000).toFixed(0)} 000–${(pricing.high/1000).toFixed(0)} 000 kr (median ${(pricing.median/1000).toFixed(0)} 000 kr)
 - Prisjämförelse: ${priceSignal}
 
-KONFIDENS: ${confidence.score}/100 (${confidence.tier})
+${ownershipYear1 ? `ÄGANDEKOSTNAD ÅR 1 (uppskattat, beräknat av regelmotorn utifrån märke/drivmedel/ålder — inte en offert):
+- Värdeminskning: ~${Math.round(ownershipYear1.depreciation).toLocaleString('sv-SE')} kr
+- Service: ~${ownershipYear1.service.toLocaleString('sv-SE')} kr
+- Försäkring: ~${ownershipYear1.insurance.toLocaleString('sv-SE')} kr
+- Skatt: ~${ownershipYear1.tax.toLocaleString('sv-SE')} kr
+- Bränsle: ~${ownershipYear1.fuel.toLocaleString('sv-SE')} kr
+- Totalt: ~${Math.round(ownershipYear1.total).toLocaleString('sv-SE')} kr/år
+Om någon av dessa kategorier sticker ut som ovanligt hög eller låg för bilens
+märke/drivmedel/ålder (t.ex. hög försäkring pga premiummärke eller hög
+effekt, hög skatt pga diesel, låg skatt/service pga elbil) — nämn det
+konkret. Annars behöver du inte kommentera varje kategori för sig.
+` : ''}KONFIDENS: ${confidence.score}/100 (${confidence.tier})
 ${confidence.reasons.length > 0 ? '- Begränsningar: ' + confidence.reasons.join('; ') : '- Inga väsentliga begränsningar'}
 
 IDENTIFIERADE RISKER (${risks.length} st, visas separat för användaren — UPPREPA INTE dessa):
@@ -148,7 +163,9 @@ ${isNewCar ? `\nOBS — DETTA ÄR EN NY BIL (${mil} mil): Säg INTE att mätarst
 
 Skriv nu en ärlig, balanserad analys på 2–3 korta stycken.
 - Stycke 1: Priset och mätarställningen i kontext.
-- Stycke 2: Det viktigaste att tänka på (utan att upprepa riskerna ordagrant).
+- Stycke 2: Det viktigaste att tänka på — inkludera eventuella utstickande
+  ägandekostnads-kategorier (se ovan) om relevant, utan att upprepa
+  riskerna ordagrant.
 - Stycke 3: Konkret rekommendation med ett tydligt om/om inte.
 `.trim()
 }

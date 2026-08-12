@@ -13,6 +13,7 @@
 
 import { NextApiRequest, NextApiResponse } from 'next'
 import { scoreVehicle, verdictFromScore } from '../../lib/scoring/engine'
+import { calculateOwnershipCosts } from '../../lib/scoring/ownershipCost'
 import { analyzeWithAI } from '../../lib/ai/analyzer'
 import {
   markProcessing,
@@ -65,11 +66,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const completeCar = car as CarListing
   const { scores, confidence, pricing, pros, cons, risks, modelNotes } = await scoreVehicle(completeCar)
 
+  // Ägandekostnad (bränsle/service/försäkring/skatt/värdeminskning) räknas
+  // annars bara ut klientsidan i OwnershipCostCard — AI-sammanfattningen
+  // såg tidigare bara en enda sammanslagen "Ägandekostnad: X/100"-siffra,
+  // aldrig VILKEN kostnadskategori som faktiskt drar iväg (eller är låg).
+  // Utan kurva/mätarställnings-känslighet här (de hämtas bara vid läsning,
+  // se pages/api/analysis/[id].ts) — den platta modellsnitts-raten duger
+  // gott för AI:ns kvalitativa kommentar, den behöver inte vara lika exakt
+  // som siffrorna som visas i själva kortet.
+  const ownershipYear1 = calculateOwnershipCosts(completeCar)[0]
+
   // 3. AI-analys
   let aiSummary: string
   let verdict: 'Bra affär' | 'Okej affär' | 'Tveksam affär'
   try {
-    const ai = await analyzeWithAI(completeCar, scores, confidence, pricing, risks, modelNotes)
+    const ai = await analyzeWithAI(completeCar, scores, confidence, pricing, risks, modelNotes, ownershipYear1)
     aiSummary = ai.summary
     verdict   = ai.verdict
   } catch (err: any) {
