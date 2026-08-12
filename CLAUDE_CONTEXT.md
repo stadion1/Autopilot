@@ -288,6 +288,26 @@ oavsett bilens ålder och alltså inte fångade den kända branta
 
 ## Kända begränsningar / öppna trådar
 
+- **`deal_score`-backlog var permanent fastlåst, fixat (2026-08-12).**
+  `pages/api/cron/score-listings.ts` körde en gång/dygn med
+  `BATCH_SIZE=150`. `getListingsNeedingScore()` sorterar aldrig
+  poängsatta rader (NULL `deal_score_updated_at`, dvs. nya rader från
+  `scraper-service/nightly.ts`) FÖRST, före ALLA tidigare poängsatta
+  rader oavsett ålder. Med ~5 126 aktiva rader, `SCORE_STALE_AFTER_HOURS
+  =24` (gör praktiskt taget hela tabellen "kvalificerad" varje dygn) och
+  ~400 nya rader/natt (redan mer än hela dagsbudgeten på 150) fick
+  backloggen av redan poängsatta men inaktuella rader ALDRIG någon
+  budget — inte "några dagar efter", permanent fastlåst. Effekten
+  användaren såg: en färsk analys (kör alltid senaste kod) gav annan
+  deal-score än samma annons lagrade värde i `market_listings`, och
+  "bättre alternativ"-jämförelser kunde använda månader-gamla scores.
+  Fixat: höjde `BATCH_SIZE` 150→400 och `vercel.json`s schema från en
+  gång/dygn till en gång/timme (24×400≈9 600/dygn mot ~5 500 dagligen
+  kvalificerade rader). La även till `maxDuration: 60` som saknades helt
+  på den routen. **Caveat:** Vercels Hobby-plan tillåter bara crons ner
+  till en gång/dygn — om projektet ligger på Hobby kan timschemat
+  avvisas eller tystas ner av plattformen. Inte verifierat vilken plan
+  som gäller.
 - **Mätarställnings-bugg — RIKTIG rotorsak hittad och fixad (2026-08-12).**
   Jagade fel bov i flera omgångar innan den verkliga orsaken hittades.
   Facit: `scrapeAndParse()` i `scraper-service/parsers.ts` kör ALL
