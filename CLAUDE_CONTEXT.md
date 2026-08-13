@@ -446,6 +446,25 @@ oavsett bilens ålder och alltså inte fångade den kända branta
   värt att alltid komplettera med en riktad sökning mot svensk press per
   märke, inte bara verifiera det researchen redan hittat. Sparat som
   `data/toyota_known_issues_verified.sql` + tillagt i `data/seed.sql`.
+
+  **Uppföljningsbugg samma dag:** användaren körde `SELECT COUNT(*) FROM
+  known_issues WHERE brand = 'Toyota'` och fick 33, inte förväntade 32.
+  Orsak: missade en substantiell dubblett mot det ALLRA ÄLDSTA seedet
+  (från långt innan Volvo/Toyota-passen) — `toyota_1kd_ftv_injector`
+  (Land Cruiser 1KD-FTV, 2002–2015, injektorproblem, ingen källa) beskrev
+  samma sak som nya `landcruiser_1kd_injektorer` (2010–2015, källa,
+  mer detaljerad). Jag hade bara kollat `rule_id`-strängkollisioner mot
+  BEFINTLIGA rader (ingen krock eftersom rule_id-namnen skiljer sig),
+  inte innehållsöverlapp — samma typ av fel som Sensus-dubbletten i
+  Volvo-passet, men den fångade jag då via manuell inspektion av just
+  den sektionen; här missade jag att göra samma koll för Toyota-sektionen
+  i det gamla seedet. Fixat: gav användaren en `DELETE FROM known_issues
+  WHERE rule_id = 'toyota_1kd_ftv_injector'` att köra, och tog bort
+  samma rad ur `data/seed.sql`. **Lärdom för nästa märke:** innan en ny
+  batch skrivs, grepa `data/seed.sql` efter `('Märke','` i HELA filen
+  (inte bara mot rule_id-listan) för att hitta ev. gamla seedade rader
+  för det märket från originalseedet — inte bara verifiera mot förra
+  Deep Research-batchens rader.
 - **`model_references`-tabellen låg efter `referenceData.ts`, fixat i
   seed-filen (2026-08-13).** Användaren märkte att DB-tabellen bara hade
   46 rader trots att `data/referenceData.ts` har 57 modeller. Orsak:
