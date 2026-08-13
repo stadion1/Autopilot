@@ -397,6 +397,27 @@ oavsett bilens ålder och alltså inte fångade den kända branta
    nu den tredje cronen i `vercel.json`, inte verifierat att deployen
    går igenom.
 
+- **`model_references`-tabellen låg efter `referenceData.ts`, fixat i
+  seed-filen (2026-08-13).** Användaren märkte att DB-tabellen bara hade
+  46 rader trots att `data/referenceData.ts` har 57 modeller. Orsak:
+  `getLiveModelRef()` i `lib/supabase/client.ts` frågar `model_references`
+  FÖRST och faller bara tillbaka på `referenceData.ts` om DB-frågan missar
+  — så de 11 saknade modellerna (Audi A3/A4/A6/Q3/Q5, Kia Ceed/Niro/
+  Picanto, Nissan Leaf/Qashqai/X-Trail) körde tyst på fallback-vägen i
+  varje analys istället för den avsedda "levande" DB-källan. Sannolikt
+  uppstod glappet för att dessa modeller lagts till i TS-filen efter att
+  `data/seed.sql` skrevs, utan att seed-filen uppdaterades i takt. Fixat:
+  lade till alla 11 raderna i `data/seed.sql`s `model_references`-INSERT
+  (värden kopierade 1:1 från `referenceData.ts`), verifierat att de 57
+  raderna i filen nu exakt matchar TS-filens 57 modeller (ingen avvikelse
+  åt något håll). **OBS — kräver manuell åtgärd:** filändringen i sig
+  uppdaterar inte produktions-DB:n. `seed.sql` börjar med
+  `TRUNCATE model_references, known_issues RESTART IDENTITY CASCADE`, så
+  den måste köras om i Supabase SQL Editor för att de 11 nya raderna ska
+  synas live (borde vara säkert/idempotent — samma `known_issues`-data
+  som redan ligger där, bara `model_references` growing med 11 rader).
+  **Inte körd mot produktions-DB än.**
+
 ## Kända begränsningar / öppna trådar
 
 - **`deal_score`-backlog var permanent fastlåst, fixat (2026-08-12).**
@@ -553,3 +574,6 @@ oavsett bilens ålder och alltså inte fångade den kända branta
    metadata), ta ett nytt försök på Transportstyrelsens API-portal via
    en annan metod än direkt WebFetch, och lägg fram en rekommendation
    (bygg pipeline / avstå) innan någon kod skrivs.
+5. Kör om det uppdaterade `data/seed.sql` i Supabase SQL Editor så att
+   de 11 nya `model_references`-raderna (Audi, Kia, Nissan) faktiskt
+   landar i produktions-DB:n — filändringen ensam gör ingenting live.
