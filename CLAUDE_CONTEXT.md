@@ -410,13 +410,12 @@ oavsett bilens ålder och alltså inte fångade den kända branta
   lade till alla 11 raderna i `data/seed.sql`s `model_references`-INSERT
   (värden kopierade 1:1 från `referenceData.ts`), verifierat att de 57
   raderna i filen nu exakt matchar TS-filens 57 modeller (ingen avvikelse
-  åt något håll). **OBS — kräver manuell åtgärd:** filändringen i sig
-  uppdaterar inte produktions-DB:n. `seed.sql` börjar med
-  `TRUNCATE model_references, known_issues RESTART IDENTITY CASCADE`, så
-  den måste köras om i Supabase SQL Editor för att de 11 nya raderna ska
-  synas live (borde vara säkert/idempotent — samma `known_issues`-data
-  som redan ligger där, bara `model_references` growing med 11 rader).
-  **Inte körd mot produktions-DB än.**
+  åt något håll). Istället för att köra om hela `seed.sql` (som inleds
+  med en destruktiv `TRUNCATE model_references, known_issues`) gav jag
+  användaren en riktad `INSERT` med bara de 11 nya raderna, utan att röra
+  `known_issues` eller de 46 befintliga raderna. **Kört mot
+  produktions-DB och bekräftat 2026-08-13** — `model_references` har nu
+  57 rader, matchar `referenceData.ts` exakt. Betraktas som löst.
 
 ## Kända begränsningar / öppna trådar
 
@@ -574,6 +573,3 @@ oavsett bilens ålder och alltså inte fångade den kända branta
    metadata), ta ett nytt försök på Transportstyrelsens API-portal via
    en annan metod än direkt WebFetch, och lägg fram en rekommendation
    (bygg pipeline / avstå) innan någon kod skrivs.
-5. Kör om det uppdaterade `data/seed.sql` i Supabase SQL Editor så att
-   de 11 nya `model_references`-raderna (Audi, Kia, Nissan) faktiskt
-   landar i produktions-DB:n — filändringen ensam gör ingenting live.
