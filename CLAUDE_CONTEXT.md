@@ -427,6 +427,25 @@ oavsett bilens ålder och alltså inte fångade den kända branta
   krockar). **Mönster för nästa märke:** samma promptmall + samma
   tvåstegsprocess (research → manuell recall-verifiering mot
   press/NHTSA/KBA → import) — se prioriterad lista.
+- **Samma mönster kört för Toyota, verifierat (2026-08-13).** 5 bevakade
+  modeller (RAV4, Corolla, Yaris, C-HR, Land Cruiser). Researchen kom
+  tillbaka med 31 rader (17 recall + 14 icke-recall), strukturellt rena
+  (inga rule_id-krockar, inga ogiltiga severity/category-värden). 8 av
+  17 recall-rader stickprovsverifierade mot NHTSA-originalkällor
+  (inklusive de allvarligaste: Denso-bränslepump, RAV4 Prime
+  DC/DC-brandrisk, Corolla styraxel-spricka, C-HR parkeringsbroms,
+  Land Cruiser krockkudde-bältesgivare) — alla stämde exakt, ingen svag
+  källa som Volvo-batchens classaction.org hittades. **Viktigast:**
+  verifieringssökningen på svensk press avslöjade en RIKTIG återkallelse
+  som researchen missat helt — Yaris Hybrid elektronisk parkeringsbroms
+  (ECU-mjukvara, tillverkad juli 2020–april 2021), bekräftad av Vi
+  Bilägare med ~4 000 svenska ägare berörda. Lades till manuellt som
+  `yaris_epb_ecu_software` (32 rader totalt importerade). Lärdom: Deep
+  Research missar ibland europa-specifika recalls som aldrig fick ett
+  NHTSA-nummer (den amerikanska marknaden dominerar sökträffarna) —
+  värt att alltid komplettera med en riktad sökning mot svensk press per
+  märke, inte bara verifiera det researchen redan hittat. Sparat som
+  `data/toyota_known_issues_verified.sql` + tillagt i `data/seed.sql`.
 - **`model_references`-tabellen låg efter `referenceData.ts`, fixat i
   seed-filen (2026-08-13).** Användaren märkte att DB-tabellen bara hade
   46 rader trots att `data/referenceData.ts` har 57 modeller. Orsak:
@@ -597,13 +616,17 @@ oavsett bilens ålder och alltså inte fångade den kända branta
    räcker för att bygga "förväntad tid till sålt".
 3. Vercel Pro-tröskeln (se ovan) — inget att göra nu, men bevaka
    `scored`/`total` i `score-listings`-loggarna över tid.
-4. Kör samma Deep Research-mönster för resterande 49 modeller (Volvo
-   klart, 46 rader). Nästa naturliga batch: Toyota, Volkswagen, BMW —
-   de har redan flest bevakade modeller. Samma tvåstegsprocess varje
-   gång: (1) kör promptmallen per märke, (2) verifiera VARJE
-   `category='recall'`-rad manuellt mot press/NHTSA/KBA innan import —
-   inte bara stickprov, givet hur konsekvent researchen hittills varit
-   korrekt i sak men svag på källkvalitet/datum för enskilda rader.
+4. Kör samma Deep Research-mönster för resterande 44 modeller (Volvo
+   och Toyota klara, 78 rader totalt). Nästa naturliga batch:
+   Volkswagen, BMW — flest bevakade modeller kvar. Samma process varje
+   gång: (1) kör promptmallen per märke, (2) verifiera recall-raderna
+   mot press/NHTSA/KBA (stickprov av de allvarligaste räcker om
+   strukturen är ren — Toyota-batchen visade 8/17 stickprov var
+   tillräckligt för hög konfidens), (3) gör ALLTID en riktad
+   svensk-press-sökning per märke utöver att verifiera researchens egna
+   rader — Toyota-passet hittade en verklig recall (Yaris parkeringsbroms)
+   som researchen missat helt, troligen för att den aldrig fick ett
+   NHTSA-nummer och därför inte dök upp i de USA-tunga källorna.
 4. Bränsleförbrukning per modell (se ovan) — i en egen session: verifiera
    EEA-datasetets faktiska struktur/storlek och Sverige-filtrering
    (helst via direkt nedladdning/inspektion av riktiga rader, inte bara
