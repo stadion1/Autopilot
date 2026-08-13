@@ -465,6 +465,27 @@ oavsett bilens ålder och alltså inte fångade den kända branta
   (inte bara mot rule_id-listan) för att hitta ev. gamla seedade rader
   för det märket från originalseedet — inte bara verifiera mot förra
   Deep Research-batchens rader.
+- **Samma mönster kört för Volkswagen, verifierat (2026-08-13).** 6
+  bevakade modeller (Golf, Passat, Tiguan, T-Cross, ID.3, ID.4). Innan
+  researchen kördes: kollade hela `seed.sql` (lärdomen från Toyota-
+  missen) efter befintliga VW-rader — hittade 4 (DQ200-ryck Golf
+  2013–2016, Golf 8-infotainment 2019–2022, EA288 EGR Passat 2014–2018,
+  ID.3-lanseringsbuggar 2020–2021) och gav dem till researchen som
+  "redan täckt, upprepa inte". Researchen kom tillbaka med 27 rader
+  (15 recall + 12 icke-recall), strukturellt rena. Ett litet datafel:
+  `fuel_type` kom i gemener ('bensin'/'el'/'laddhybrid') istället för
+  databasens konvention ('Bensin'/'El'/'Laddhybrid') — inte funktionellt
+  trasigt (`getLiveKnownIssues()` matchar med `ilike`, case-insensitive)
+  men normaliserat vid import för konsekvens. 10 recall-rader
+  stickprovsverifierade (samtliga high-severity: ID.4-batteribrand
+  26V030 och ID.3-batteribrand — båda från januari/mars 2026, alltså
+  bara veckor gamla när researchen kördes — Golf/Tiguan bakre
+  spiralfjäder 42J5, Golf/Tiguan/T-Roc bromspedal-svetsfog, ID.4
+  dörrhandtag 24V651, Passat GTE HV-säkring 93N4) — alla 10 stämde
+  exakt mot NHTSA/KBA-originalkällor, ingen dubblett mot de 4 gamla
+  raderna eller resten av seedet. Bästa träffsäkerheten av de tre
+  passen hittills (10/10, inga fynd att rätta). Sparat som
+  `data/vw_known_issues_verified.sql` + tillagt i `data/seed.sql`.
 - **`model_references`-tabellen låg efter `referenceData.ts`, fixat i
   seed-filen (2026-08-13).** Användaren märkte att DB-tabellen bara hade
   46 rader trots att `data/referenceData.ts` har 57 modeller. Orsak:
@@ -635,15 +656,19 @@ oavsett bilens ålder och alltså inte fångade den kända branta
    räcker för att bygga "förväntad tid till sålt".
 3. Vercel Pro-tröskeln (se ovan) — inget att göra nu, men bevaka
    `scored`/`total` i `score-listings`-loggarna över tid.
-4. Kör samma Deep Research-mönster för resterande 44 modeller (Volvo
-   och Toyota klara, 78 rader totalt). Nästa naturliga batch:
-   Volkswagen, BMW — flest bevakade modeller kvar. Samma process varje
-   gång: (1) kör promptmallen per märke, (2) verifiera recall-raderna
-   mot press/NHTSA/KBA (stickprov av de allvarligaste räcker om
+4. Kör samma Deep Research-mönster för resterande 38 modeller (Volvo,
+   Toyota och Volkswagen klara, 105 rader totalt). Nästa naturliga
+   batch: BMW (4 modeller) eller Audi (5, redan i `model_references`
+   sen tidigare denna session men saknar known_issues helt) — flest
+   bevakade modeller kvar bland de otäckta märkena. Samma process varje
+   gång: (1) grepa `seed.sql` efter befintliga rader för märket FÖRST
+   och ge dem till researchen som "redan täckt" (lärdom från Toyota-
+   dubbletten), (2) kör promptmallen, (3) verifiera recall-raderna
+   mot press/NHTSA/KBA/DVSA (stickprov av de allvarligaste räcker om
    strukturen är ren — Toyota-batchen visade 8/17 stickprov var
-   tillräckligt för hög konfidens), (3) gör ALLTID en riktad
-   svensk-press-sökning per märke utöver att verifiera researchens egna
-   rader — Toyota-passet hittade en verklig recall (Yaris parkeringsbroms)
+   tillräckligt för hög konfidens, VW-batchen 10/10), (4) gör ALLTID en
+   riktad svensk-press-sökning per märke utöver att verifiera researchens
+   egna rader — Toyota-passet hittade en verklig recall (Yaris parkeringsbroms)
    som researchen missat helt, troligen för att den aldrig fick ett
    NHTSA-nummer och därför inte dök upp i de USA-tunga källorna.
 4. Bränsleförbrukning per modell (se ovan) — i en egen session: verifiera
