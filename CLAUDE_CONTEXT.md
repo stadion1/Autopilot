@@ -397,6 +397,36 @@ oavsett bilens ålder och alltså inte fångade den kända branta
    nu den tredje cronen i `vercel.json`, inte verifierat att deployen
    går igenom.
 
+- **`known_issues` utökad med Claude Deep Research för Volvo, verifierat
+  (2026-08-13).** Startskott: användaren vill ha djupare bilkunskap i
+  `known_issues` för bättre konsumentfeedback, körde Claude Deep Research
+  (extern, i webbläsaren) på våra 8 bevakade Volvo-modeller med en
+  promptmall utformad för att returnera SQL direkt mot schemat. Researchen
+  kom tillbaka med 47 rader. Granskning innan import hittade: en
+  substantiell dubblett (`xc60_sensus_freeze` mot redan seedade
+  `volvo_xc60_sensus_freeze`, borttagen) och två svaga källor
+  (`classaction.org`, ersatta). Eftersom 29 av raderna var
+  `category='recall'` — säkerhetskritisk info som visas direkt för
+  konsumenter — verifierades VARJE recall-familj manuellt mot svensk
+  press (Vi Bilägare, SVT Nyheter, GP, Ny Teknik, Mest Motor, Börskollen)
+  och internationella recall-register (NHTSA, tyska KBA) innan import,
+  inte bara stickprov. Alla 10 recall-familjer bekräftades vara verkliga
+  händelser (T8-batteribrand ~8 000 bilar i Sverige, dieselinsugsrör
+  ~86 000, bränsleledning ~37 000, bromsbortfall B-läge även registrerad
+  i EU via KBA — inte bara USA-NHTSA som researchens egen brasklapp
+  antydde). Hittade och rättade ETT sakfel under verifieringen:
+  `xc60_brake_pedal_loose_bolts` påstod återkallelsen skedde "nov
+  2019/2020", men själva kampanjen (R10289) skickades ut först dec 2024
+  (defekten uppstod 2019 på monteringslinjen, kampanjen kom mycket
+  senare). 46 rader importerade (29 recall + 17 icke-recall: takluckans
+  tätningslist, Aisin-växellåda, wet belt, EGR/DPF, 12V-batteri,
+  infotainment, bakluckedämpare, AC-kompressor). Sparat som
+  `data/volvo_known_issues_verified.sql` (fristående, körd direkt mot
+  Supabase av användaren) OCH tillagt i `data/seed.sql` som ett separat
+  `INSERT`-block (rör inte de 4 äldre Volvo-raderna, inga `rule_id`-
+  krockar). **Mönster för nästa märke:** samma promptmall + samma
+  tvåstegsprocess (research → manuell recall-verifiering mot
+  press/NHTSA/KBA → import) — se prioriterad lista.
 - **`model_references`-tabellen låg efter `referenceData.ts`, fixat i
   seed-filen (2026-08-13).** Användaren märkte att DB-tabellen bara hade
   46 rader trots att `data/referenceData.ts` har 57 modeller. Orsak:
@@ -567,6 +597,13 @@ oavsett bilens ålder och alltså inte fångade den kända branta
    räcker för att bygga "förväntad tid till sålt".
 3. Vercel Pro-tröskeln (se ovan) — inget att göra nu, men bevaka
    `scored`/`total` i `score-listings`-loggarna över tid.
+4. Kör samma Deep Research-mönster för resterande 49 modeller (Volvo
+   klart, 46 rader). Nästa naturliga batch: Toyota, Volkswagen, BMW —
+   de har redan flest bevakade modeller. Samma tvåstegsprocess varje
+   gång: (1) kör promptmallen per märke, (2) verifiera VARJE
+   `category='recall'`-rad manuellt mot press/NHTSA/KBA innan import —
+   inte bara stickprov, givet hur konsekvent researchen hittills varit
+   korrekt i sak men svag på källkvalitet/datum för enskilda rader.
 4. Bränsleförbrukning per modell (se ovan) — i en egen session: verifiera
    EEA-datasetets faktiska struktur/storlek och Sverige-filtrering
    (helst via direkt nedladdning/inspektion av riktiga rader, inte bara
