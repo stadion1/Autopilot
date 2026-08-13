@@ -190,12 +190,6 @@ VALUES
  'Ford Focus med PowerShift automatiserad manuell växellåda (2011–2016, 1.0/1.6 EcoBoost) är ökänd för slirning, hackning och plötsliga kraftbortfall. Undvik dessa årsmodeller med denna växellåda.',
  NULL),
 
--- TOYOTA
-('Toyota','Land Cruiser',2002,2015,'Diesel','medium','engine','toyota_1kd_ftv_injector',
- 'Land Cruiser 1KD-FTV: injektor­problem',
- 'Toyotas 3.0 D-4D motor (1KD-FTV) kan drabbas av injektorproblem och höjd oljekonsumtion vid hög miltal (>15 000 mil). Kontrollera kompression och oljekvalitet. Inspektera alltid vid köp av exemplar med hög miltal.',
- NULL),
-
 -- SUBARU
 ('Subaru','Outback',   2010,2018, NULL,   'medium','engine','subaru_boxer_head_gasket',
  'Boxer­motor: head gasket vid högt miltal',
