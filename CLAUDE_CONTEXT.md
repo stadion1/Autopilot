@@ -593,6 +593,66 @@ oavsett bilens ålder och alltså inte fångade den kända branta
 
 ## Kända begränsningar / öppna trådar
 
+- **Carzi-designsystem (mörka kort) — försökt och REVERTERAT (2026-08-14).**
+  Användaren gav 7 tokens: `--carzi-midnight` (navbar/footer),
+  `--carzi-deep` (kort/hover), `--carzi-white` (sidbakgrund, matchade
+  redan `--white`), `--carzi-blue` (CTA), `--carzi-green`/`--carzi-amber`/
+  `--carzi-red` (bra/okej/tveksam affär). Implementerat i `app/globals.css`
+  (nya `:root`-tokens + en mörk variant av `--accent`/`--amber`/`--red`
+  för text direkt på vit bakgrund, eftersom de fulla Carzi-färgerna hade
+  för låg kontrast som ren text — se kommentarerna i filen om någon
+  bygger vidare), `.nav`/`.card` fick lokalt omdefinierade
+  `--ink-*`/`--surface-*`/`--border*`-tokens (CSS custom properties
+  ärvs neråt, så alla ~100 befintliga regler som redan läste
+  `var(--ink-2)` etc. blev automatiskt rätt utan att röras individuellt),
+  CTA-knappar → blue, ny `<Footer>` i `layout.tsx`.
+
+  **Två separata problem:**
+  1. Ett byggfel: en CSS-kommentar som radade upp variabelnamn med `/`
+     (`--ink-*/--surface-*`) skapade av misstag en `*/`-sekvens som
+     stängde kommentarblocket i förtid — Vercel-bygget floppade med
+     "Unknown word". Fixat (kommatecken istället för snedstreck), och
+     sökte igenom alla fyra ändrade filer efter samma mönster (hittade
+     inga fler).
+  2. **Efter att bygget gick igenom och användaren faktiskt SÅG resultatet
+     live:** alla nio kort blev samma mörka marinblå ton rakt igenom —
+     tungt/monotont, och AI-sammanfattningskortet (som tidigare var det
+     ENDA mörka elementet på en annars ljus sida, ett avsiktligt
+     utstickande blickfång) försvann in i mängden eftersom allt annat
+     nu såg likadant ut. Användaren bad om revert direkt efter att ha
+     sett skärmdumpen — inget efterfrågades, kört direkt (`git revert`
+     på båda committen, pushat).
+
+  **Kunde INTE verifieras visuellt innan push** — Node.js/npm saknas i
+  den här miljön (varken Git Bash eller PowerShell hittar `node`/`npm`,
+  bekräftat denna session; en bakgrundsuppgift är flaggad för att
+  utreda/fixa det), Python saknas också, och Browser-panelens `file://`-
+  navigering renderar bara "static snapshots" som aldrig visade sig
+  fungera för lokala HTML-mockuper (testat två vägar, båda gav tom sida).
+  Enda sättet att faktiskt SE ändringen var att pusha till `main` och
+  kolla den riktiga Vercel-deployen — en medveten avvägning
+  (`git revert` är billigt, det här är en ren CSS-ändring utan
+  data/migrationer, appen är i beta) men det är därför felet inte
+  upptäcktes förrän efter push.
+
+  **Lärdom inför en framtida omstart:**
+  - Undvik `/`-tecken i CSS-kommentarer som radar upp `--variabel-namn`
+    — skriv ut hela namnet eller separera med kommatecken/radbyte
+    istället för snedstreck, annars riskeras samma `*/`-fälla.
+  - Fråga om precis vilka kort som ska bli mörka INNAN implementation,
+    inte bara anta "alla kort med `.card`-klassen" — användarens
+    feedback tyder på att en mer selektiv approach (bara hero-kortet
+    och/eller AI-sammanfattningen mörka, resten kvar ljusa) hade
+    fungerat bättre än att göra alla nio korttyper identiskt mörka.
+  - Om Node.js/Python fortfarande saknas nästa gång: fråga användaren
+    om ett sätt att förhandsgranska INNAN kodning påbörjas (Vercel
+    preview-branch, eller om de faktiskt har `npm run dev` lokalt)
+    istället för att upptäcka detta mitt i arbetet.
+  - Koden är helt reverterad — `app/globals.css`, `app/page.module.css`,
+    `app/analysis/[id]/page.module.css` och `app/layout.tsx` är tillbaka
+    till läget före denna session (ljust tema, samma som innan).
+    Ingenting av Carzi-arbetet finns kvar i `main`.
+
 - **"Misslyckades att spara" — två kombinerade buggar hittade och
   fixade (2026-08-14).** Användaren fick felet på en riktig annons
   (Mercedes-Benz E450, Blocket-ID 24714696). Utredning:
@@ -883,3 +943,9 @@ när det blir aktuellt att designa/bygga.
 9. Utrustningsviktad prisjustering (se egen sektion ovan) — större
    projekt, inte scopat. Naturlig uppföljning till det billiga steget
    som redan är byggt.
+10. Carzi-designsystemet (se "Kända begränsningar" ovan) — reverterat,
+    inte längre i `main`. Om det tas upp igen: fråga FÖRST exakt vilka
+    kort som ska bli mörka (troligen inte alla nio — användarens
+    feedback pekade på att det blev för monotont) innan någon CSS
+    skrivs, och säkerställ en förhandsgranskningsväg (Vercel
+    preview-branch eller lokal `npm run dev`) innan kodning påbörjas.
