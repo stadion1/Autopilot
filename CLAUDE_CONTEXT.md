@@ -648,6 +648,45 @@ oavsett bilens ålder och alltså inte fångade den kända branta
   än vad vi redan har. Sparat till en egen framtida session (för stort
   för att klämma in i en pågående) — se prioriterad lista nedan.
 
+## Idé: "Värdera min bil" — omvänt flöde (föreslaget av användaren 2026-08-13)
+
+Istället för att klistra in en annons-URL: användaren matar in sin EGEN
+bils märke/modell/årsmodell/mätarställning/drivmedel (inget att skrapa)
+och får en värderingsuppskattning tillbaka. Öppnar en ny målgrupp —
+säljare som vill prissätta INNAN de lägger upp en annons, inte bara
+köpare som utvärderar en befintlig — och kan fungera som en stark
+content-marketing-krok ("gratis värdering").
+
+**Nyckelinsikt: största delen av infrastrukturen finns redan.**
+`calculatePricing()` i `lib/scoring/engine.ts` räknar redan fram ett
+prisestimat (marknadsmedian / värdeminskningskurva / Skatteverkets
+nybilspris) helt oberoende av om det finns en annons — idag används det
+bara för att jämföra mot en skrapad annons pris, men själva estimatet
+kräver ingen annons. Samma sak gäller `known_issues`-uppslaget och
+`calculateOwnershipCosts()`.
+
+**Grovskiss, inte designad i detalj än:**
+- Nytt enkelt formulär (inget URL-fält): märke/modell (dropdown från
+  `model_references`), årsmodell, mätarställning, drivmedel, ev. växellåda.
+- Ny lättviktig API-route som bygger en partiell `CarListing` direkt från
+  formuläret (ingen skrapning) och återanvänder samma scoring-/
+  pricing-funktioner som idag.
+- Svar: prisintervall (low/median/high) + konfidens + relevanta
+  `known_issues` för modellen/årsmodellen + ägandekostnadsuppskattning.
+  AI-sammanfattningen behöver en annan promptvinkling ("här är vad din
+  bil är värd och varför", inte "är det här ett bra köp").
+- Schemafråga att lösa: `analyses`-tabellen är byggd kring
+  `source_url`/`source_site`. Enklast är sannolikt en ny nullbar
+  `entry_type`-kolumn ('listing' | 'self_valuation') snarare än en helt
+  ny tabell, så AI-sammanfattnings-lagring/cachning kan återanvändas rakt av.
+- Utan en riktig annons saknas skick/utrustningsnivå — estimatet blir
+  nödvändigtvis ett "snittskick"-antagande om inte valfria fält
+  (skick, utrustningsnivå) läggs till. Bör vara tydligt i disclaimer:
+  "utgångspunkt för prissättning, inte en officiell värdering".
+
+Inget scopat eller tidsuppskattat — spara till en egen framtida session
+när det blir aktuellt att designa/bygga.
+
 ## Prioriterade nästa steg (föreslagna, ej bekräftade av användaren)
 
 1. Ta ställning till orimligt-pris-varning per analys, som ett
@@ -671,9 +710,41 @@ oavsett bilens ålder och alltså inte fångade den kända branta
    egna rader — Toyota-passet hittade en verklig recall (Yaris parkeringsbroms)
    som researchen missat helt, troligen för att den aldrig fick ett
    NHTSA-nummer och därför inte dök upp i de USA-tunga källorna.
-4. Bränsleförbrukning per modell (se ovan) — i en egen session: verifiera
+5. Bränsleförbrukning per modell (se ovan) — i en egen session: verifiera
    EEA-datasetets faktiska struktur/storlek och Sverige-filtrering
    (helst via direkt nedladdning/inspektion av riktiga rader, inte bara
    metadata), ta ett nytt försök på Transportstyrelsens API-portal via
    en annan metod än direkt WebFetch, och lägg fram en rekommendation
    (bygg pipeline / avstå) innan någon kod skrivs.
+6. **Produktionsklar-checklista innan bredare exponering** (begärd av
+   användaren 2026-08-13, efter en fråga om hur långt appen är från att
+   kunna testas av riktiga användare). Nuläge: kärnflödet är stabilt
+   och stresstestat genom många riktiga analyser denna session, och en
+   per-analys-disclaimer finns redan inbyggd
+   (`app/analysis/[id]/page.tsx`s `Disclaimer`-komponent). Räcker för
+   vänner/kollegor som testar informellt redan idag. För en bredare
+   delad länk saknas:
+   a. **Rate limiting på `/api/analyze`** (störst risk — en spridd
+      länk kan hamras och dra upp Claude-API-kostnader eller
+      överbelasta scraper-servicen). Förslag: en Supabase-tabell-baserad
+      räknare (IP eller enkel token) istället för att lägga till
+      Upstash Redis som ny infra — Vercel serverless functions är
+      stateless mellan anrop så en in-memory-räknare fungerar inte.
+   b. **Enkel integritets-/villkorssida** — vad som samlas in (klistrade
+      URL:er, skrapad bildata inkl. VIN/regnr), varför, hur länge,
+      vilka tredje parter (Anthropic för AI-sammanfattningen, Supabase
+      för lagring), kontaktuppgifter. Ingen analytics/tracking hittad
+      i koden (sökt igenom `app/`) så inget cookie-samtycke behövs för
+      det specifikt, men sidan bör ändå finnas för riktiga användare.
+   c. **Sentry (eller motsvarande) för felmonitorering** — inget sånt
+      paket finns i `package.json` idag. Koppla in i de befintliga
+      catch-blocken (`process.ts`, cron-routes) så fel syns proaktivt
+      istället för att kräva manuell loggläsning i Vercel-panelen.
+   d. **Kör en riktig `npm run build`/typecheck** på scraper-service och
+      huvudappen nästa gång Node.js finns tillgängligt lokalt — den här
+      sessionens scraper-service-ändringar har bara verifierats via
+      läsning + manuell brace-räkning, aldrig kompilerats.
+   e. (Lägre prioritet) Snabb mobilvy-/tvärwebbläsargenomgång — inte
+      kontrollerad denna session.
+7. "Värdera min bil"-idén (se egen sektion ovan) — inget att göra
+   förrän användaren vill designa/bygga den på riktigt.
