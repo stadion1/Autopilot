@@ -1,5 +1,14 @@
 /**
- * AI analysis layer — v1.2
+ * AI analysis layer — v1.3
+ *
+ * Ändringar från v1.2:
+ * - Skickar med annonsens utrustningslista (car.equipment, från Blockets
+ *   per-annons-API — tidigare hämtad men aldrig sparad/använd) så
+ *   sammanfattningen kan kommentera utrustningsnivå. Löser inte att
+ *   deal-score/prisjämförelsen fortfarande behandlar alla trimnivåer av
+ *   en modell (t.ex. Mercedes E-klass E200–E450) som en enda bucket —
+ *   bara den kvalitativa AI-texten, se CLAUDE_CONTEXT.md för den större
+ *   (inte byggda) idén om en riktig utrustningsviktad prisjustering.
  *
  * Ändringar från v1.1:
  * - Tar emot en ägandekostnads-uppdelning (bränsle/service/försäkring/skatt/
@@ -140,6 +149,7 @@ FORDON (beräknat av regelmotor — dessa är fakta, inte uppskattningar):
 - Drivmedel: ${car.fuel_type} | Växellåda: ${car.transmission}
 - Säljare: ${car.seller_type === 'dealer' ? 'Återförsäljare' : 'Privatperson'}
 - Ort: ${car.location ?? 'Ej angiven'}
+${car.equipment && car.equipment.length > 0 ? `- Utrustning (${car.equipment.length} poster): ${car.equipment.join(', ')}\n  Bedöm själv om detta är en väl- eller sparsamt utrustad bil för sin modell/prisklass utifrån listan — nämn det bara om det faktiskt förklarar något i prisbilden (t.ex. premiumpaket som motiverar ett högre pris än snittet, eller en anmärkningsvärt kort lista för en dyr bil).` : ''}
 
 SCORES (0–100):
 - Deal-score: ${scores.deal} | Pris: ${scores.price} | Tillförlitlighet: ${scores.reliability}

@@ -54,6 +54,7 @@ interface AnalysisRow {
   location?: string
   description?: string
   images?: string[]
+  equipment?: string[]
   seller_type?: string
   registration_number?: string
   registration_date?: string
@@ -147,6 +148,7 @@ export async function saveCarData(id: string, car: Partial<CarListing>, rawHtml?
     location:     car.location,
     description:  car.description,
     images:       car.images,
+    equipment:    car.equipment,
     seller_type:  car.seller_type,
     registration_number: car.registration_number,
     registration_date: car.registration_date,
@@ -237,6 +239,7 @@ export async function getAnalysis(id: string): Promise<AnalysisResult | null> {
       location:     row.location,
       description:  row.description,
       images:       row.images,
+      equipment:    row.equipment,
       seller_type:  (row.seller_type as any) ?? 'private',
       registration_number: row.registration_number,
       registration_date: row.registration_date,

@@ -310,6 +310,7 @@ const data: Partial<CarListing> = {
   seller_type:  ad.seller_type === 'dealer' ? 'dealer' : 'private',
   description:  ad.description ?? undefined,
   images:       ad.images?.slice(0, 6).map((i: any) => i.url ?? i.src ?? i).filter((i: any) => typeof i === 'string'),
+  equipment:    Array.isArray(ad.equipment) ? ad.equipment.filter((e: any) => typeof e === 'string') : undefined,
   registration_number: specs['Registreringsnummer'] ?? undefined,
   registration_date: specs['Registreringsdatum'] ?? undefined,
   vin:          specs['Chassinummer'] ?? undefined,

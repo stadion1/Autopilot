@@ -34,6 +34,7 @@ CREATE TABLE analyses (
   location        TEXT,
   description     TEXT,
   images          TEXT[],
+  equipment       TEXT[],   -- utrustningslista från Blockets per-annons-API
   seller_type     TEXT CHECK (seller_type IN ('private','dealer')),
   raw_html        TEXT,     -- stored for re-parsing (avoids re-scraping)
 
@@ -619,3 +620,18 @@ LANGUAGE SQL STABLE AS $$
     COUNT(*) AS sample_size
   FROM filtered;
 $$;
+
+
+-- ============================================================
+-- Migration: analyses.equipment
+-- Run this once in Supabase Dashboard -> SQL Editor -> New Query
+-- ============================================================
+-- Blockets per-annons-API (blocket-api.se) returnerar en full
+-- utrustningslista per annons som tidigare hamtades men aldrig sparades
+-- eller anvandes. Anvands nu i AI-promptens FORDON-sektion sa
+-- sammanfattningen kan kommentera utrustningsniva ("valutrustad" vs
+-- "sparsamt utrustad") istallet for att prisjamforelsen behandlar alla
+-- trimniva-varianter av en modell (t.ex. Mercedes E-klass fran E200 till
+-- E450 AMG-line) som identiska.
+
+ALTER TABLE analyses ADD COLUMN IF NOT EXISTS equipment TEXT[];
