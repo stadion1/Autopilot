@@ -22,8 +22,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <Nav />
         {children}
+        <Footer />
       </body>
     </html>
+  )
+}
+
+function Footer() {
+  return (
+    <footer className="footer">
+      © {new Date().getFullYear()} Carzi — AI-driven bilanalys för den svenska marknaden.
+    </footer>
   )
 }
 
@@ -39,8 +48,8 @@ function Nav() {
             fontSize="150"
             fontWeight="700"
             letterSpacing="-4"
-            fill="#111418">carz<tspan id="carzi-logo-i">i</tspan></text>
-          <circle id="carzi-logo-dot" cx="765" cy="42" r="11" fill="#0057FF" style={{ opacity: 0, transition: 'opacity 0.15s' }}/>
+            fill="#FAFAF8">carz<tspan id="carzi-logo-i">i</tspan></text>
+          <circle id="carzi-logo-dot" cx="765" cy="42" r="11" fill="#2563EB" style={{ opacity: 0, transition: 'opacity 0.15s' }}/>
         </svg>
       </a>
       <span className="nav-badge">Beta</span>
