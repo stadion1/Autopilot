@@ -520,6 +520,33 @@ oavsett bilens ålder och alltså inte fångade den kända branta
   raderna eller resten av seedet. Bästa träffsäkerheten av de tre
   passen hittills (10/10, inga fynd att rätta). Sparat som
   `data/vw_known_issues_verified.sql` + tillagt i `data/seed.sql`.
+- **Samma mönster kört för BMW, verifierat (2026-08-14).** 4 bevakade
+  modeller (3-serie, 5-serie, X3, X5). Kollade `seed.sql` för befintliga
+  BMW-rader först — hittade 3 (N20 timing chain 3-serie 2012–2018, N52
+  ventilkåpa/oljeläckage 3-serie 2006–2013, G30 iDrive 6-krascher
+  5-serie 2016–2020), gav dem till researchen som "redan täckt".
+  Researchen kom tillbaka med 31 rader (15 recall + 16 icke-recall),
+  strukturellt rena, korrekt versaliserad `fuel_type` den här gången.
+  **Nytt datafel, annorlunda än tidigare pass:** hela råtexten saknade
+  svenska diakritiska tecken (å/ä/ö) genomgående ("sprod" för "spröd",
+  "atgard" för "åtgärd", "kopratens" för "köparens") — ett
+  genererings-/encodingfel, inte ett sakfel. Skrev om alla 31 radernas
+  beskrivningar med korrekt svenska stavning innan import, samma
+  sakinnehåll. 6 av de tyngsta claimen stickprovsverifierade
+  (startrelä-brandrisk >1,1 miljoner globalt/196 355 i USA, Continental
+  integrerat bromssystem 24V-104/79 670 i USA, B58-startmotorelektronik
+  24V-576/>100 000 i USA, diesel-EGR-brandrisk 18V-755 expanderad till
+  ~800 000 globalt, PHEV-batteribrand 20V-601/exakt 4 509 i USA och
+  26 900 globalt, samt B58-oljepumpens bekräftat SAKNADE officiella
+  recall — forskningen var här korrekt försiktig och hittade INTE på en
+  recall som inte finns) — alla 6 stämde. Ett komplement lades till
+  under verifieringen: 24V-576:s ursprungliga mjukvarufix visade sig
+  otillräcklig och ersattes senare av en fysisk startmotorbytes-kampanj
+  (25V-644) — nämnt i beskrivningen så köpar-VIN-kontrollen omfattar
+  båda. Sparat som `data/bmw_known_issues_verified.sql` + tillagt i
+  `data/seed.sql`. **Lärdom:** kolla alltid råtexten för saknade å/ä/ö
+  innan import, inte bara sakinnehållet — uppenbarligen inte en garanti
+  från Deep Research även när fakta stämmer.
 - **`model_references`-tabellen låg efter `referenceData.ts`, fixat i
   seed-filen (2026-08-13).** Användaren märkte att DB-tabellen bara hade
   46 rader trots att `data/referenceData.ts` har 57 modeller. Orsak:
@@ -769,21 +796,24 @@ när det blir aktuellt att designa/bygga.
    räcker för att bygga "förväntad tid till sålt".
 3. Vercel Pro-tröskeln (se ovan) — inget att göra nu, men bevaka
    `scored`/`total` i `score-listings`-loggarna över tid.
-4. Kör samma Deep Research-mönster för resterande 38 modeller (Volvo,
-   Toyota och Volkswagen klara, 105 rader totalt). Nästa naturliga
-   batch: BMW (4 modeller) eller Audi (5, redan i `model_references`
-   sen tidigare denna session men saknar known_issues helt) — flest
-   bevakade modeller kvar bland de otäckta märkena. Samma process varje
-   gång: (1) grepa `seed.sql` efter befintliga rader för märket FÖRST
-   och ge dem till researchen som "redan täckt" (lärdom från Toyota-
-   dubbletten), (2) kör promptmallen, (3) verifiera recall-raderna
-   mot press/NHTSA/KBA/DVSA (stickprov av de allvarligaste räcker om
-   strukturen är ren — Toyota-batchen visade 8/17 stickprov var
-   tillräckligt för hög konfidens, VW-batchen 10/10), (4) gör ALLTID en
+4. Kör samma Deep Research-mönster för resterande 34 modeller (Volvo,
+   Toyota, Volkswagen och BMW klara, 136 rader totalt). Nästa naturliga
+   batch: Audi (5 modeller, redan i `model_references` sen tidigare
+   denna session men saknar known_issues helt) eller Mercedes-Benz
+   (3 modeller) — flest bevakade modeller kvar bland de otäckta märkena.
+   Samma process varje gång: (1) grepa `seed.sql` efter befintliga rader
+   för märket FÖRST och ge dem till researchen som "redan täckt" (lärdom
+   från Toyota-dubbletten), (2) kör promptmallen, (3) verifiera
+   recall-raderna mot press/NHTSA/KBA/DVSA (stickprov av de allvarligaste
+   räcker om strukturen är ren — Toyota-batchen visade 8/17 stickprov var
+   tillräckligt för hög konfidens, VW 10/10, BMW 6/6), (4) gör ALLTID en
    riktad svensk-press-sökning per märke utöver att verifiera researchens
    egna rader — Toyota-passet hittade en verklig recall (Yaris parkeringsbroms)
    som researchen missat helt, troligen för att den aldrig fick ett
-   NHTSA-nummer och därför inte dök upp i de USA-tunga källorna.
+   NHTSA-nummer och därför inte dök upp i de USA-tunga källorna, (5) kolla
+   ALLTID råtexten för saknade svenska diakritiska tecken (å/ä/ö) innan
+   import, inte bara sakinnehållet — BMW-passet var första gången det
+   hände, ingen garanti det inte händer igen.
 5. Bränsleförbrukning per modell (se ovan) — i en egen session: verifiera
    EEA-datasetets faktiska struktur/storlek och Sverige-filtrering
    (helst via direkt nedladdning/inspektion av riktiga rader, inte bara
