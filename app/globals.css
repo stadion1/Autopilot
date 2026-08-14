@@ -5,7 +5,7 @@
  * below is either one of these directly, or a derived shade of one of these
  * (darkened for text-on-white accessibility, or a translucent tint for a
  * dark card background). See the .card block further down for why the
- * semantic tokens (--accent/--amber/--red/--ink-*/--surface-*/--border*)
+ * semantic tokens (--accent, --amber, --red, --ink-N, --surface-N, --border variants)
  * get REDEFINED inside .card — cards use a dark background now, so nested
  * text/surfaces need their light-mode values swapped for dark-mode ones,
  * and CSS custom properties cascade automatically so every existing rule
