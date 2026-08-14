@@ -262,6 +262,40 @@ behov:
   pris/orimlig mätarställning-rader (redan körd, 546 rader borttagna,
   0 kvar vid senaste körning)
 
+## Utrustningsdata i AI-sammanfattningen (2026-08-14)
+
+Startskott: användaren testade ett riktigt exempel (Mercedes-Benz E450,
+mycket välutrustad) och påpekade att det är svårt att jämföra en
+sparsamt utrustad bil mot en premiumvariant av samma modell — allt
+hamnar i samma prisjämförelse-bucket idag.
+
+**Billiga steget, byggt:** `blocket-api.se`s per-annons-svar innehåller
+faktiskt en full utrustningslista (~50 poster för testbilen — "Panoramaglastak",
+"Helklädda lädersäten" osv.) som `parseBlocket()` hämtade men aldrig
+sparade. Nu fångad genom hela kedjan: `CarListing.equipment` (typad i
+både `types/index.ts` och `scraper-service/types.ts`), ny
+`analyses.equipment TEXT[]`-kolumn, `saveCarData()`/`getAnalysis()`
+läser och skriver den, och AI-prompten i `lib/ai/analyzer.ts` (v1.3) får
+nu listan i FORDON-sektionen med instruktionen att bara kommentera den
+om den faktiskt förklarar prisbilden. **Löser INTE** att
+deal-score/prisjämförelsen fortfarande behandlar alla trimnivåer av en
+modell som en enda bucket — bara den kvalitativa AI-texten blir
+smartare, inte siffrorna.
+
+**Kräver manuell åtgärd innan det är live:** kör migrationen i
+`data/schema.sql` (sök "Migration: analyses.equipment") i Supabase, och
+verifiera att Railway deployat om `scraper-service` (samma steg som
+median_source-fixen tidigare samma dag). **Inte testat i produktion än.**
+
+**Den dyrare, inte byggda idén** (för framtida session): en riktig
+utrustningsviktad prisjustering — vikta marknadsmedianen efter
+utrustningsnivå istället för att bara nämna den i text. Mycket större
+projekt: kräver att nightly-scrapern också hämtar full utrustningsdata
+per annons (sökresultat-endpointen har den inte, bara detalj-endpointen),
+plus en modell för hur mycket varje utrustningspaket typiskt påverkar
+priset per märke/modell — liknar värdeminskningskurve-projektet i
+storlek, fast för utrustning istället för ålder.
+
 ## Pågående arbete: empirisk värdeminskningskurva
 
 Ersätter den gamla platta, manuellt gissade årliga värdeminsknings-
@@ -788,3 +822,10 @@ när det blir aktuellt att designa/bygga.
       kontrollerad denna session.
 7. "Värdera min bil"-idén (se egen sektion ovan) — inget att göra
    förrän användaren vill designa/bygga den på riktigt.
+8. Kör migrationen för `analyses.equipment` i Supabase och verifiera att
+   Railway deployat om `scraper-service` (se "Utrustningsdata i
+   AI-sammanfattningen" ovan) — annars sparas utrustningslistan aldrig
+   trots att koden är pushad.
+9. Utrustningsviktad prisjustering (se egen sektion ovan) — större
+   projekt, inte scopat. Naturlig uppföljning till det billiga steget
+   som redan är byggt.
