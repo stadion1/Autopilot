@@ -1,31 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=Inter:wght@700&display=swap');
 
-/* ─── Carzi design system tokens ─────────────────────────────────────────────
- * Canonical palette. Kept as the single source of truth — every other color
- * below is either one of these directly, or a derived shade of one of these
- * (darkened for text-on-white accessibility, or a translucent tint for a
- * dark card background). See the .card block further down for why the
- * semantic tokens (--accent/--amber/--red/--ink-*/--surface-*/--border*)
- * get REDEFINED inside .card — cards use a dark background now, so nested
- * text/surfaces need their light-mode values swapped for dark-mode ones,
- * and CSS custom properties cascade automatically so every existing rule
- * that already references var(--ink-2) etc. just works without being
- * touched individually.
- * ────────────────────────────────────────────────────────────────────────── */
-:root {
-  --carzi-midnight: #0A0F1E;  /* navbar, footer */
-  --carzi-deep:     #1A1F35;  /* cards, hover */
-  --carzi-white:    #FAFAF8;  /* page background */
-  --carzi-blue:     #2563EB;  /* CTA buttons */
-  --carzi-green:    #10B981;  /* bra affär, positiv */
-  --carzi-amber:    #F59E0B;  /* okej affär, varning */
-  --carzi-red:      #EF4444;  /* tveksam affär, hög risk */
-}
-
 /* ─── Tokens ──────────────────────────────────────────────────────────────── */
 :root {
   --black:       #0A0A09;
-  --white:       var(--carzi-white);
+  --white:       #FAFAF8;
   --off-white:   #F2F0EB;
   --surface:     #FFFFFF;
   --surface-2:   #F5F3EE;
@@ -41,26 +19,18 @@
   --border-mid:  rgba(10,10,9,0.14);
   --border-strong: rgba(10,10,9,0.22);
 
-  /* Brand accent (green) — darkened from --carzi-green for accessible text/
-     icon contrast directly on the white page background. .card redefines
-     this back to the vivid canonical --carzi-green since dark backgrounds
-     can carry a fully saturated accent without a contrast problem. */
-  --accent:      #059669;
-  --accent-mid:  #047857;
-  --accent-light:#10B981;
-  --accent-bg:   #ECFDF5;
-  --accent-bg-2: #D1FAE5;
+  /* Single accent: forest green */
+  --accent:      #1A4731;
+  --accent-mid:  #256044;
+  --accent-light:#2E7A57;
+  --accent-bg:   #EAF2ED;
+  --accent-bg-2: #D4E8DC;
 
-  /* Semantic — same darken-for-white-bg logic as --accent above */
-  --amber:        #B45309;
-  --amber-bg:     #FFFBEB;
-  --amber-border: rgba(180,83,9,0.22);
-  --red:          #DC2626;
-  --red-bg:       #FEF2F2;
-  --red-border:   rgba(220,38,38,0.22);
-
-  --cta:         var(--carzi-blue);
-  --cta-hover:   #1D4ED8;
+  /* Semantic */
+  --amber:       #A0620A;
+  --amber-bg:    #FDF3E3;
+  --red:         #8B2525;
+  --red-bg:      #FBE9E9;
 
   --font-serif:  'Playfair Display', Georgia, serif;
   --font-sans:   'DM Sans', -apple-system, sans-serif;
@@ -159,16 +129,10 @@ h1, h2, h3 { letter-spacing: -0.02em; font-weight: 500; }
   align-items: center;
   justify-content: space-between;
   padding: 0 2rem;
-  background: rgba(10,15,30,0.92);
+  background: rgba(250,250,248,0.88);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-  /* Dark chrome — nested elements (badge) read the light-mode tokens below
-     instead of the :root (light-bg) ones, same technique as .card. */
-  --ink-1: #FFFFFF;
-  --ink-4: rgba(255,255,255,0.52);
-  --border-mid: rgba(255,255,255,0.18);
-  --surface: rgba(255,255,255,0.08);
+  border-bottom: 1px solid var(--border);
 }
 
 .nav-logo {
@@ -197,22 +161,6 @@ h1, h2, h3 { letter-spacing: -0.02em; font-weight: 500; }
   background: var(--surface);
 }
 
-/* ─── Footer ──────────────────────────────────────────────────────────────── */
-.footer {
-  background: var(--carzi-midnight);
-  color: rgba(255,255,255,0.5);
-  padding: 2rem;
-  text-align: center;
-  font-size: 12px;
-  font-weight: 300;
-}
-
-.footer a {
-  color: rgba(255,255,255,0.75);
-  text-decoration: none;
-}
-.footer a:hover { color: #FFFFFF; }
-
 /* ─── Buttons ─────────────────────────────────────────────────────────────── */
 .btn {
   display: inline-flex;
@@ -234,10 +182,10 @@ h1, h2, h3 { letter-spacing: -0.02em; font-weight: 500; }
 .btn:active { transform: scale(0.97); }
 
 .btn-primary {
-  background: var(--cta);
-  color: #FFFFFF;
+  background: var(--ink-1);
+  color: var(--white);
 }
-.btn-primary:hover { background: var(--cta-hover); }
+.btn-primary:hover { background: var(--ink-2); }
 
 .btn-accent {
   background: var(--accent);
@@ -254,45 +202,11 @@ h1, h2, h3 { letter-spacing: -0.02em; font-weight: 500; }
 
 /* ─── Cards ───────────────────────────────────────────────────────────────── */
 .card {
-  background: var(--carzi-deep);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 1.5rem;
   box-shadow: var(--shadow-sm);
-
-  /* Dark-card token overrides — every existing rule elsewhere that reads
-     var(--ink-2), var(--surface-2), var(--border) etc. for text nested
-     inside a .card automatically picks these up via CSS cascade instead
-     of the :root (light-page) values, so individual component rules
-     don't need to be touched one by one. */
-  --ink-1: #FFFFFF;
-  --ink-2: rgba(255,255,255,0.82);
-  --ink-3: rgba(255,255,255,0.62);
-  --ink-4: rgba(255,255,255,0.46);
-  --ink-5: rgba(255,255,255,0.30);
-
-  --surface:   rgba(255,255,255,0.05);
-  --surface-2: rgba(255,255,255,0.07);
-  --surface-3: rgba(255,255,255,0.12);
-
-  --border:        rgba(255,255,255,0.08);
-  --border-mid:    rgba(255,255,255,0.15);
-  --border-strong: rgba(255,255,255,0.26);
-
-  /* Vivid canonical brand colors read fine on a dark card — swap back
-     from the darkened-for-white-bg values defined at :root. */
-  --accent:      var(--carzi-green);
-  --accent-mid:  #34D399;
-  --accent-light:#6EE7B7;
-  --accent-bg:   rgba(16,185,129,0.16);
-  --accent-bg-2: rgba(16,185,129,0.26);
-
-  --amber:        var(--carzi-amber);
-  --amber-bg:     rgba(245,158,11,0.16);
-  --amber-border: rgba(245,158,11,0.32);
-  --red:          var(--carzi-red);
-  --red-bg:       rgba(239,68,68,0.16);
-  --red-border:   rgba(239,68,68,0.32);
 }
 
 /* ─── Utility ─────────────────────────────────────────────────────────────── */
@@ -316,8 +230,8 @@ h1, h2, h3 { letter-spacing: -0.02em; font-weight: 500; }
 }
 
 .tag-green { color: var(--accent); background: var(--accent-bg); border-color: var(--accent-bg-2); }
-.tag-amber { color: var(--amber); background: var(--amber-bg); border-color: var(--amber-border); }
-.tag-red   { color: var(--red);   background: var(--red-bg);   border-color: var(--red-border); }
+.tag-amber { color: var(--amber); background: var(--amber-bg); border-color: #F0D9B0; }
+.tag-red   { color: var(--red);   background: var(--red-bg);   border-color: #F0CBCB; }
 .tag-gray  { color: var(--ink-3); background: var(--surface-2); border-color: var(--border-mid); }
 
 /* Scrollbar */

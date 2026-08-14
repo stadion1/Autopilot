@@ -163,7 +163,7 @@
   align-items: flex-start;
   padding: 1rem 1.25rem;
   background: var(--amber-bg);
-  border: 1px solid var(--amber-border);
+  border: 1px solid #F0D9B0;
   border-radius: var(--radius-md);
   color: var(--ink-2);
   font-size: 13px;
@@ -964,11 +964,11 @@
 }
 
 .ownershipSegment[data-cat="depreciation"] { background: repeating-linear-gradient(135deg, var(--ink-4), var(--ink-4) 4px, var(--ink-5) 4px, var(--ink-5) 8px); }
-.ownershipSegment[data-cat="service"]      { background: #3DA372; }
-.ownershipSegment[data-cat="insurance"]    { background: #D19B3D; }
-.ownershipSegment[data-cat="tax"]          { background: #6089AD; }
-.ownershipSegment[data-cat="fuel"]         { background: #C65B3F; }
-.ownershipSegment[data-cat="financing"]    { background: #93709A; }
+.ownershipSegment[data-cat="service"]      { background: #2E7A57; }
+.ownershipSegment[data-cat="insurance"]    { background: #C08A2E; }
+.ownershipSegment[data-cat="tax"]          { background: #4D6E8C; }
+.ownershipSegment[data-cat="fuel"]         { background: #B2492F; }
+.ownershipSegment[data-cat="financing"]    { background: #7D5A82; }
 
 .ownershipBarTotal {
   font-size: 12px;
@@ -1008,11 +1008,11 @@
 }
 
 .legendDot[data-cat="depreciation"] { background: repeating-linear-gradient(135deg, var(--ink-4), var(--ink-4) 2px, var(--ink-5) 2px, var(--ink-5) 4px); }
-.legendDot[data-cat="service"]      { background: #3DA372; }
-.legendDot[data-cat="insurance"]    { background: #D19B3D; }
-.legendDot[data-cat="tax"]          { background: #6089AD; }
-.legendDot[data-cat="fuel"]         { background: #C65B3F; }
-.legendDot[data-cat="financing"]    { background: #93709A; }
+.legendDot[data-cat="service"]      { background: #2E7A57; }
+.legendDot[data-cat="insurance"]    { background: #C08A2E; }
+.legendDot[data-cat="tax"]          { background: #4D6E8C; }
+.legendDot[data-cat="fuel"]         { background: #B2492F; }
+.legendDot[data-cat="financing"]    { background: #7D5A82; }
 
 .ownershipDisclaimer {
   font-size: 11px;
@@ -1125,20 +1125,7 @@
   margin-bottom: 1rem;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  background: var(--carzi-deep);
-  /* Same dark-card token swap as .card (see globals.css) — aiCard can't
-     just add the "card" class since its own padding/inner wrapper would
-     double up, so the accent/amber/red tokens used by the nested
-     VerdictBadge are redefined directly here instead. */
-  --accent: var(--carzi-green);
-  --amber:  var(--carzi-amber);
-  --red:    var(--carzi-red);
-  --accent-bg: rgba(16,185,129,0.16);
-  --accent-bg-2: rgba(16,185,129,0.26);
-  --amber-bg: rgba(245,158,11,0.16);
-  --amber-border: rgba(245,158,11,0.32);
-  --red-bg: rgba(239,68,68,0.16);
-  --red-border: rgba(239,68,68,0.32);
+  background: var(--ink-1);
 }
 
 .aiCardInner {
