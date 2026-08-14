@@ -547,6 +547,30 @@ oavsett bilens ålder och alltså inte fångade den kända branta
   `data/seed.sql`. **Lärdom:** kolla alltid råtexten för saknade å/ä/ö
   innan import, inte bara sakinnehållet — uppenbarligen inte en garanti
   från Deep Research även när fakta stämmer.
+- **Samma mönster kört för Mercedes-Benz, verifierat (2026-08-14).** 3
+  bevakade modeller (C-klass, E-klass, GLC). Kollade `seed.sql` för
+  befintliga Mercedes-rader först — hittade 2 (W205 C-klass rostangrepp
+  bakre fjädring 2014–2018, W213 E-klass Magic Body Control-fel
+  2016–2019), gav dem till researchen som "redan täckt" — och den här
+  gången bad jag explicit om korrekta å/ä/ö i prompten (lärdom från
+  BMW-passet). Fungerade: researchen kom tillbaka med 34 rader (9 recall
+  + 25 icke-recall) med genomgående korrekt svensk stavning. Enda
+  avvikelsen: en `rule_id` innehöll ett icke-ASCII-tecken
+  (`glc_vatteninträngning_kaross`) — bytt till ASCII
+  (`glc_vattenintrangning_torpedvagg`) för konsekvens med alla andra
+  ~170 rule_id i databasen. 6 av 9 recall-rader stickprovsverifierade
+  (kylvätskepumpens brandrisk 848 517 fordon — exakt matchande
+  researchens siffra, bekräftat ej sålt i Nordamerika; MBUX-
+  skärmåterkallelse 144 049, maj 2026; 48V-jordanslutning brandrisk
+  ~12 200; GLC styrkopplingsbult 25V533/exakt 3 749; bränslepumps-
+  återkallelse 143 551; GLC350e-kablageskavning 21V-197) — alla stämde.
+  Bra disciplin: researchen letade INTE upp en påhittad högvolts-
+  batteri-recall för laddhybriderna (bekräftade att den riktiga PHEV-
+  batteriåterkallelsen bara gäller de rena elbilarna EQE/EQS, inte
+  C/E/GLC:s laddhybridvarianter). Sparat som
+  `data/mercedes_known_issues_verified.sql` + tillagt i `data/seed.sql`.
+  **Sammanlagt 170 rader över 5 märken nu** (Volvo 46, Toyota 32, VW 27,
+  BMW 31, Mercedes-Benz 34).
 - **`model_references`-tabellen låg efter `referenceData.ts`, fixat i
   seed-filen (2026-08-13).** Användaren märkte att DB-tabellen bara hade
   46 rader trots att `data/referenceData.ts` har 57 modeller. Orsak:
@@ -796,24 +820,24 @@ när det blir aktuellt att designa/bygga.
    räcker för att bygga "förväntad tid till sålt".
 3. Vercel Pro-tröskeln (se ovan) — inget att göra nu, men bevaka
    `scored`/`total` i `score-listings`-loggarna över tid.
-4. Kör samma Deep Research-mönster för resterande 34 modeller (Volvo,
-   Toyota, Volkswagen och BMW klara, 136 rader totalt). Nästa naturliga
-   batch: Audi (5 modeller, redan i `model_references` sen tidigare
-   denna session men saknar known_issues helt) eller Mercedes-Benz
-   (3 modeller) — flest bevakade modeller kvar bland de otäckta märkena.
-   Samma process varje gång: (1) grepa `seed.sql` efter befintliga rader
-   för märket FÖRST och ge dem till researchen som "redan täckt" (lärdom
-   från Toyota-dubbletten), (2) kör promptmallen, (3) verifiera
-   recall-raderna mot press/NHTSA/KBA/DVSA (stickprov av de allvarligaste
-   räcker om strukturen är ren — Toyota-batchen visade 8/17 stickprov var
-   tillräckligt för hög konfidens, VW 10/10, BMW 6/6), (4) gör ALLTID en
-   riktad svensk-press-sökning per märke utöver att verifiera researchens
-   egna rader — Toyota-passet hittade en verklig recall (Yaris parkeringsbroms)
-   som researchen missat helt, troligen för att den aldrig fick ett
-   NHTSA-nummer och därför inte dök upp i de USA-tunga källorna, (5) kolla
-   ALLTID råtexten för saknade svenska diakritiska tecken (å/ä/ö) innan
-   import, inte bara sakinnehållet — BMW-passet var första gången det
-   hände, ingen garanti det inte händer igen.
+4. Kör samma Deep Research-mönster för resterande 31 modeller (Volvo,
+   Toyota, Volkswagen, BMW och Mercedes-Benz klara, 170 rader totalt).
+   Nästa naturliga batch: Audi (5 modeller, redan i `model_references`
+   sen tidigare denna session men saknar known_issues helt) — flest
+   bevakade modeller kvar bland de otäckta märkena. Samma process varje
+   gång: (1) grepa `seed.sql` efter befintliga rader för märket FÖRST
+   och ge dem till researchen som "redan täckt" (lärdom från Toyota-
+   dubbletten), (2) kör promptmallen — inkludera nu ALLTID den explicita
+   instruktionen om korrekta å/ä/ö (lades till efter BMW-passet, gav
+   ett helt rent Mercedes-pass), (3) verifiera recall-raderna mot
+   press/NHTSA/KBA/DVSA (stickprov av de allvarligaste räcker om
+   strukturen är ren — Toyota 8/17, VW 10/10, BMW 6/6, Mercedes 6/9),
+   (4) gör ALLTID en riktad svensk-press-sökning per märke utöver att
+   verifiera researchens egna rader — Toyota-passet hittade en verklig
+   recall (Yaris parkeringsbroms) som researchen missat helt, troligen
+   för att den aldrig fick ett NHTSA-nummer och därför inte dök upp i
+   de USA-tunga källorna, (5) kolla rule_id-listan efter icke-ASCII-
+   tecken innan import (Mercedes-passet hade ett, `ä` i själva id:t).
 5. Bränsleförbrukning per modell (se ovan) — i en egen session: verifiera
    EEA-datasetets faktiska struktur/storlek och Sverige-filtrering
    (helst via direkt nedladdning/inspektion av riktiga rader, inte bara
