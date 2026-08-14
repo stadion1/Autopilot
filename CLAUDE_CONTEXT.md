@@ -508,6 +508,46 @@ oavsett bilens ålder och alltså inte fångade den kända branta
 
 ## Kända begränsningar / öppna trådar
 
+- **"Misslyckades att spara" — två kombinerade buggar hittade och
+  fixade (2026-08-14).** Användaren fick felet på en riktig annons
+  (Mercedes-Benz E450, Blocket-ID 24714696). Utredning:
+  1. `parseBlocket()` i `scraper-service/blocket.ts` satte `model` direkt
+     från Blockets egna `specs['Modell']`-fält — för denna annons "E450",
+     inte den bevakade modellfamiljen "E-klass". `nightly.ts` löste redan
+     exakt det här problemet för nattens sökresultat-baserade insamling
+     (Blockets modellnamngivning är inkonsekvent mellan märken — rena
+     namn för Volvo, motorvarianter för BMW/Mercedes) via en
+     `matchTrackedModel()`-tvåstegsmatchning (exakt `model`-fält, sen
+     normaliserad `series`-fält), men den logiken portades aldrig till
+     ad-hämtningsflödet som körs när en användare klistrar in en
+     enskild URL. Verifierat konkret: `market_listings` hade 8 riktiga
+     rader för Mercedes-Benz E-klass 2022 (skrivna med rätt modellnamn av
+     nightly-scrapern), men den enskilda analysen letade efter "E450" och
+     hittade noll träffar — `get_market_median()` missade data som
+     faktiskt fanns. Bedömt påverka troligen fler märken med
+     trimkods-namngivning (BMW, Audi, m.fl.), inte bara Mercedes.
+  2. Missen i (1) drev prissättningen till `theoretical`-grenen (varken
+     marknadsmedian eller nybilspris hittades) — men `analyses.median_source`s
+     CHECK-constraint i databasen tillät bara `'market'`/`'new_car_list'`,
+     aldrig uppdaterad när `'theoretical'` lades till i koden tidigare i
+     sessionen (samma dag). Sparningen kraschade på constrainten.
+     `process.ts`s catch-block kastade dessutom bort det riktiga
+     felmeddelandet innan det skrev den generiska "Misslyckades att
+     spara" — samma tysta-catch-mönster som AI-sammanfattningens bugg
+     tidigare i sessionen, men aldrig fixat här.
+
+  **Fixat:** flyttade `TRACKED_MODELS` + `normalizeToken()` till
+  `blocket.ts` (enda källan nu — `nightly.ts` importerar dem istället för
+  att hålla en egen kopia, samma lärdom som `model_references`-glappet).
+  Ny `findTrackedModel()` i `blocket.ts` kör samma tvåstegsmatchning i
+  `parseBlocket()`. Breddade DB-constrainten till att tillåta
+  `'theoretical'`. Lade till felloggning i `process.ts`s save-catch.
+  **Kräver manuell åtgärd innan det är helt live:** (a) migrationen i
+  `data/schema.sql` (sök "Migration: analyses.median_source — add
+  'theoretical'") måste köras i Supabase, (b) Railway måste deploya om
+  `scraper-service` — koden är pushad till samma repo men det är inte
+  verifierat att Railway auto-deployar från den branchen. **Inte
+  omtestat i produktion än** — testa samma URL igen efter båda stegen.
 - **`deal_score`-backlog var permanent fastlåst, fixat (2026-08-12).**
   `pages/api/cron/score-listings.ts` körde en gång/dygn med
   `BATCH_SIZE=150`. `getListingsNeedingScore()` sorterar aldrig
