@@ -58,7 +58,9 @@ CREATE TABLE analyses (
   -- 'new_car_list' when fair_price_median is Skatteverket's new-car list
   -- price (essentially-new cars, see isEssentiallyNewCar in engine.ts)
   -- rather than a real market median — UI labels it differently.
-  median_source       TEXT CHECK (median_source IN ('market','new_car_list')) DEFAULT 'market',
+  -- 'theoretical' = neither available, basePrice x (1-depreciation)^age
+  -- formula guess from referenceData.ts (see migration below).
+  median_source       TEXT CHECK (median_source IN ('market','new_car_list','theoretical')) DEFAULT 'market',
 
   -- AI analysis output
   pros        TEXT[],
@@ -476,6 +478,41 @@ ALTER TABLE depreciation_curves ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE analyses ADD COLUMN IF NOT EXISTS median_source TEXT
   CHECK (median_source IN ('market','new_car_list')) DEFAULT 'market';
+
+
+-- ============================================================
+-- Migration: analyses.median_source — add 'theoretical'
+-- Run this once in Supabase Dashboard → SQL Editor → New Query
+-- ============================================================
+-- calculatePricing() in engine.ts gained a third medianSource value
+-- ('theoretical', for cars with neither a market median nor a new-car
+-- list price) but the CHECK constraint above was never widened to
+-- match — every save for a car that hit the theoretical fallback path
+-- failed with a silent constraint violation (surfaced to the user as
+-- a generic "Misslyckades att spara" with no logged cause, since
+-- process.ts's save catch-block discarded the real error message —
+-- also fixed). ADD COLUMN IF NOT EXISTS is a no-op here since the
+-- column already exists; the constraint itself must be dropped and
+-- recreated, and its auto-generated name isn't guaranteed, hence the
+-- dynamic lookup.
+
+DO $$
+DECLARE
+  con_name text;
+BEGIN
+  SELECT con.conname INTO con_name
+  FROM pg_constraint con
+  JOIN pg_class rel ON rel.oid = con.conrelid
+  JOIN pg_attribute att ON att.attrelid = rel.oid AND att.attnum = ANY(con.conkey)
+  WHERE rel.relname = 'analyses' AND att.attname = 'median_source' AND con.contype = 'c';
+
+  IF con_name IS NOT NULL THEN
+    EXECUTE format('ALTER TABLE analyses DROP CONSTRAINT %I', con_name);
+  END IF;
+
+  ALTER TABLE analyses ADD CONSTRAINT analyses_median_source_check
+    CHECK (median_source IN ('market','new_car_list','theoretical'));
+END $$;
 
 
 -- ============================================================

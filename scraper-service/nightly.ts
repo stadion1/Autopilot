@@ -39,73 +39,16 @@
  */
 
 import { supabase } from './supabase'
-import { parseFuelType, parseTransmission, extractAdId } from './blocket'
+import { parseFuelType, parseTransmission, extractAdId, TRACKED_MODELS, normalizeToken } from './blocket'
 import { verifyBlocketAdGone, daysListedSince } from './soldVerification'
 
-// ─── Modeller vi bevakar ──────────────────────────────────────────────────────
-// Härlett från data/referenceData.ts i huvudappen. Hålls som en separat,
-// hårdkodad lista här eftersom scraper-service byggs/deployas fristående
-// och inte kan importera filer utanför sin egen mapp (se Dockerfile).
-
-const TRACKED_MODELS: { brand: string; model: string }[] = [
-  { brand: 'Audi', model: 'A3' },
-  { brand: 'Audi', model: 'A4' },
-  { brand: 'Audi', model: 'A6' },
-  { brand: 'Audi', model: 'Q3' },
-  { brand: 'Audi', model: 'Q5' },
-  { brand: 'BMW', model: '3-serie' },
-  { brand: 'BMW', model: '5-serie' },
-  { brand: 'BMW', model: 'X3' },
-  { brand: 'BMW', model: 'X5' },
-  { brand: 'Dacia', model: 'Duster' },
-  { brand: 'Ford', model: 'Focus' },
-  { brand: 'Ford', model: 'Kuga' },
-  { brand: 'Hyundai', model: 'IONIQ 5' },
-  { brand: 'Hyundai', model: 'Tucson' },
-  { brand: 'Hyundai', model: 'i30' },
-  { brand: 'Kia', model: 'Ceed' },
-  { brand: 'Kia', model: 'EV6' },
-  { brand: 'Kia', model: 'Niro' },
-  { brand: 'Kia', model: 'Picanto' },
-  { brand: 'Kia', model: 'Sportage' },
-  { brand: 'Mazda', model: 'CX-5' },
-  { brand: 'Mercedes-Benz', model: 'C-klass' },
-  { brand: 'Mercedes-Benz', model: 'E-klass' },
-  { brand: 'Mercedes-Benz', model: 'GLC' },
-  { brand: 'Mini', model: 'Cooper' },
-  { brand: 'Nissan', model: 'Leaf' },
-  { brand: 'Nissan', model: 'Qashqai' },
-  { brand: 'Nissan', model: 'X-Trail' },
-  { brand: 'Peugeot', model: '3008' },
-  { brand: 'Renault', model: 'Clio' },
-  { brand: 'Renault', model: 'Kadjar' },
-  { brand: 'Seat', model: 'Leon' },
-  { brand: 'Skoda', model: 'Kodiaq' },
-  { brand: 'Skoda', model: 'Octavia' },
-  { brand: 'Skoda', model: 'Superb' },
-  { brand: 'Subaru', model: 'Outback' },
-  { brand: 'Tesla', model: 'Model 3' },
-  { brand: 'Tesla', model: 'Model Y' },
-  { brand: 'Toyota', model: 'C-HR' },
-  { brand: 'Toyota', model: 'Corolla' },
-  { brand: 'Toyota', model: 'Land Cruiser' },
-  { brand: 'Toyota', model: 'RAV4' },
-  { brand: 'Toyota', model: 'Yaris' },
-  { brand: 'Volkswagen', model: 'Golf' },
-  { brand: 'Volkswagen', model: 'ID.3' },
-  { brand: 'Volkswagen', model: 'ID.4' },
-  { brand: 'Volkswagen', model: 'Passat' },
-  { brand: 'Volkswagen', model: 'T-Cross' },
-  { brand: 'Volkswagen', model: 'Tiguan' },
-  { brand: 'Volvo', model: 'S60' },
-  { brand: 'Volvo', model: 'V60 Cross Country' },
-  { brand: 'Volvo', model: 'V60' },
-  { brand: 'Volvo', model: 'V90 Cross Country' },
-  { brand: 'Volvo', model: 'V90' },
-  { brand: 'Volvo', model: 'XC40' },
-  { brand: 'Volvo', model: 'XC60' },
-  { brand: 'Volvo', model: 'XC90' },
-]
+// TRACKED_MODELS och normalizeToken flyttades till blocket.ts (2026-08-14)
+// så att ad-hämtningsflödet (parseBlocket) kan återanvända samma lista för
+// att normalisera enskilda annonsers modellnamn — se findTrackedModel() där
+// för bakgrunden (en Mercedes E450-annons misslyckades spara eftersom den
+// letade efter "E450" istället för den bevakade modellen "E-klass"). Två
+// separata kopior av listan var precis det mönster som orsakade
+// model_references-glappet i huvudappen tidigare i sessionen.
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -152,10 +95,7 @@ interface SearchResponse {
 }
 
 // ─── Matchning mot bevakade modeller ──────────────────────────────────────────
-
-function normalizeToken(s: string): string {
-  return s.toLowerCase().replace(/-?\s?(serie|klass)$/i, '').replace(/\s+/g, '').trim()
-}
+// normalizeToken importeras nu från blocket.ts (se importraden överst).
 
 function matchTrackedModel(doc: SearchDoc): { brand: string; model: string } | null {
   if (!doc.make) return null

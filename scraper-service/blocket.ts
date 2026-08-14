@@ -5,6 +5,105 @@
 
 import { CarListing, FuelType, ScraperResult, Transmission } from './types'
 
+// ─── Modeller vi bevakar ──────────────────────────────────────────────────────
+// Härlett från data/referenceData.ts i huvudappen. Hålls som en separat,
+// hårdkodad lista här eftersom scraper-service byggs/deployas fristående
+// och inte kan importera filer utanför sin egen mapp (se Dockerfile).
+// Enda källan för listan inom scraper-service — nightly.ts importerar den
+// härifrån istället för att hålla en egen kopia (två kopior var precis det
+// mönster som orsakade model_references-glappet i huvudappen, se
+// CLAUDE_CONTEXT.md).
+export const TRACKED_MODELS: { brand: string; model: string }[] = [
+  { brand: 'Audi', model: 'A3' },
+  { brand: 'Audi', model: 'A4' },
+  { brand: 'Audi', model: 'A6' },
+  { brand: 'Audi', model: 'Q3' },
+  { brand: 'Audi', model: 'Q5' },
+  { brand: 'BMW', model: '3-serie' },
+  { brand: 'BMW', model: '5-serie' },
+  { brand: 'BMW', model: 'X3' },
+  { brand: 'BMW', model: 'X5' },
+  { brand: 'Dacia', model: 'Duster' },
+  { brand: 'Ford', model: 'Focus' },
+  { brand: 'Ford', model: 'Kuga' },
+  { brand: 'Hyundai', model: 'IONIQ 5' },
+  { brand: 'Hyundai', model: 'Tucson' },
+  { brand: 'Hyundai', model: 'i30' },
+  { brand: 'Kia', model: 'Ceed' },
+  { brand: 'Kia', model: 'EV6' },
+  { brand: 'Kia', model: 'Niro' },
+  { brand: 'Kia', model: 'Picanto' },
+  { brand: 'Kia', model: 'Sportage' },
+  { brand: 'Mazda', model: 'CX-5' },
+  { brand: 'Mercedes-Benz', model: 'C-klass' },
+  { brand: 'Mercedes-Benz', model: 'E-klass' },
+  { brand: 'Mercedes-Benz', model: 'GLC' },
+  { brand: 'Mini', model: 'Cooper' },
+  { brand: 'Nissan', model: 'Leaf' },
+  { brand: 'Nissan', model: 'Qashqai' },
+  { brand: 'Nissan', model: 'X-Trail' },
+  { brand: 'Peugeot', model: '3008' },
+  { brand: 'Renault', model: 'Clio' },
+  { brand: 'Renault', model: 'Kadjar' },
+  { brand: 'Seat', model: 'Leon' },
+  { brand: 'Skoda', model: 'Kodiaq' },
+  { brand: 'Skoda', model: 'Octavia' },
+  { brand: 'Skoda', model: 'Superb' },
+  { brand: 'Subaru', model: 'Outback' },
+  { brand: 'Tesla', model: 'Model 3' },
+  { brand: 'Tesla', model: 'Model Y' },
+  { brand: 'Toyota', model: 'C-HR' },
+  { brand: 'Toyota', model: 'Corolla' },
+  { brand: 'Toyota', model: 'Land Cruiser' },
+  { brand: 'Toyota', model: 'RAV4' },
+  { brand: 'Toyota', model: 'Yaris' },
+  { brand: 'Volkswagen', model: 'Golf' },
+  { brand: 'Volkswagen', model: 'ID.3' },
+  { brand: 'Volkswagen', model: 'ID.4' },
+  { brand: 'Volkswagen', model: 'Passat' },
+  { brand: 'Volkswagen', model: 'T-Cross' },
+  { brand: 'Volkswagen', model: 'Tiguan' },
+  { brand: 'Volvo', model: 'S60' },
+  { brand: 'Volvo', model: 'V60 Cross Country' },
+  { brand: 'Volvo', model: 'V60' },
+  { brand: 'Volvo', model: 'V90 Cross Country' },
+  { brand: 'Volvo', model: 'V90' },
+  { brand: 'Volvo', model: 'XC40' },
+  { brand: 'Volvo', model: 'XC60' },
+  { brand: 'Volvo', model: 'XC90' },
+]
+
+export function normalizeToken(s: string): string {
+  return s.toLowerCase().replace(/-?\s?(serie|klass)$/i, '').replace(/\s+/g, '').trim()
+}
+
+// Matchar en eller flera kandidatsträngar (t.ex. annonsens egen "Modell"-fält
+// OCH ett kortnamn härlett ur titeln) mot TRACKED_MODELS för ett givet märke.
+// Kandidaterna provas i ordning — första träffen vinner. Behövs eftersom
+// Blockets per-annons-API ger modellnamnet som en specifik motorvariant
+// ("E450", "320i", "GLA220 d") snarare än modellfamiljen vi bevakar
+// ("E-klass", "3-serie", "GLA"): utan detta missar market-median- och
+// model_references-uppslagen data som faktiskt finns (verifierat: en
+// Mercedes E450-annons fick "Misslyckades att spara" trots att
+// market_listings hade 8 rader för Mercedes-Benz E-klass samma årsmodell —
+// annonsen letade bara efter modellnamnet "E450", aldrig "E-klass").
+// Samma tvåstegsidé som nightly.ts:s matchTrackedModel() redan löser för
+// nattens sökresultat-baserade insamling (som har en separat `series`-fält
+// för just detta) — ad-hämtningsflödet här körde aldrig igenom den logiken.
+export function findTrackedModel(brand: string | undefined, candidates: (string | undefined)[]): string | null {
+  if (!brand) return null
+  const brandMatches = TRACKED_MODELS.filter(t => t.brand.toLowerCase() === brand.toLowerCase())
+  if (brandMatches.length === 0) return null
+
+  for (const candidate of candidates) {
+    if (!candidate) continue
+    const norm = normalizeToken(candidate)
+    const hit = brandMatches.find(t => normalizeToken(t.model) === norm)
+    if (hit) return hit.model
+  }
+  return null
+}
+
 export function extractAdId(url: string): string | null {
   const clean = url.split(/[?#]/)[0]
   const match = clean.match(/\/(\d{6,12})\/?$/)
@@ -185,9 +284,20 @@ const specs = ad.specifications ?? {}
 const parsedMileage = parseMileageStr(ad.mileage ?? specs['Miltal'])
 const mileageKm = parsedMileage ?? (specs['Försäljningsform'] === 'Ny bil till salu' ? 0 : undefined)
 
+const rawBrand = specs['Märke'] ?? ad.title?.split(' ')[0]
+const rawModel = specs['Modell'] ?? ad.title?.split(' ')[1]
+// Titelns andra ord är ofta ett kortare seriennamn än specs['Modell']
+// (t.ex. titel "Mercedes-Benz E" mot specs['Modell'] "E450") — samma roll
+// som `series`-fältet spelar för nightly.ts:s sökresultat-baserade matchning.
+const titleShortCandidate = ad.title?.split(' ')[1]
+const trackedModel = findTrackedModel(rawBrand, [rawModel, titleShortCandidate])
+if (trackedModel && trackedModel !== rawModel) {
+  console.log(`  Normaliserar modellnamn: "${rawModel}" -> "${trackedModel}" (bevakad modell)`)
+}
+
 const data: Partial<CarListing> = {
-  brand:        specs['Märke'] ?? ad.title?.split(' ')[0],
-  model:        specs['Modell'] ?? ad.title?.split(' ')[1],
+  brand:        rawBrand,
+  model:        trackedModel ?? rawModel,
   variant:      ad.subtitle ?? undefined,
   year:         parseInt(ad.model_year ?? specs['Modellår']) || undefined,
   price_sek:    parsePrice(ad.price),

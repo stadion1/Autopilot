@@ -101,7 +101,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       pros, cons, risks, verdict, aiSummary,
       '1.2.0', ['market_medians_v1', 'known_issues_v1']
     )
-  } catch {
+  } catch (err: any) {
+    console.error('[process] Misslyckades att spara analysresultat', {
+      source_url: url, error: err?.message ?? String(err),
+    })
     await markError(id, 'Misslyckades att spara')
     return res.status(500).json({ error: 'Misslyckades att spara analys' })
   }
