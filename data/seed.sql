@@ -22,6 +22,10 @@ VALUES
 ('Volvo','V90 Cross Country',2017,2025,680000,0.120,1400,-3000,74,75,'42% av Blocket-annonserna säljs inom en vecka. Stark nisch: kombi + terrängklarhet.'),
 ('Volvo','XC90',       2015,2025, 820000, 0.130, 1300,-3500, 71,73, 'T8 PHEV kräver batterikontroll. Hög servicekostnad — 15 000–25 000 kr/år auktoriserad verkstad.'),
 ('Volvo','S60',        2018,2025, 450000, 0.130, 1500,-2600, 75,70, 'Sedan är mindre populär än kombi i Sverige. Lägre efterfrågan ger sämre andrahandsvärde än V60.'),
+('Volvo','S90',        2016,2027, 590000, 0.135, 1500,-3000, 74,68, 'Sedan-motsvarighet till V90 — svagare efterfrågan än kombi ger sämre andrahandsvärde.'),
+('Volvo','V70',        2008,2016, 340000, 0.100, 1800,-1500, 78,70, 'Utgången sedan 2016 men Sveriges mest sålda BEGAGNADE bil enligt Kvdbil 2025 (52 865 st). Pris extremt känsligt för miltal/rost. Kontrollera EGR/DPF på D-motorer.'),
+('Volvo','C40',        2022,2025, 500000, 0.150, 1300,-2000, 71,60, 'Elektrisk coupé-SUV på XC40-plattform. Utgår som eget namn 2025. Kontrollera batterihälsa.'),
+('Volvo','EX30',       2023,2027, 380000, 0.150, 1300,-1800, 70,60, 'Volvos minsta/billigaste elbil. För ny för tillförlitlig andrahandsdata. Kontrollera batterihälsa.'),
 
 -- TOYOTA
 ('Toyota','RAV4',      2018,2025, 440000, 0.110, 1400,-2400, 87,76, 'Hybrid (2019+) klart att föredra — lägre driftkostnad och bättre andrahandsvärde. PHEV kräver batterikontroll.'),
@@ -29,6 +33,9 @@ VALUES
 ('Toyota','Yaris',     2020,2025, 240000, 0.105, 1200,-1400, 90,70, 'Gen 4 (2020+) stort kliv framåt. Hybrid standard. Enastående driftsäkerhet.'),
 ('Toyota','C-HR',      2016,2025, 330000, 0.115, 1300,-1900, 85,68, 'Polariserande design påverkar andrahandsvärdet negativt i vissa regioner. Hybrid tekniskt pålitlig.'),
 ('Toyota','Land Cruiser',2008,2021,750000,0.090,1400,-2000, 88,82, 'Extremt högt andrahandsvärde. Diesel D-4D känd för lång livslängd. Global efterfrågan håller priset uppe.'),
+('Toyota','Yaris Cross',2021,2027, 310000, 0.108, 1300,-1600, 88,74, 'Höjd Yaris med SUV-utseende, hybrid standard. Stark efterfrågan i Sverige.'),
+('Toyota','Corolla Cross',2022,2027,360000, 0.108, 1400,-1900, 88,73, 'SUV-version av Corolla, hybrid standard. Delar Corollas beprövade drivlina.'),
+('Toyota','bZ4X',      2022,2027, 500000, 0.150, 1300,-1800, 78,60, 'Toyotas första renodlade elbil. 2022 kallades in för hjulbultsproblem — kontrollera åtgärd utförd.'),
 
 -- VOLKSWAGEN
 ('Volkswagen','Golf',  2019,2025, 330000, 0.115, 1500,-2000, 72,67, 'Golf 8 (2019+) haft DSG/infotainment-problem. Golf 7 mer beprövad. Kontrollera DSG-uppdateringar.'),
@@ -37,12 +44,19 @@ VALUES
 ('Volkswagen','T-Cross',2018,2025,260000, 0.118, 1300,-1600, 73,68, 'Snabbast säljande modell Blocket april 2025 — 44% borta inom en vecka.'),
 ('Volkswagen','ID.3',  2020,2025, 380000, 0.160, 1200,-1500, 65,58, 'Tidig mjukvara 2020–2021 hade allvarliga buggar. Kontrollera uppdateringar och batterihälsa (SoH).'),
 ('Volkswagen','ID.4',  2021,2025, 480000, 0.155, 1300,-2000, 67,60, 'Mer mogen elbil än ID.3. Kontrollera batterihälsa. Snabb depreciation gynnar köparen.'),
+('Volkswagen','ID.7',  2023,2027, 600000, 0.150, 1500,-2200, 68,58, 'Stor elbils-sedan/liftback, ID-familjens flaggskepp. Kontrollera batterihälsa och mjukvaruversion.'),
+('Volkswagen','T-Roc', 2018,2027, 320000, 0.120, 1400,-1800, 72,66, 'Kompakt SUV, delar plattform med Golf/T-Cross. DSG-uppdateringar värda att kontrollera tidiga exemplar.'),
+('Volkswagen','Taigo', 2021,2027, 290000, 0.120, 1300,-1600, 72,64, 'Coupé-SUV, mindre etablerad i Sverige än T-Cross/T-Roc.'),
 
 -- BMW
 ('BMW','3-serie',      2018,2025, 520000, 0.140, 1500,-3000, 62,70, 'G20 (2018+) mer pålitlig än F30. N20 4-cyl äldre motor — kontrollera timing chain. 20–30 kkr/år i service.'),
 ('BMW','5-serie',      2016,2025, 680000, 0.145, 1600,-3500, 60,68, 'G30 (2016+) fler elektronisk­problem. 530e PHEV kräver batterikontroll. Hög servicekostnad.'),
 ('BMW','X3',           2017,2025, 620000, 0.135, 1400,-3200, 63,70, 'G01 (2017+) stor förbättring. Stark efterfrågan. Kontrollera oljekonsumtion på B58 6-cyl.'),
 ('BMW','X5',           2018,2025, 900000, 0.140, 1400,-4000, 60,69, 'G05 (2018+). Komplex med höga underhålls­kostnader. xDrive45e PHEV kräver batterikontroll.'),
+('BMW','X1',           2019,2027, 460000, 0.130, 1400,-2400, 65,66, 'Instegs-SUV. Lägre servicekostnad än 3-serie/X3 men samma elektronikkomplexitet.'),
+('BMW','1-serie',      2019,2027, 340000, 0.135, 1400,-2000, 64,63, 'F40 (2019+) framhjulsdriven plattform, delad med X1/2-serie Active Tourer. Billigaste vägen in i BMW-märket.'),
+('BMW','i4',           2022,2027, 650000, 0.155, 1500,-2600, 68,55, 'Elektrisk gran coupé på 4-seriens kaross. Snabb depreciation typisk för premium-elbilar. Kontrollera batterihälsa.'),
+('BMW','i5',           2024,2027, 750000, 0.150, 1500,-3000, 68,58, 'Elektrisk 5-serie, för ny för tillförlitlig andrahandsdata.'),
 
 -- AUDI
 ('Audi','A3',          2020,2027, 370000, 0.135, 1500,-2000, 66,68, 'Golf-konkurrent med Audi-premium. EA888-motorer delar konstruktion med VW/Skoda — samma kedjespännar­problem kan förekomma på tidiga exemplar.'),
@@ -50,16 +64,29 @@ VALUES
 ('Audi','A4',          2019,2027, 470000, 0.140, 1500,-3000, 65,69, 'Direkt konkurrent till BMW 3-serie och Mercedes C-klass. Tidiga 2.0 TFSI (EA888 Gen1) kan ha kedjespännar­problem — kontrollera servicehistorik.'),
 ('Audi','A6',          2018,2027, 680000, 0.145, 1600,-3500, 64,68, 'Storsäljande tjänstebil. Komplex elektronik och luftfjädring på högre utrustningsnivåer ger högre servicekostnad. Stark efterfrågan andrahand.'),
 ('Audi','Q5',          2018,2027, 630000, 0.135, 1400,-3200, 66,70, 'Konkurrerar med BMW X3 och Mercedes GLC. Bra andrahandsvärde tack vare stark efterfrågan på premium-SUV i Sverige.'),
+('Audi','Q2',          2017,2026, 350000, 0.135, 1300,-1900, 66,65, 'Minsta Audi-SUV:en, utgår ~2026. Mindre efterfrågad än Q3 — något svagare andrahandsvärde.'),
+('Audi','Q4 e-tron',   2021,2027, 540000, 0.150, 1300,-2000, 68,60, 'Elektrisk Q3-motsvarighet på MEB-plattform, delar teknik med ID.4/Enyaq. Kontrollera batterihälsa.'),
+('Audi','Q6 e-tron',   2024,2027, 700000, 0.140, 1400,-2200, 68,62, 'Ny PPE-plattform (2024+), för ny för tillförlitlig andrahandsdata.'),
+('Audi','Q8 e-tron',   2019,2027, 820000, 0.155, 1400,-3000, 67,55, 'Namnbytt från "e-tron" 2023. Stor, tung premium-elbil — deprecierar snabbt.'),
 
 -- MERCEDES-BENZ
 ('Mercedes-Benz','C-klass',2014,2025,560000,0.140,1500,-3000,63,68,'W205: kända rost­problem bakre fjädring, infotainment-fel. W206 (2021+) mer pålitlig. Höga servicekostnader.'),
 ('Mercedes-Benz','E-klass',2016,2025,720000,0.140,1600,-3500,62,67,'W213 (2016+). Komplex elektronik — undvik tidiga exemplar. 300de PHEV kräver batterikontroll.'),
 ('Mercedes-Benz','GLC', 2015,2025, 640000, 0.135, 1400,-3200, 63,69, 'X253 och C254 (2022+). Populär tjänstebils-SUV. 300e/300de PHEV kräver batterikontroll.'),
+('Mercedes-Benz','GLE', 2019,2027, 950000, 0.140, 1500,-4000, 62,65, 'Stor premium-SUV, ofta tjänstebil. Komplex luftfjädring/elektronik. 350de PHEV kräver batterikontroll.'),
+('Mercedes-Benz','CLA', 2019,2027, 460000, 0.140, 1400,-2400, 64,62, 'Kompakt coupé/sedan, delar plattform med A-klass. Populär bland yngre köpare.'),
+('Mercedes-Benz','GLA', 2020,2027, 440000, 0.138, 1400,-2200, 64,62, 'Instegs-SUV, delar plattform med A-klass/CLA. Lägre servicekostnad än GLC.'),
+('Mercedes-Benz','EQE', 2022,2027, 850000, 0.170, 1500,-3500, 65,48, 'Elektrisk E-klass-motsvarighet. Ovanligt brant depreciation, väldokumenterat för hela EQ-serien.'),
+('Mercedes-Benz','EQB', 2021,2027, 580000, 0.165, 1300,-2200, 65,50, 'Elektrisk 7-sits kompakt-SUV på GLA-plattform. Samma branta EQ-depreciation.'),
+('Mercedes-Benz','EQA', 2021,2027, 500000, 0.165, 1300,-2000, 65,50, 'Elektrisk GLA-motsvarighet, EQ-seriens instegsmodell. Kontrollera batterihälsa.'),
 
 -- SKODA
 ('Skoda','Octavia',    2012,2025, 310000, 0.115, 1600,-1900, 76,67, 'En av marknadens bästa värde­bilar. DSG-uppdateringar viktiga. Combi-variant starkt att föredra.'),
 ('Skoda','Superb',     2015,2025, 380000, 0.120, 1600,-2200, 75,65, 'Enormt bagageutrymme. iV PHEV kräver batterikontroll. Låg profil ger bra priser begagnat.'),
 ('Skoda','Kodiaq',     2016,2025, 400000, 0.120, 1400,-2400, 74,66, '7-sits familje-SUV till bra pris. RS håller värdet bättre. DSG-problem tidiga exemplar.'),
+('Skoda','Enyaq',      2021,2027, 500000, 0.145, 1300,-1900, 74,62, 'Skodas första renodlade elbil, delar MEB-plattform med VW ID.4/Audi Q4 e-tron till lägre pris.'),
+('Skoda','Fabia',      2021,2027, 220000, 0.115, 1300,-1300, 77,62, 'Gen 4 (2021+). Prisvärd småbil, delar teknik med VW Polo/Seat Ibiza.'),
+('Skoda','Kamiq',      2019,2027, 280000, 0.118, 1400,-1600, 76,64, 'Kompakt SUV, Skodas svar på VW T-Cross/Audi Q2.'),
 
 -- HYUNDAI
 ('Hyundai','Tucson',   2020,2025, 400000, 0.120, 1400,-2300, 77,68, 'Gen 4 (2020+) stor förbättring. 5 års garanti från ny är ett plus. Bra värde mot tyska konkurrenter.'),
@@ -72,6 +99,9 @@ VALUES
 ('Kia','Niro',         2022,2027, 440000, 0.130, 1300,-2000, 78,66, 'Andra generationen (2022+) finns som hybrid, laddhybrid och helelektrisk. 7 års garanti från ny. Laddhybrid-varianten kräver batterikontroll.'),
 ('Kia','Ceed',         2019,2027, 320000, 0.120, 1500,-1900, 77,63, 'Golf-klass till lägre pris. Kombi (SW) mest efterfrågad i Sverige. 7 års garanti är ett starkt säljargument begagnat.'),
 ('Kia','Picanto',      2017,2027, 210000, 0.115, 1200,-1300, 76,60, 'Billig och pålitlig småbil. Låga service­kostnader. Mindre efterfrågan andrahand än större Kia-modeller, men lågt inköpspris kompenserar.'),
+('Kia','EV9',          2023,2027, 700000, 0.140, 1400,-2600, 76,62, 'Stor 3-rads elbil, för ny för tillförlitlig andrahandsdata. 7 års garanti hjälper andrahandsvärdet.'),
+('Kia','Sorento',      2020,2027, 530000, 0.120, 1500,-2600, 78,65, '7-sits familje-SUV, hybrid/laddhybrid. 7 års garanti från ny.'),
+('Kia','Stonic',       2021,2027, 270000, 0.118, 1300,-1500, 77,61, 'Liten SUV, prisvärt alternativ till Sportage. 7 års garanti från ny.'),
 
 -- NISSAN
 ('Nissan','Qashqai',   2021,2027, 330000, 0.125, 1500,-2200, 76,65, 'Tredje generationen (2021+) med mildhybrid/e-POWER. CVT-växellådan (1.2 DIG-T-motorn) kan överhettas i tät trafik — begär att oljan bytts regelbundet.'),
@@ -85,9 +115,14 @@ VALUES
 -- RENAULT
 ('Renault','Clio',     2019,2025, 230000, 0.130, 1300,-1400, 68,60, 'Gen 5 (2019+). Hybrid (E-Tech) 2021+ att föredra. Franska bilar deprecierar snabbare i Sverige.'),
 ('Renault','Kadjar',   2015,2022, 300000, 0.130, 1400,-1800, 67,58, 'Ersatt av Austral 2022. Prisvärda begagnatköp. Kontrollera CVT-växellådan.'),
+('Renault','Austral',  2022,2027, 400000, 0.130, 1400,-2100, 68,58, 'Ersätter Kadjar. För ny för tillförlitlig andrahandsdata.'),
+('Renault','Captur',   2019,2027, 300000, 0.128, 1300,-1700, 68,58, 'Populär liten SUV. E-Tech laddhybrid 2020+ kräver batterikontroll.'),
 
 -- PEUGEOT
 ('Peugeot','3008',     2016,2025, 340000, 0.130, 1400,-2000, 68,60, 'i-Cockpit. Hybrid4 PHEV kräver batterikontroll. Deprecierar snabbare än japanska/tyska konkurrenter.'),
+('Peugeot','2008',     2019,2027, 310000, 0.130, 1300,-1700, 67,60, 'Kompakt SUV med i-Cockpit. e-2008 (el) — kontrollera batterihälsa.'),
+('Peugeot','408',      2023,2027, 420000, 0.135, 1400,-2200, 67,58, 'Fastback/crossover, för ny för tillförlitlig andrahandsdata. Laddhybrid kräver batterikontroll.'),
+('Peugeot','5008',     2017,2027, 430000, 0.135, 1500,-2200, 66,58, '7-sits familje-SUV. Hybrid4 PHEV kräver batterikontroll.'),
 
 -- TESLA
 ('Tesla','Model 3',    2018,2025, 520000, 0.160, 1400,-1800, 68,62, 'Snabb depreciation (prissänkningar påverkar). Kontrollera batterihälsa och laddhistorik. Highland 2023+ är uppgradering.'),
@@ -95,18 +130,55 @@ VALUES
 
 -- SUBARU
 ('Subaru','Outback',   2014,2025, 420000, 0.110, 1400,-2200, 80,72, 'Populär i Sverige p.g.a. AWD. 39% av Blocket-annonserna säljs inom en vecka. Kontrollera boxer­motorns service.'),
+('Subaru','Forester',  2019,2027, 430000, 0.108, 1400,-2200, 82,74, 'Samma AWD-profil och andrahandsvärde som Outback. Kontrollera boxer­motorns serviceintervall.'),
 
 -- MINI
 ('Mini','Cooper',      2014,2024, 310000, 0.145, 1300,-1800, 62,63, 'Kända problem: termostat, kylsystem, timkedja (B38/B48). Hög servicekostnad. Stark märkes­premium.'),
 
 -- SEAT
 ('Seat','Leon',        2020,2025, 290000, 0.118, 1400,-1800, 73,64, 'VW-grupp plattform. FR-variant mer efterfrågad. eHybrid kräver batterikontroll.'),
+('Seat','Arona',       2018,2027, 270000, 0.120, 1300,-1600, 73,62, 'Kompakt SUV på samma plattform som VW T-Cross/Skoda Kamiq.'),
+
+-- CUPRA
+('Cupra','Leon',       2020,2027, 340000, 0.120, 1400,-1900, 72,63, 'Sportigare systermodell till Seat Leon. eHybrid kräver batterikontroll.'),
+('Cupra','Formentor',  2020,2027, 410000, 0.125, 1400,-2000, 71,65, 'Cupras första unika modell. Stark försäljning i Sverige.'),
+('Cupra','Born',       2021,2027, 440000, 0.148, 1300,-1700, 71,60, 'Elektrisk halvsyster till VW ID.3 på MEB-plattform. Kontrollera batterihälsa.'),
 
 -- MAZDA
 ('Mazda','CX-5',       2017,2025, 380000, 0.112, 1400,-2200, 83,70, 'Stark tillförlitlighet. Ingen PHEV/hybrid. SkyActiv välbeprövad. Håller värdet bättre än snittet.'),
+('Mazda','CX-60',      2022,2027, 540000, 0.125, 1400,-2600, 78,62, 'Större/mer komplex än CX-5 — raka 6-cyl diesel och laddhybrid. Tidiga PHEV haft mjukvaruproblem.'),
 
 -- DACIA
-('Dacia','Duster',     2018,2025, 210000, 0.115, 1300,-1300, 72,64, 'Exceptionellt lågt nypris. Enkel teknologi — lägre reparations­kostnader. Stigande popularitet i Sverige.');
+('Dacia','Duster',     2018,2025, 210000, 0.115, 1300,-1300, 72,64, 'Exceptionellt lågt nypris. Enkel teknologi — lägre reparations­kostnader. Stigande popularitet i Sverige.'),
+('Dacia','Sandero',    2021,2027, 190000, 0.105, 1300,-1000, 73,68, 'Sveriges billigaste nybil i sin klass. Enkel teknik, låga reparationskostnader.'),
+
+-- PORSCHE
+('Porsche','Cayenne',  2018,2027, 1100000,0.115, 1300,-5000, 72,78, 'Porsche håller andrahandsvärdet anmärkningsvärt väl. Höga servicekostnader (luftfjädring, bromsar).'),
+('Porsche','Macan',    2018,2027, 800000, 0.115, 1300,-4200, 71,76, 'Instegs-SUV, delar plattform med Audi Q5. Starkt andrahandsvärde för märket.'),
+
+-- LEXUS
+('Lexus','NX',         2021,2027, 580000, 0.115, 1300,-2600, 88,70, 'Delar Toyotas rykte för tillförlitlighet. Litet återförsäljarnät i Sverige.'),
+
+-- MG
+('MG','MG4 Electric',  2022,2027, 350000, 0.150, 1300,-1600, 68,52, 'Nytt märke i Sverige, begränsad servicehistorik. Aggressiv nybilsprissättning pressar begagnatvärdet.'),
+('MG','ZS EV',         2021,2027, 400000, 0.155, 1300,-1700, 68,50, 'Budget-elbil, samma märkesosäkerhet som MG4. Kontrollera batterihälsa.'),
+
+-- LYNK & CO
+('Lynk & Co','01',     2021,2027, 470000, 0.140, 1300,-2200, 70,55, 'Säljs huvudsakligen via abonnemang i Sverige — kontrollera om annonsen avser ägd bil eller abonnemangsöverlåtelse.'),
+
+-- OPEL
+('Opel','Mokka',       2021,2027, 310000, 0.130, 1300,-1700, 68,58, 'Gen 2 (2021+) på Stellantis-plattform. Mokka-e (el) kräver batterikontroll.'),
+('Opel','Grandland',   2018,2027, 370000, 0.135, 1400,-2000, 67,55, 'Hette Grandland X till 2021. Laddhybrid kräver batterikontroll.'),
+
+-- CITROËN
+('Citroën','C4',       2021,2027, 320000, 0.135, 1300,-1700, 66,55, 'Crossover-hatchback. ë-C4 (el) — kontrollera batterihälsa.'),
+
+-- POLESTAR
+('Polestar','2',       2020,2027, 500000, 0.155, 1300,-1800, 70,58, 'Upprepade nypris­sänkningar har pressat andrahandsvärdet hårt. Kontrollera batterihälsa.'),
+('Polestar','4',       2023,2027, 600000, 0.150, 1300,-2000, 72,60, 'Ovanlig lösning utan bakruta. För ny för tillförlitlig andrahandsdata.'),
+
+-- ZEEKR
+('Zeekr','X',          2024,2027, 400000, 0.150, 1300,-1600, 68,45, 'Helt nytt märke i Sverige (2024). Väldigt begränsad servicehistorik och återförsäljarnät.');
 
 
 -- ─── KNOWN ISSUES ────────────────────────────────────────────────────────────
