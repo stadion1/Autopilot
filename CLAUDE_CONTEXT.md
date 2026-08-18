@@ -296,6 +296,67 @@ plus en modell för hur mycket varje utrustningspaket typiskt påverkar
 priset per märke/modell — liknar värdeminskningskurve-projektet i
 storlek, fast för utrustning istället för ålder.
 
+## Utökad modelltäckning — 51 → 105+ bilmodeller (2026-08-18)
+
+Användaren ville bevaka fler bilmodeller — pekade på carup.se:s "Sveriges
+100 populäraste bilar under 2024" som ett golv. Research innan kodning:
+carup.se-listan bygger på NYregistreringar 2024, inte begagnatmarknaden,
+så den korsades mot Kvdbils faktiska begagnatförsäljningsstatistik 2025
+(sökning: "mest sålda begagnade bilar Sverige 2025"). Det avslöjade en
+verklig lucka listan ensam hade missat: **Volvo V70** — utgången sedan
+2016 — är enligt Kvdbil fortfarande Sveriges mest sålda BEGAGNADE bil
+(52 865 sålda 2025), före både V60 och XC60. Lades till trots att den
+inte finns på nyregistreringslistan.
+
+**Ändrat:**
+- `scraper-service/blocket.ts`s `TRACKED_MODELS` (delas av `nightly.ts`
+  och `findTrackedModel()` — se kommentarerna där för varför det är en
+  enda källa) utökad från 51 till 112 modeller.
+- `data/referenceData.ts`s `MODEL_REFERENCES` utökad från 57 till 111
+  poster (samma nya modeller plus några som redan fanns i referensdatan
+  men inte bevakades av scrapern — de två listorna var redan innan
+  denna session inte 1:1, det är avsiktligt: `lookupModelReference()`
+  degraderar snyggt till märkessnitt/generell default för obevakade
+  modeller, se funktionen längst ner i filen).
+- Nya märken helt utan tidigare referensdata (fick annars den generiska
+  300 000 kr-defaulten): Polestar, Cupra, Porsche, Lexus, MG, Lynk & Co,
+  Opel, Citroën, Zeekr.
+- Medvetet UTESLUTNA: skåpbilar/lätta lastbilar som dyker upp högt i
+  både nyregistrerings- och begagnatstatistiken (Fiat Ducato, Mercedes
+  Sprinter/Vito, Ford Transit, VW Caddy/Transporter) — utanför scope för
+  en personbils­annons-analystjänst. "Volvo Others" (plats 100 på
+  carup.se-listan, för ospecifikt för en enskild rad) uteslöts också.
+
+**Viktig kvalitetsskillnad mot befintlig data:** `referenceData.ts`s
+header hävdar källor som Mobility Sweden/Wayke/KVD-auktionsdata för de
+ursprungliga posterna. De 54 nya posterna har INTE verifierats mot de
+källorna — de är rimlighetsuppskattningar baserat på allmän kännedom om
+svenska nybilspriser och typiska depreciationsmönster per segment
+(samma tillvägagångssätt filen själv redan använder för Audi A4/A6/Q5,
+se kommentaren i Audi-sektionen — "inga officiella nypriser hittades
+... uppskattade genom jämförelse"). Bör betraktas som en startgissning,
+inte forskad data — förbättras naturligt efterhand som
+`market_listings` fylls på för dessa modeller (medianen dominerar redan
+över `basePrice` när tillräckligt med riktiga annonser finns, se
+`get_market_median()`).
+
+**Inte gjort/verifierat den här sessionen:**
+- Ingen `npm run build`/`tsc --noEmit` kördes — Node/npm saknas i den
+  här miljön (samma begränsning som redan noterad i produktions-
+  checklistan nedan, punkt 6d). Verifierat istället manuellt: brace/
+  bracket/parentes-balans i båda filerna, samt att ingen `{brand,
+  model}`-rad i `TRACKED_MODELS` förekommer två gånger.
+- Inga `known_issues`-rader för de 54 nya modellerna — det pågående
+  Deep Research-spåret (se prioriterade nästa steg, punkt 4) har hittills
+  bara täckt Volvo/Toyota/VW/BMW/Mercedes-Benz av de URSPRUNGLIGA
+  modellerna. De nya modellerna (och resten av de gamla) väntar fortfarande.
+- Nightly-scrapern (`nightly.ts`) hämtar fortfarande bara ~20 sidor/natt
+  ur ett ofiltrerat, roterande flöde (se `NIGHTLY_SCRAPER.md`) — med
+  fler bevakade modeller tar det proportionerligt längre tid innan
+  `market_listings` får meningsfull täckning för de nya, mindre vanliga
+  modellerna (Zeekr, Lynk & Co, MG m.fl. är riktigt lågvolym i Sverige
+  än så länge).
+
 ## Pågående arbete: empirisk värdeminskningskurva
 
 Ersätter den gamla platta, manuellt gissade årliga värdeminsknings-
@@ -949,3 +1010,18 @@ när det blir aktuellt att designa/bygga.
     feedback pekade på att det blev för monotont) innan någon CSS
     skrivs, och säkerställ en förhandsgranskningsväg (Vercel
     preview-branch eller lokal `npm run dev`) innan kodning påbörjas.
+11. Verifiera den utökade `TRACKED_MODELS`/`MODEL_REFERENCES` (se
+    "Utökad modelltäckning" ovan) mot en riktig `npm run build`/
+    `tsc --noEmit` nästa gång Node.js finns tillgängligt lokalt — bara
+    manuellt brace-räknad denna session. Kolla även Railway-loggarna
+    efter några nätters `nightly.ts`-körning för att se om
+    `matchTrackedModel()` faktiskt får träffar på de nya modellerna
+    (samma modellnamn-matchningsosäkerhet som redan gäller BMW/Mercedes
+    enligt `NIGHTLY_SCRAPER.md` — särskilt värt att kolla för Opel
+    "Grandland" mot "Grandland X" i äldre annonser, och BMW "1-serie"
+    mot Blockets möjliga "1-Serie"/motorkod-varianter).
+12. Basespris/depreciation för de 54 nybilsmodellerna i punkt 11 är
+    uppskattningar, inte forskad data (se disclaimern i samma sektion)
+    — och de har ingen `known_issues`-täckning alls. Naturlig
+    fortsättning på punkt 4:s Deep Research-spår när det är dags,
+    men en egen, större batch givet antalet nya märken.

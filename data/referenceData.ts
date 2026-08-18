@@ -114,6 +114,38 @@ export const MODEL_REFERENCES: ModelReference[] = [
     reliabilityBase: 75, resaleBase: 70,
     notes: 'Sedan är mindre populär än kombi i Sverige. Lägre efterfrågan ger lite sämre andrahandsvärde än V60 av samma generation.',
   },
+  {
+    brand: 'Volvo', model: 'S90',
+    yearFrom: 2016, yearTo: 2027,
+    basePrice: 590000, depreciation: 0.135,
+    avgMilPerYear: 1500, pricePer1000ExtraMil: -3000,
+    reliabilityBase: 74, resaleBase: 68,
+    notes: 'Sedan-motsvarigheten till V90 — samma mönster som S60/V60: svagare efterfrågan i Sverige än kombivarianten ger något sämre andrahandsvärde.',
+  },
+  {
+    brand: 'Volvo', model: 'V70',
+    yearFrom: 2008, yearTo: 2016,
+    basePrice: 340000, depreciation: 0.100,
+    avgMilPerYear: 1800, pricePer1000ExtraMil: -1500,
+    reliabilityBase: 78, resaleBase: 70,
+    notes: 'Utgången sedan 2016 men enligt Kvdbils 2025-statistik ändå Sveriges mest sålda BEGAGNADE bil (52 865 st) — enorm befintlig population håller efterfrågan uppe trots hög ålder. Objekten på marknaden idag är 10–18 år gamla; pris extremt känsligt för mätarställning, rost och servicehistorik. D-motorer (D3/D4) vanligast, kontrollera EGR/DPF.',
+  },
+  {
+    brand: 'Volvo', model: 'C40',
+    yearFrom: 2022, yearTo: 2025,
+    basePrice: 500000, depreciation: 0.150,
+    avgMilPerYear: 1300, pricePer1000ExtraMil: -2000,
+    reliabilityBase: 71, resaleBase: 60,
+    notes: 'Helelektrisk coupé-SUV på XC40-plattformen. Utgången som eget namn 2025 (uppgår i EX40). Kontrollera batterihälsa (SoH). Snabbare depreciation än XC40 eftersom den bara finns som ren elbil.',
+  },
+  {
+    brand: 'Volvo', model: 'EX30',
+    yearFrom: 2023, yearTo: 2027,
+    basePrice: 380000, depreciation: 0.150,
+    avgMilPerYear: 1300, pricePer1000ExtraMil: -1800,
+    reliabilityBase: 70, resaleBase: 60,
+    notes: 'Volvos minsta och billigaste elbil, storsäljare från lansering. För ny för tillförlitlig andrahandsdata — depreciation uppskattad utifrån andra kompakta elbilar. Kontrollera batterihälsa.',
+  },
 
   // ─── TOYOTA ───────────────────────────────────────────────────────────────
   // Toyota toppar tillförlitlighets­rankingar. Hybrid­tekniken är mogen och beprövad.
@@ -158,6 +190,30 @@ export const MODEL_REFERENCES: ModelReference[] = [
     avgMilPerYear: 1400, pricePer1000ExtraMil: -2000,
     reliabilityBase: 88, resaleBase: 82,
     notes: 'Extremt högt andrahandsvärde — äldre modeller håller priset remarkabelt väl. Diesel­versioner (D-4D) kända för lång livslängd. Hög efterfrågan på marknader utanför Sverige håller priset uppe.',
+  },
+  {
+    brand: 'Toyota', model: 'Yaris Cross',
+    yearFrom: 2021, yearTo: 2027,
+    basePrice: 310000, depreciation: 0.108,
+    avgMilPerYear: 1300, pricePer1000ExtraMil: -1600,
+    reliabilityBase: 88, resaleBase: 74,
+    notes: 'Höjd Yaris med SUV-utseende, hybrid standard. Delar Toyotas rykte för låg driftkostnad och hög tillförlitlighet. Stark efterfrågan i Sverige.',
+  },
+  {
+    brand: 'Toyota', model: 'Corolla Cross',
+    yearFrom: 2022, yearTo: 2027,
+    basePrice: 360000, depreciation: 0.108,
+    avgMilPerYear: 1400, pricePer1000ExtraMil: -1900,
+    reliabilityBase: 88, resaleBase: 73,
+    notes: 'SUV-version av Corolla, hybrid standard. Nyare modell i Sverige men delar Corollas beprövade drivlina och rykte.',
+  },
+  {
+    brand: 'Toyota', model: 'bZ4X',
+    yearFrom: 2022, yearTo: 2027,
+    basePrice: 500000, depreciation: 0.150,
+    avgMilPerYear: 1300, pricePer1000ExtraMil: -1800,
+    reliabilityBase: 78, resaleBase: 60,
+    notes: 'Toyotas första renodlade elbil på egen plattform. 2022-modeller kallades in för hjulbultsproblem (kontrollera att åtgärden är utförd). Deprecierar snabbare än övriga Toyota-modeller — mognare elbilskonkurrenter från VW/Hyundai/Kia säljer bättre.',
   },
 
   // ─── VOLKSWAGEN ───────────────────────────────────────────────────────────
@@ -210,6 +266,30 @@ export const MODEL_REFERENCES: ModelReference[] = [
     reliabilityBase: 67, resaleBase: 60,
     notes: 'Mer mogen elbil än ID.3. Kontrollera alltid batterihälsa och att senaste mjukvara­uppdateringar är installerade. Snabb depreciation gynnar köparen.',
   },
+  {
+    brand: 'Volkswagen', model: 'ID.7',
+    yearFrom: 2023, yearTo: 2027,
+    basePrice: 600000, depreciation: 0.150,
+    avgMilPerYear: 1500, pricePer1000ExtraMil: -2200,
+    reliabilityBase: 68, resaleBase: 58,
+    notes: 'Stor elbils-sedan/liftback, ID-familjens flaggskepp. För ny för tillförlitlig andrahandsdata. Kontrollera batterihälsa och mjukvaruversion som för ID.3/ID.4.',
+  },
+  {
+    brand: 'Volkswagen', model: 'T-Roc',
+    yearFrom: 2018, yearTo: 2027,
+    basePrice: 320000, depreciation: 0.120,
+    avgMilPerYear: 1400, pricePer1000ExtraMil: -1800,
+    reliabilityBase: 72, resaleBase: 66,
+    notes: 'Kompakt SUV, delar plattform med Golf/T-Cross. Stabil efterfrågan. DSG-uppdateringar värda att kontrollera på tidiga exemplar.',
+  },
+  {
+    brand: 'Volkswagen', model: 'Taigo',
+    yearFrom: 2021, yearTo: 2027,
+    basePrice: 290000, depreciation: 0.120,
+    avgMilPerYear: 1300, pricePer1000ExtraMil: -1600,
+    reliabilityBase: 72, resaleBase: 64,
+    notes: 'Coupé-SUV, mindre etablerad i Sverige än T-Cross/T-Roc. Delar teknik och driftsäkerhetsprofil med övriga småmodeller i VW-familjen.',
+  },
 
   // ─── BMW ─────────────────────────────────────────────────────────────────
   // Hög servicekostnad är den viktigaste faktorn att kommunicera till köparen.
@@ -248,6 +328,39 @@ export const MODEL_REFERENCES: ModelReference[] = [
     avgMilPerYear: 1400, pricePer1000ExtraMil: -4000,
     reliabilityBase: 60, resaleBase: 69,
     notes: 'G05 (2018+). Komplex bil med höga underhålls­kostnader. xDrive45e PHEV kräver batterikontroll. Räkna med 30 000+ kr/år i service.',
+  },
+  {
+    brand: 'BMW', model: 'X1',
+    yearFrom: 2019, yearTo: 2027,
+    basePrice: 460000, depreciation: 0.130,
+    avgMilPerYear: 1400, pricePer1000ExtraMil: -2400,
+    reliabilityBase: 65, resaleBase: 66,
+    notes: 'Instegs-SUV i BMW-familjen. F48/U11-generationerna. Lägre servicekostnad än 3-serie/X3 men delar samma elektronik­komplexitet.',
+  },
+  {
+    brand: 'BMW', model: '1-serie',
+    yearFrom: 2019, yearTo: 2027,
+    basePrice: 340000, depreciation: 0.135,
+    avgMilPerYear: 1400, pricePer1000ExtraMil: -2000,
+    reliabilityBase: 64, resaleBase: 63,
+    notes: 'F40-generationen (2019+) bytte till framhjulsdriven plattform, delad med X1/2-serie Active Tourer. Billigaste vägen in i BMW-märket men fortfarande relativt hög servicekostnad.',
+    skatteverketModelPattern: '^1\\d{2}',
+  },
+  {
+    brand: 'BMW', model: 'i4',
+    yearFrom: 2022, yearTo: 2027,
+    basePrice: 650000, depreciation: 0.155,
+    avgMilPerYear: 1500, pricePer1000ExtraMil: -2600,
+    reliabilityBase: 68, resaleBase: 55,
+    notes: 'Elektrisk gran coupé på 4-seriens kaross. Snabb depreciation typisk för premium-elbilar. Kontrollera batterihälsa (SoH).',
+  },
+  {
+    brand: 'BMW', model: 'i5',
+    yearFrom: 2024, yearTo: 2027,
+    basePrice: 750000, depreciation: 0.150,
+    avgMilPerYear: 1500, pricePer1000ExtraMil: -3000,
+    reliabilityBase: 68, resaleBase: 58,
+    notes: 'Elektrisk 5-serie, för ny på marknaden för tillförlitlig andrahandsdata — depreciation uppskattad efter i4-mönstret.',
   },
 
   // ─── AUDI ────────────────────────────────────────────────────────────────
@@ -296,6 +409,38 @@ export const MODEL_REFERENCES: ModelReference[] = [
     reliabilityBase: 66, resaleBase: 70,
     notes: 'Konkurrerar med BMW X3 och Mercedes GLC. Bra andrahandsvärde tack vare stark efterfrågan på premium-SUV i Sverige.',
   },
+  {
+    brand: 'Audi', model: 'Q2',
+    yearFrom: 2017, yearTo: 2026,
+    basePrice: 350000, depreciation: 0.135,
+    avgMilPerYear: 1300, pricePer1000ExtraMil: -1900,
+    reliabilityBase: 66, resaleBase: 65,
+    notes: 'Minsta Audi-SUV:en, utgår runt 2026. Delar teknik med A3/Q3. Mindre efterfrågad än Q3 i Sverige — något svagare andrahandsvärde.',
+  },
+  {
+    brand: 'Audi', model: 'Q4 e-tron',
+    yearFrom: 2021, yearTo: 2027,
+    basePrice: 540000, depreciation: 0.150,
+    avgMilPerYear: 1300, pricePer1000ExtraMil: -2000,
+    reliabilityBase: 68, resaleBase: 60,
+    notes: 'Elektrisk Q3-motsvarighet på VW-koncernens MEB-plattform, delar mycket teknik med ID.4/Enyaq. Kontrollera batterihälsa (SoH).',
+  },
+  {
+    brand: 'Audi', model: 'Q6 e-tron',
+    yearFrom: 2024, yearTo: 2027,
+    basePrice: 700000, depreciation: 0.140,
+    avgMilPerYear: 1400, pricePer1000ExtraMil: -2200,
+    reliabilityBase: 68, resaleBase: 62,
+    notes: 'Ny PPE-plattform (2024+), för ny på marknaden för tillförlitlig andrahandsdata. Premiumsegment ger förhoppningsvis bättre värdebeständighet än äldre e-tron.',
+  },
+  {
+    brand: 'Audi', model: 'Q8 e-tron',
+    yearFrom: 2019, yearTo: 2027,
+    basePrice: 820000, depreciation: 0.155,
+    avgMilPerYear: 1400, pricePer1000ExtraMil: -3000,
+    reliabilityBase: 67, resaleBase: 55,
+    notes: 'Ombytt namn från "e-tron" till "Q8 e-tron" 2023. Stor, tung premium-elbil — deprecierar snabbt likt andra tunga lyxelbilar (jfr Mercedes EQE/EQS-segmentet).',
+  },
 
   // ─── MERCEDES-BENZ ────────────────────────────────────────────────────────
 
@@ -325,6 +470,54 @@ export const MODEL_REFERENCES: ModelReference[] = [
     reliabilityBase: 63, resaleBase: 69,
     notes: 'X253 (2015–2022) och C254 (2022+). Populär tjänstebils-SUV. 300e/300de PHEV kräver batterikontroll. Stark efterfrågan håller priset.',
   },
+  {
+    brand: 'Mercedes-Benz', model: 'GLE',
+    yearFrom: 2019, yearTo: 2027,
+    basePrice: 950000, depreciation: 0.140,
+    avgMilPerYear: 1500, pricePer1000ExtraMil: -4000,
+    reliabilityBase: 62, resaleBase: 65,
+    notes: 'Stor premium-SUV, ofta tjänstebil. Komplex luftfjädring/elektronik på högre utrustningsnivåer ger höga servicekostnader. 350de PHEV kräver batterikontroll.',
+  },
+  {
+    brand: 'Mercedes-Benz', model: 'CLA',
+    yearFrom: 2019, yearTo: 2027,
+    basePrice: 460000, depreciation: 0.140,
+    avgMilPerYear: 1400, pricePer1000ExtraMil: -2400,
+    reliabilityBase: 64, resaleBase: 62,
+    notes: 'Kompakt coupé/sedan, delar plattform med A-klass. Populär bland yngre köpare. Samma elektronikkomplexitet som övriga kompakta Mercedes-modeller.',
+  },
+  {
+    brand: 'Mercedes-Benz', model: 'GLA',
+    yearFrom: 2020, yearTo: 2027,
+    basePrice: 440000, depreciation: 0.138,
+    avgMilPerYear: 1400, pricePer1000ExtraMil: -2200,
+    reliabilityBase: 64, resaleBase: 62,
+    notes: 'Instegs-SUV i Mercedes-familjen. Delar plattform med A-klass/CLA. Lägre servicekostnad än GLC men samma infotainment-egenheter.',
+  },
+  {
+    brand: 'Mercedes-Benz', model: 'EQE',
+    yearFrom: 2022, yearTo: 2027,
+    basePrice: 850000, depreciation: 0.170,
+    avgMilPerYear: 1500, pricePer1000ExtraMil: -3500,
+    reliabilityBase: 65, resaleBase: 48,
+    notes: 'Elektrisk E-klass-motsvarighet. Ovanligt brant depreciation, väldokumenterat problem för hela Mercedes EQ-serien — nypris­sänkningar har slagit hårt på andrahandsvärdet. Kontrollera batterihälsa noggrant.',
+  },
+  {
+    brand: 'Mercedes-Benz', model: 'EQB',
+    yearFrom: 2021, yearTo: 2027,
+    basePrice: 580000, depreciation: 0.165,
+    avgMilPerYear: 1300, pricePer1000ExtraMil: -2200,
+    reliabilityBase: 65, resaleBase: 50,
+    notes: 'Elektrisk 7-sits kompakt-SUV på GLA-plattform. Samma branta EQ-depreciation som EQA/EQE. Kontrollera batterihälsa.',
+  },
+  {
+    brand: 'Mercedes-Benz', model: 'EQA',
+    yearFrom: 2021, yearTo: 2027,
+    basePrice: 500000, depreciation: 0.165,
+    avgMilPerYear: 1300, pricePer1000ExtraMil: -2000,
+    reliabilityBase: 65, resaleBase: 50,
+    notes: 'Elektrisk GLA-motsvarighet, EQ-seriens instegsmodell. Brant depreciation likt övriga EQ-modeller. Kontrollera batterihälsa (SoH).',
+  },
 
   // ─── SKODA ───────────────────────────────────────────────────────────────
   // VW-grupp teknologi till lägre pris. Utmärkt värde­alternativ.
@@ -352,6 +545,30 @@ export const MODEL_REFERENCES: ModelReference[] = [
     avgMilPerYear: 1400, pricePer1000ExtraMil: -2400,
     reliabilityBase: 74, resaleBase: 66,
     notes: '7-sits familje-SUV till bra pris. RS-version håller värdet bättre. DSG-problem på tidiga exemplar.',
+  },
+  {
+    brand: 'Skoda', model: 'Enyaq',
+    yearFrom: 2021, yearTo: 2027,
+    basePrice: 500000, depreciation: 0.145,
+    avgMilPerYear: 1300, pricePer1000ExtraMil: -1900,
+    reliabilityBase: 74, resaleBase: 62,
+    notes: 'Skodas första renodlade elbil, delar MEB-plattform med VW ID.4/Audi Q4 e-tron till lägre pris. Kontrollera batterihälsa (SoH).',
+  },
+  {
+    brand: 'Skoda', model: 'Fabia',
+    yearFrom: 2021, yearTo: 2027,
+    basePrice: 220000, depreciation: 0.115,
+    avgMilPerYear: 1300, pricePer1000ExtraMil: -1300,
+    reliabilityBase: 77, resaleBase: 62,
+    notes: 'Fjärde generationen (2021+). Prisvärd småbil, delar teknik med VW Polo/Seat Ibiza. Låga servicekostnader.',
+  },
+  {
+    brand: 'Skoda', model: 'Kamiq',
+    yearFrom: 2019, yearTo: 2027,
+    basePrice: 280000, depreciation: 0.118,
+    avgMilPerYear: 1400, pricePer1000ExtraMil: -1600,
+    reliabilityBase: 76, resaleBase: 64,
+    notes: 'Kompakt SUV, Skodas svar på VW T-Cross/Audi Q2. Bra värdealternativ i segmentet.',
   },
 
   // ─── HYUNDAI ─────────────────────────────────────────────────────────────
@@ -423,6 +640,30 @@ export const MODEL_REFERENCES: ModelReference[] = [
     reliabilityBase: 76, resaleBase: 60,
     notes: 'Billig och pålitlig småbil. Låga service­kostnader. Mindre efterfrågan andrahand än större Kia-modeller, men lågt inköpspris kompenserar.',
   },
+  {
+    brand: 'Kia', model: 'EV9',
+    yearFrom: 2023, yearTo: 2027,
+    basePrice: 700000, depreciation: 0.140,
+    avgMilPerYear: 1400, pricePer1000ExtraMil: -2600,
+    reliabilityBase: 76, resaleBase: 62,
+    notes: 'Stor 3-rads elbil, för ny för tillförlitlig andrahandsdata. 7 års garanti från ny hjälper andrahandsvärdet jämfört med konkurrenter utan motsvarande garanti.',
+  },
+  {
+    brand: 'Kia', model: 'Sorento',
+    yearFrom: 2020, yearTo: 2027,
+    basePrice: 530000, depreciation: 0.120,
+    avgMilPerYear: 1500, pricePer1000ExtraMil: -2600,
+    reliabilityBase: 78, resaleBase: 65,
+    notes: '7-sits familje-SUV, finns som hybrid och laddhybrid. 7 års garanti från ny. Laddhybrid-varianten kräver batterikontroll.',
+  },
+  {
+    brand: 'Kia', model: 'Stonic',
+    yearFrom: 2021, yearTo: 2027,
+    basePrice: 270000, depreciation: 0.118,
+    avgMilPerYear: 1300, pricePer1000ExtraMil: -1500,
+    reliabilityBase: 77, resaleBase: 61,
+    notes: 'Liten SUV, prisvärt alternativ till Sportage. 7 års garanti från ny är ett starkt säljargument begagnat.',
+  },
 
   // ─── NISSAN ──────────────────────────────────────────────────────────────
 
@@ -488,6 +729,22 @@ export const MODEL_REFERENCES: ModelReference[] = [
     reliabilityBase: 67, resaleBase: 58,
     notes: 'Ersatt av Austral 2022. Prisvärda begagnatköp. Kontrollera CVT-växellådan på tidiga exemplar. Låg profil ger rimliga priser.',
   },
+  {
+    brand: 'Renault', model: 'Austral',
+    yearFrom: 2022, yearTo: 2027,
+    basePrice: 400000, depreciation: 0.130,
+    avgMilPerYear: 1400, pricePer1000ExtraMil: -2100,
+    reliabilityBase: 68, resaleBase: 58,
+    notes: 'Ersätter Kadjar. För ny på marknaden för tillförlitlig andrahandsdata. Mildhybrid/E-Tech-hybrid tillgänglig.',
+  },
+  {
+    brand: 'Renault', model: 'Captur',
+    yearFrom: 2019, yearTo: 2027,
+    basePrice: 300000, depreciation: 0.128,
+    avgMilPerYear: 1300, pricePer1000ExtraMil: -1700,
+    reliabilityBase: 68, resaleBase: 58,
+    notes: 'Populär liten SUV. E-Tech laddhybrid finns från 2020 och kräver batterikontroll. Franska bilar deprecierar generellt snabbare i Sverige.',
+  },
 
   // ─── PEUGEOT ─────────────────────────────────────────────────────────────
 
@@ -498,6 +755,30 @@ export const MODEL_REFERENCES: ModelReference[] = [
     avgMilPerYear: 1400, pricePer1000ExtraMil: -2000,
     reliabilityBase: 68, resaleBase: 60,
     notes: 'Stilig SUV med Peugeots i-Cockpit. Hybrid4 (PHEV) kräver batterikontroll. Deprecierar snabbare än japanska och tyska konkurrenter i Sverige.',
+  },
+  {
+    brand: 'Peugeot', model: '2008',
+    yearFrom: 2019, yearTo: 2027,
+    basePrice: 310000, depreciation: 0.130,
+    avgMilPerYear: 1300, pricePer1000ExtraMil: -1700,
+    reliabilityBase: 67, resaleBase: 60,
+    notes: 'Kompakt SUV med i-Cockpit. Finns även som ren elbil (e-2008) — kontrollera batterihälsa på den varianten. Deprecierar i linje med övriga franska SUV:ar i Sverige.',
+  },
+  {
+    brand: 'Peugeot', model: '408',
+    yearFrom: 2023, yearTo: 2027,
+    basePrice: 420000, depreciation: 0.135,
+    avgMilPerYear: 1400, pricePer1000ExtraMil: -2200,
+    reliabilityBase: 67, resaleBase: 58,
+    notes: 'Fastback/crossover, för ny på marknaden för tillförlitlig andrahandsdata. Finns som laddhybrid — kräver batterikontroll.',
+  },
+  {
+    brand: 'Peugeot', model: '5008',
+    yearFrom: 2017, yearTo: 2027,
+    basePrice: 430000, depreciation: 0.135,
+    avgMilPerYear: 1500, pricePer1000ExtraMil: -2200,
+    reliabilityBase: 66, resaleBase: 58,
+    notes: '7-sits familje-SUV. Hybrid4 (PHEV) kräver batterikontroll. Samma depreciationsmönster som 3008 — snabbare än tyska/japanska konkurrenter.',
   },
 
   // ─── TESLA ───────────────────────────────────────────────────────────────
@@ -529,6 +810,14 @@ export const MODEL_REFERENCES: ModelReference[] = [
     reliabilityBase: 80, resaleBase: 72,
     notes: 'Populär i Sverige p.g.a. AWD och markfrigång. 39% av Blocket-annonserna säljs inom en vecka. Boxer­motorn kräver korrekt service­intervall för att undvika head gasket-problem.',
   },
+  {
+    brand: 'Subaru', model: 'Forester',
+    yearFrom: 2019, yearTo: 2027,
+    basePrice: 430000, depreciation: 0.108,
+    avgMilPerYear: 1400, pricePer1000ExtraMil: -2200,
+    reliabilityBase: 82, resaleBase: 74,
+    notes: 'Samma AWD-profil och starka andrahandsvärde som Outback. Boxer­motorn kräver korrekt serviceintervall för att undvika head gasket-problem.',
+  },
 
   // ─── MINI ────────────────────────────────────────────────────────────────
 
@@ -551,6 +840,38 @@ export const MODEL_REFERENCES: ModelReference[] = [
     reliabilityBase: 73, resaleBase: 64,
     notes: 'VW-grupp plattform. FR-variant mer efterfrågad och håller värdet bättre. eHybrid kräver batterikontroll. Prisvärd kompaktklass.',
   },
+  {
+    brand: 'Seat', model: 'Arona',
+    yearFrom: 2018, yearTo: 2027,
+    basePrice: 270000, depreciation: 0.120,
+    avgMilPerYear: 1300, pricePer1000ExtraMil: -1600,
+    reliabilityBase: 73, resaleBase: 62,
+    notes: 'Kompakt SUV på samma plattform som VW T-Cross/Skoda Kamiq. Prisvärt alternativ i segmentet.',
+  },
+  {
+    brand: 'Cupra', model: 'Leon',
+    yearFrom: 2020, yearTo: 2027,
+    basePrice: 340000, depreciation: 0.120,
+    avgMilPerYear: 1400, pricePer1000ExtraMil: -1900,
+    reliabilityBase: 72, resaleBase: 63,
+    notes: 'Sportigare systermodell till Seat Leon. eHybrid kräver batterikontroll. Håller värdet något bättre än Seat-versionen tack vare sportprofil.',
+  },
+  {
+    brand: 'Cupra', model: 'Formentor',
+    yearFrom: 2020, yearTo: 2027,
+    basePrice: 410000, depreciation: 0.125,
+    avgMilPerYear: 1400, pricePer1000ExtraMil: -2000,
+    reliabilityBase: 71, resaleBase: 65,
+    notes: 'Cupras första unika modell (delar dock VW-koncernens MQB-plattform). Stark försäljning i Sverige, håller värdet väl för märket. eHybrid kräver batterikontroll.',
+  },
+  {
+    brand: 'Cupra', model: 'Born',
+    yearFrom: 2021, yearTo: 2027,
+    basePrice: 440000, depreciation: 0.148,
+    avgMilPerYear: 1300, pricePer1000ExtraMil: -1700,
+    reliabilityBase: 71, resaleBase: 60,
+    notes: 'Elektrisk halvsyster till VW ID.3 på samma MEB-plattform. Kontrollera batterihälsa (SoH). Deprecierar i linje med övriga MEB-elbilar.',
+  },
 
   // ─── MAZDA ───────────────────────────────────────────────────────────────
 
@@ -562,6 +883,14 @@ export const MODEL_REFERENCES: ModelReference[] = [
     reliabilityBase: 83, resaleBase: 70,
     notes: 'Stark tillförlitlighet och köregenskaper. Ingen PHEV/hybrid i klassen — bensin och diesel. SkyActiv-tekniken välbeprövad. Håller värdet bättre än snittet i klassen.',
   },
+  {
+    brand: 'Mazda', model: 'CX-60',
+    yearFrom: 2022, yearTo: 2027,
+    basePrice: 540000, depreciation: 0.125,
+    avgMilPerYear: 1400, pricePer1000ExtraMil: -2600,
+    reliabilityBase: 78, resaleBase: 62,
+    notes: 'Större och mer komplex än CX-5 — ny plattform med raka 6-cylindrig diesel och laddhybrid. Tidiga PHEV-exemplar har haft mjukvaruproblem, kontrollera att uppdateringar är utförda.',
+  },
 
   // ─── DACIA ───────────────────────────────────────────────────────────────
 
@@ -572,6 +901,134 @@ export const MODEL_REFERENCES: ModelReference[] = [
     avgMilPerYear: 1300, pricePer1000ExtraMil: -1300,
     reliabilityBase: 72, resaleBase: 64,
     notes: 'Exceptionellt lågt nypris ger bra värde­beräkning. Enkel teknologi — fördel för reparations­kostnader. Låg profil i Sverige men stigande popularitet.',
+  },
+  {
+    brand: 'Dacia', model: 'Sandero',
+    yearFrom: 2021, yearTo: 2027,
+    basePrice: 190000, depreciation: 0.105,
+    avgMilPerYear: 1300, pricePer1000ExtraMil: -1000,
+    reliabilityBase: 73, resaleBase: 68,
+    notes: 'Sveriges billigaste nybil i sin klass — precis som Duster ger det extremt låga nypriset bra värde­beräkning även begagnat. Enkel teknik, låga reparationskostnader.',
+  },
+
+  // ─── PORSCHE ─────────────────────────────────────────────────────────────
+
+  {
+    brand: 'Porsche', model: 'Cayenne',
+    yearFrom: 2018, yearTo: 2027,
+    basePrice: 1100000, depreciation: 0.115,
+    avgMilPerYear: 1300, pricePer1000ExtraMil: -5000,
+    reliabilityBase: 72, resaleBase: 78,
+    notes: 'Porsche håller andrahandsvärdet anmärkningsvärt väl jämfört med andra premiummärken. Höga servicekostnader (luftfjädring, bromsar) men stark efterfrågan kompenserar. E-Hybrid kräver batterikontroll.',
+  },
+  {
+    brand: 'Porsche', model: 'Macan',
+    yearFrom: 2018, yearTo: 2027,
+    basePrice: 800000, depreciation: 0.115,
+    avgMilPerYear: 1300, pricePer1000ExtraMil: -4200,
+    reliabilityBase: 71, resaleBase: 76,
+    notes: 'Instegs-SUV i Porsche-familjen, delar plattform med Audi Q5. Starkt andrahandsvärde för märket. Höga servicekostnader.',
+  },
+
+  // ─── LEXUS ───────────────────────────────────────────────────────────────
+
+  {
+    brand: 'Lexus', model: 'NX',
+    yearFrom: 2021, yearTo: 2027,
+    basePrice: 580000, depreciation: 0.115,
+    avgMilPerYear: 1300, pricePer1000ExtraMil: -2600,
+    reliabilityBase: 88, resaleBase: 70,
+    notes: 'Delar Toyotas rykte för exceptionell tillförlitlighet, hybrid standard/PHEV tillgänglig. Litet återförsäljarnät i Sverige men stark produktkvalitet håller andrahandsvärdet uppe.',
+  },
+
+  // ─── MG ──────────────────────────────────────────────────────────────────
+
+  {
+    brand: 'MG', model: 'MG4 Electric',
+    yearFrom: 2022, yearTo: 2027,
+    basePrice: 350000, depreciation: 0.150,
+    avgMilPerYear: 1300, pricePer1000ExtraMil: -1600,
+    reliabilityBase: 68, resaleBase: 52,
+    notes: 'Nytt märke i Sverige (relanserat under kinesiskt SAIC-ägande) med begränsad servicehistorik och återförsäljarnät. Aggressiv nybilsprissättning pressar begagnatvärdet.',
+  },
+  {
+    brand: 'MG', model: 'ZS EV',
+    yearFrom: 2021, yearTo: 2027,
+    basePrice: 400000, depreciation: 0.155,
+    avgMilPerYear: 1300, pricePer1000ExtraMil: -1700,
+    reliabilityBase: 68, resaleBase: 50,
+    notes: 'Budget-elbil, samma märkesosäkerhet som MG4. Kontrollera batterihälsa (SoH) — mindre etablerad batteriteknik än japanska/koreanska konkurrenter.',
+  },
+
+  // ─── LYNK & CO ───────────────────────────────────────────────────────────
+
+  {
+    brand: 'Lynk & Co', model: '01',
+    yearFrom: 2021, yearTo: 2027,
+    basePrice: 470000, depreciation: 0.140,
+    avgMilPerYear: 1300, pricePer1000ExtraMil: -2200,
+    reliabilityBase: 70, resaleBase: 55,
+    notes: 'Säljs i Sverige huvudsakligen via abonnemang snarare än traditionellt köp — kontrollera om annonsen avser en ägd bil eller en abonnemangsöverlåtelse, vilket påverkar både pris och andrahandsvärde. Delar teknik med Volvo/Geely-koncernen.',
+  },
+
+  // ─── OPEL ────────────────────────────────────────────────────────────────
+
+  {
+    brand: 'Opel', model: 'Mokka',
+    yearFrom: 2021, yearTo: 2027,
+    basePrice: 310000, depreciation: 0.130,
+    avgMilPerYear: 1300, pricePer1000ExtraMil: -1700,
+    reliabilityBase: 68, resaleBase: 58,
+    notes: 'Andra generationen (2021+) på Stellantis-koncernens plattform, delar teknik med Peugeot 2008. Elektrisk variant (Mokka-e) kräver batterikontroll.',
+  },
+  {
+    brand: 'Opel', model: 'Grandland',
+    yearFrom: 2018, yearTo: 2027,
+    basePrice: 370000, depreciation: 0.135,
+    avgMilPerYear: 1400, pricePer1000ExtraMil: -2000,
+    reliabilityBase: 67, resaleBase: 55,
+    notes: 'Hette Grandland X fram till 2021 års facelift. Familje-SUV, laddhybrid kräver batterikontroll. Deprecierar snabbare än tyska/japanska konkurrenter i Sverige.',
+  },
+
+  // ─── CITROËN ─────────────────────────────────────────────────────────────
+
+  {
+    brand: 'Citroën', model: 'C4',
+    yearFrom: 2021, yearTo: 2027,
+    basePrice: 320000, depreciation: 0.135,
+    avgMilPerYear: 1300, pricePer1000ExtraMil: -1700,
+    reliabilityBase: 66, resaleBase: 55,
+    notes: 'Crossover-hatchback med Citroëns bekväma fjädring. Finns som ren elbil (ë-C4) — kontrollera batterihälsa på den varianten. Svagare andrahandsvärde än tyska/japanska konkurrenter i samma segment.',
+  },
+
+  // ─── POLESTAR ────────────────────────────────────────────────────────────
+
+  {
+    brand: 'Polestar', model: '2',
+    yearFrom: 2020, yearTo: 2027,
+    basePrice: 500000, depreciation: 0.155,
+    avgMilPerYear: 1300, pricePer1000ExtraMil: -1800,
+    reliabilityBase: 70, resaleBase: 58,
+    notes: 'Volvo/Geely-koncernens elbilsmärke. Upprepade nypris­sänkningar har pressat andrahandsvärdet hårt. Kontrollera batterihälsa (SoH) och att mjukvaruuppdateringar är installerade.',
+  },
+  {
+    brand: 'Polestar', model: '4',
+    yearFrom: 2023, yearTo: 2027,
+    basePrice: 600000, depreciation: 0.150,
+    avgMilPerYear: 1300, pricePer1000ExtraMil: -2000,
+    reliabilityBase: 72, resaleBase: 60,
+    notes: 'Ovanlig lösning utan bakruta (kamerabaserad "backspegel") — för ny på marknaden för tillförlitlig andrahandsdata. Kontrollera batterihälsa och mjukvarufunktion.',
+  },
+
+  // ─── ZEEKR ───────────────────────────────────────────────────────────────
+
+  {
+    brand: 'Zeekr', model: 'X',
+    yearFrom: 2024, yearTo: 2027,
+    basePrice: 400000, depreciation: 0.150,
+    avgMilPerYear: 1300, pricePer1000ExtraMil: -1600,
+    reliabilityBase: 68, resaleBase: 45,
+    notes: 'Helt nytt märke i Sverige (2024), del av Geely-koncernen. Väldigt begränsad servicehistorik och återförsäljarnät ännu — andrahandsvärdet extremt osäkert tills mer marknadsdata finns.',
   },
 ]
 
