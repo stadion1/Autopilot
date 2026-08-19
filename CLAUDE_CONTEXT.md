@@ -357,6 +357,54 @@ inte forskad data — förbättras naturligt efterhand som
   modellerna (Zeekr, Lynk & Co, MG m.fl. är riktigt lågvolym i Sverige
   än så länge).
 
+## Nightly-scraperns täckningstak upptäckt och MAX_PAGES höjt (2026-08-19)
+
+Uppföljning på modellutökningen ovan — användaren jämförde nattens körning
+mot tidigare (50–100 fler matchade annonser, bekräftade att den nya
+`TRACKED_MODELS`-listan var aktiv) och frågade sen den rimliga
+följdfrågan: hur vet vi att vi inte missar annonser, och hur många nya
+annonser publiceras per dag på Blocket?
+
+**Testade direkt mot blocket-api.se (2026-08-19) och hittade en gräns som
+inte var tydligt dokumenterad förut:** `result_size.match_count` = 141 756
+aktiva bilannonser totalt, men `metadata.paging.last` = 50 — ett HÅRT tak
+i själva API:t. Vi kan aldrig nå fler än 50×50 = 2 500 annonser genom den
+här endpointen, oavsett `NIGHTLY_MAX_PAGES`. Testade även igen om `sort`/
+`sort_by` går att styra via query-param (i hopp om att kunna beställa
+kronologisk ordning) — samma 422-fel som redan dokumenterat, sortering är
+hårdkodad till `RELEVANCE` server-side.
+
+`MAX_PAGES` stod på default 20 (env-var `NIGHTLY_MAX_PAGES` osatt i
+Railway, såvitt känt) — dvs vi nådde inte ens fram till det egna
+25-sidorstaket. **Höjt default till 50** i `scraper-service/nightly.ts`
+(API:ts eget tak, ingen anledning att sätta lägre om inte prestanda blir
+ett problem — 30 extra sidor × ~1s delay ≈ 30–50s extra körtid per natt,
+ingen timeout-risk hittad i `railway.nightly.json`).
+
+**Viktig nyansering av tidigare (för optimistisk) formulering:** sa
+tidigare i konversationen att "täckningen byggs upp över flera nätter" —
+det stämmer bara i den mån RELEVANCE-rankningen förskjuts natt till natt,
+INTE som en rullande genomgång av hela beståndet (sidorna 1–50 är samma
+relevans-fönster varje gång). Användaren kollade manuellt på blocket.se:s
+riktiga sida och såg annonser på sida 20 publicerade för en timme sedan —
+publiceringstakten är alltså flera tusen/dag, vilket gör
+2 500-annonsersfönstret till ett litet statistiskt stickprov, inte en
+fullständig fångst. **Beslut:** accepterat för nu — målet är ett
+representativt stickprov för marknadsmedianen per modell/år, inte att
+fånga varenda annons. Om fullständig täckning blir viktigt senare krävs
+skrapning av blocket.se:s riktiga sida (med riktig datumsortering) istället
+för blocket-api.se — större omarbetning, INTE påbörjad.
+
+Dokumenterat i detalj i `NIGHTLY_SCRAPER.md` (punkt 1, utökad).
+
+**Öppen tråd, inte byggd:** ett förslag som diskuterades men inte
+implementerades — logga hur många av natt-kickens matchade annonser som
+är helt nya (`source_url` aldrig sedd i `market_listings` förut) vs redan
+kända, som ett billigt sätt att mäta faktisk fångstgrad för de bevakade
+modellerna över tid (svarar inte på Blockets totala publiceringstakt, men
+på den mer relevanta frågan om vi fångar upp fler nya annonser för det vi
+bevakar). Naturlig uppföljning om täckningsfrågan kommer upp igen.
+
 ## Pågående arbete: empirisk värdeminskningskurva
 
 Ersätter den gamla platta, manuellt gissade årliga värdeminsknings-

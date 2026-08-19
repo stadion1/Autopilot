@@ -53,7 +53,12 @@ import { verifyBlocketAdGone, daysListedSince } from './soldVerification'
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const SEARCH_URL      = 'https://blocket-api.se/v1/search/car'
-const MAX_PAGES       = parseInt(process.env.NIGHTLY_MAX_PAGES ?? '20', 10)
+// 50 är blocket-api.se:s eget hårda tak (metadata.paging.last i svaret) —
+// att sätta NIGHTLY_MAX_PAGES högre än så ger ingen effekt, API:t stoppar
+// ändå där oavsett hur många träffar (`result_size.match_count`) sökningen
+// egentligen har. Verifierat direkt mot API:t 2026-08-19: ~141 800 aktiva
+// bilannonser totalt, men paging.last var 50 vid varje testad sida.
+const MAX_PAGES       = parseInt(process.env.NIGHTLY_MAX_PAGES ?? '50', 10)
 const PAGE_DELAY_MS   = 1000
 const SOLD_GRACE_DAYS = 5
 const MAX_CONSECUTIVE_FAILURES = 3
