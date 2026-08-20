@@ -154,7 +154,7 @@ export default function AnalysisPage() {
 
   if (!data) return null
 
-  const { car, scores, confidence, pricing, pros, cons, risks, verdict, ai_summary, meta, better_deals, depreciation_curve, mileage_sensitivity_kr } = data
+  const { car, scores, confidence, pricing, pros, cons, risks, verdict, ai_summary, meta, better_deals, depreciation_curve, mileage_sensitivity_kr, model_reference } = data
   const mileageMil = Math.round(car.mileage_km / 10)
 
   function handleShare() {
@@ -316,7 +316,7 @@ export default function AnalysisPage() {
 
         {/* ── Ownership cost over time ── */}
         <div className={`anim-fade-up delay-6`}>
-          <OwnershipCostCard car={car} depreciationCurve={depreciation_curve} mileageSensitivityKr={mileage_sensitivity_kr} />
+          <OwnershipCostCard car={car} depreciationCurve={depreciation_curve} mileageSensitivityKr={mileage_sensitivity_kr} modelReference={model_reference} />
         </div>
 
         {/* ── Pros / Cons — den som matchar omdömet visas först ── */}
@@ -756,17 +756,23 @@ function formatAxisValue(n: number): string {
 }
 
 function OwnershipCostCard({
-  car, depreciationCurve, mileageSensitivityKr,
+  car, depreciationCurve, mileageSensitivityKr, modelReference,
 }: {
   car: any
   depreciationCurve?: { age_years: number; retained_pct: number; sample_size: number }[]
   mileageSensitivityKr?: number | null
+  // Serverresolverad (Supabase model_references, statisk data/referenceData.ts
+  // som fallback) — se model_reference i pages/api/analysis/[id].ts. Utan
+  // den faller getDefaultAnnualMil/calculateOwnershipCosts tillbaka på sin
+  // egen statiska uppslagning, så det här är valfritt av bakåtkompatibilitet,
+  // inte för att flödet normalt saknar den.
+  modelReference?: { avgMilPerYear: number; depreciation: number }
 }) {
   const [financing, setFinancing] = useState<FinancingInput>(DEFAULT_FINANCING)
-  const [expectedAnnualMil, setExpectedAnnualMil] = useState(() => getDefaultAnnualMil(car))
+  const [expectedAnnualMil, setExpectedAnnualMil] = useState(() => getDefaultAnnualMil(car, modelReference))
   const costs = useMemo(
-    () => calculateOwnershipCosts(car, financing, 5, depreciationCurve, mileageSensitivityKr, expectedAnnualMil),
-    [car, financing, depreciationCurve, mileageSensitivityKr, expectedAnnualMil],
+    () => calculateOwnershipCosts(car, financing, 5, depreciationCurve, mileageSensitivityKr, expectedAnnualMil, modelReference),
+    [car, financing, depreciationCurve, mileageSensitivityKr, expectedAnnualMil, modelReference],
   )
   const maxTotal = Math.max(...costs.map(c => c.total), 1)
   const axisMax = niceAxisMax(maxTotal)

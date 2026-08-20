@@ -405,6 +405,56 @@ modellerna över tid (svarar inte på Blockets totala publiceringstakt, men
 på den mer relevanta frågan om vi fångar upp fler nya annonser för det vi
 bevakar). Naturlig uppföljning om täckningsfrågan kommer upp igen.
 
+## Supabase model_references kopplad in i live scoring (2026-08-19)
+
+Uppföljning på modellutökningen — användaren frågade vad det innebar att
+`getLiveModelReference()` fanns skriven men aldrig anropades (se förra
+sessionens svar). Bad om att den kopplas in på riktigt. Gjort.
+
+**Ny funktion `resolveModelReference()`** i `lib/supabase/client.ts` — den
+faktiska "DB primär, statisk `data/referenceData.ts` fallback"-ingången.
+Ersätter `lookupModelReference()`-anropen i:
+- `lib/scoring/engine.ts` (`scoreVehicle()`) — redan `async`, bara ett
+  `await`-tillägg.
+- `pages/api/analysis/[id].ts` — skickar nu även med `model_reference`
+  (`avgMilPerYear`/`depreciation`) i JSON-svaret till klienten.
+
+**Två saker som krävde eftertanke, inte bara en enkel swap:**
+
+1. **Service-role-nyckeln får inte nå klienten.** `lib/scoring/
+   ownershipCost.ts` buntas till klienten (`app/analysis/[id]/page.tsx` är
+   `'use client'`) och importerar medvetet ALDRIG `lib/supabase/client.ts`
+   (den filen håller `SUPABASE_SERVICE_ROLE_KEY`, ett fullprivilegierat
+   nyckel). Löst genom att `getDefaultAnnualMil()`/
+   `calculateOwnershipCosts()` nu tar en valfri förresolvad
+   `{avgMilPerYear, depreciation}`-parameter istället för att slå upp
+   själva — servern resolverar en gång och skickar med den via
+   analys-JSON:en (`types/index.ts`s `AnalysisResult.model_reference`),
+   klienten återanvänder den vid varje lokal omräkning (finansierings-
+   toggle, mätarställnings-input) utan nya DB-anrop. Utan medskickad
+   parameter faller funktionerna tillbaka på den gamla statiska
+   uppslagningen — bakåtkompatibelt, `pages/api/process.ts`s befintliga
+   anrop (`calculateOwnershipCosts(completeCar)`, ingen ref-parameter) är
+   orört och funkar som förut.
+2. **`pages/api/cron/score-listings.ts` scorar upp till 1400 rader/körning
+   inom Vercel Hobbys 60s-tak** — en tidigare session lade ner
+   ansträngning på att parallellisera `scoreVehicle()`s DB-uppslag för att
+   få det att rymmas (se kommentarblocket i den filen). Ett DB-anrop PER
+   RAD för referensuppslaget hade återinfört exakt det problemet. Löst med
+   en in-process-cache (`Map`, nyckel `brand|model|year`, 10 min TTL) i
+   `resolveModelReference()` — samma modell återkommer i hundratals rader
+   per körning, så det blir i praktiken ett DB-anrop per DISTINKT modell
+   (~111 st) snarare än per rad.
+
+**Inte verifierat:** ingen `npm run build`/`tsc --noEmit` kördes (Node
+saknas fortfarande i den här miljön — se punkt 11 i prioriterade nästa
+steg). Verifierat istället manuellt: brace/parentes-balans i alla ändrade
+filer, samt spårat varje anropsställe av de ändrade funktionssignaturerna
+för att bekräfta att inget brutit bakåtkompatibiliteten (alla nya
+parametrar är valfria och sist i listan). **Testa en riktig analys i
+produktion näst session** för att bekräfta att `model_reference` faktiskt
+kommer med i svaret och att ägandekostnads-kortet fortfarande fungerar.
+
 ## Pågående arbete: empirisk värdeminskningskurva
 
 Ersätter den gamla platta, manuellt gissade årliga värdeminsknings-

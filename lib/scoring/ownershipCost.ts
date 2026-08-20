@@ -17,6 +17,11 @@
 import type { CarListing } from '../../types'
 import { lookupModelReference } from '../../data/referenceData'
 
+// Bara de två fälten den här modulen faktiskt använder ur ModelReference —
+// se kommentaren vid getDefaultAnnualMil() för varför den fulla typen (och
+// dess källa, lib/supabase/client.ts) inte importeras hit.
+type PartialModelRef = { avgMilPerYear: number; depreciation: number }
+
 // Empirisk värdeminskningskurva (se data/schema.sql:s depreciation_curves-
 // migration och pages/api/admin/recompute-depreciation-curves.ts). Ren
 // datatyp, ingen import av lib/supabase/client här — den filen drar in
@@ -214,8 +219,17 @@ function annualLoanInterest(principal: number, annualRatePct: number, termYears:
 // genomsnittliga körsträcka — samma default som körs internt om
 // expectedAnnualMil utelämnas. Exporteras så UI:t kan förifylla ett
 // inputfält med ett rimligt värde istället för att visa tomt/0.
-export function getDefaultAnnualMil(car: CarListing): number {
-  return lookupModelReference(car.brand, car.model, car.year).ref.avgMilPerYear
+//
+// `ref` är valfri och tas emot FÖRRESOLVAD av anroparen (server-sidan har
+// redan slagit upp den mot Supabase model_references, se
+// lib/supabase/client.ts:s resolveModelReference() och
+// pages/api/analysis/[id].ts) — den här modulen buntas till klienten
+// ('use client' i app/analysis/[id]/page.tsx) och får därför INTE importera
+// lib/supabase/client.ts direkt (den filen drar in Supabase service-role-
+// nyckeln, se kommentaren högst upp i den filen). Utan ett medskickat `ref`
+// faller vi tillbaka på den statiska data/referenceData.ts, exakt som förut.
+export function getDefaultAnnualMil(car: CarListing, ref?: PartialModelRef): number {
+  return (ref ?? lookupModelReference(car.brand, car.model, car.year).ref).avgMilPerYear
 }
 
 export function calculateOwnershipCosts(
@@ -225,8 +239,9 @@ export function calculateOwnershipCosts(
   curve?: DepreciationCurvePoint[],
   mileageSensitivityKr?: number | null,
   expectedAnnualMil?: number,
+  resolvedRef?: PartialModelRef,
 ): YearlyOwnershipCost[] {
-  const { ref } = lookupModelReference(car.brand, car.model, car.year)
+  const ref = resolvedRef ?? lookupModelReference(car.brand, car.model, car.year).ref
   const ageNow = Math.max(0, new Date().getFullYear() - car.year)
 
   const fuelAnnual      = estimateAnnualFuelCost(car, ref.avgMilPerYear)

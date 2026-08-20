@@ -85,6 +85,13 @@ export interface AnalysisResult {
   better_deals?: BetterDeal[]
   depreciation_curve?: { age_years: number; retained_pct: number; sample_size: number }[]
   mileage_sensitivity_kr?: number | null
+  // Serverresolverad (Supabase model_references, med statisk
+  // data/referenceData.ts som fallback — se resolveModelReference() i
+  // lib/supabase/client.ts) modellreferens, skickad till klienten så den
+  // interaktiva ägandekostnads-kalkylatorn (app/analysis/[id]/page.tsx)
+  // slipper importera Supabase-klienten själv. Bara de fält
+  // OwnershipCostCard faktiskt använder.
+  model_reference?: { avgMilPerYear: number; depreciation: number }
   meta: {
     analyzed_at: string
     scoring_version: string

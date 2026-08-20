@@ -1,6 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { supabase, getAnalysis, getBetterDeals, getDepreciationCurve, getMileageSensitivity } from '../../../lib/supabase/client'
-import { lookupModelReference } from '../../../data/referenceData'
+import { supabase, getAnalysis, getBetterDeals, getDepreciationCurve, getMileageSensitivity, resolveModelReference } from '../../../lib/supabase/client'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') return res.status(405).end()
@@ -31,12 +30,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const betterDeals = await getBetterDeals(analysis.car, analysis.scores.deal)
 
-  const { ref } = lookupModelReference(analysis.car.brand, analysis.car.model, analysis.car.year)
+  const { ref } = await resolveModelReference(analysis.car.brand, analysis.car.model, analysis.car.year)
   const depreciationCurve = await getDepreciationCurve(analysis.car.brand, analysis.car.model, ref.yearFrom)
   const mileageSensitivityKr = await getMileageSensitivity(analysis.car.brand, analysis.car.model, ref.yearFrom)
 
   return res.status(200).json({
     status: 'done', ...analysis, better_deals: betterDeals,
     depreciation_curve: depreciationCurve, mileage_sensitivity_kr: mileageSensitivityKr,
+    model_reference: { avgMilPerYear: ref.avgMilPerYear, depreciation: ref.depreciation },
   })
 }

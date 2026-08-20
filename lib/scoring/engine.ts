@@ -14,9 +14,8 @@
  */
 
 import { CarListing, ConfidenceResult, DealScores, PriceRange, Risk } from '../../types'
-import { lookupModelReference } from '../../data/referenceData'
 import { lookupMarketMedian } from '../../data/marketMedians'
-import { getMarketMedian, getNewCarPrice, getMileageSensitivity } from '../supabase/client'
+import { getMarketMedian, getNewCarPrice, getMileageSensitivity, resolveModelReference } from '../supabase/client'
 import { UNKNOWN_MODEL_REASON, NEW_CAR_MAX_MIL_KM } from './constants'
 
 export const SCORING_VERSION = '1.2.0'
@@ -793,7 +792,7 @@ export interface ScoringOutput {
 }
 
 export async function scoreVehicle(car: CarListing): Promise<ScoringOutput> {
-  const { ref, isDefault } = lookupModelReference(car.brand, car.model, car.year)
+  const { ref, isDefault } = await resolveModelReference(car.brand, car.model, car.year)
 
   // De tre uppslagen nedan är oberoende av varandra (ingen använder någon
   // annans resultat) så de körs parallellt istället för i sekvens — med

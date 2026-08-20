@@ -18,6 +18,7 @@ import {
   Verdict,
 } from '../../types'
 import { NEW_CAR_MAX_MIL_KM } from '../scoring/constants'
+import { lookupModelReference, ModelReference } from '../../data/referenceData'
 
 // ─── Client ──────────────────────────────────────────────────────────────────
 
@@ -397,19 +398,25 @@ export async function saveMarketListing(car: Partial<CarListing>): Promise<void>
 }
 
 // ─── Live model reference lookup ──────────────────────────────────────────────
-// Queries the seeded model_references table in Supabase.
-// Falls back to TypeScript static data if the query fails or returns nothing.
-// This becomes the primary source once Phase 2 market data is live.
+// Queries the seeded model_references table in Supabase — the PRIMARY source
+// as of 2026-08-19 (see resolveModelReference() below). Falls back to the
+// static data/referenceData.ts if the query fails, the table isn't seeded,
+// or no row matches.
 
 export interface LiveModelRef {
-  base_price_sek:           number
-  depreciation_rate:        number
-  avg_mil_per_year:         number
-  price_per_1000_extra_mil: number
-  reliability_base:         number
-  resale_base:              number
-  notes:                    string | null
+  year_from:                 number
+  year_to:                   number
+  base_price_sek:            number
+  depreciation_rate:         number
+  avg_mil_per_year:          number
+  price_per_1000_extra_mil:  number
+  reliability_base:          number
+  resale_base:               number
+  notes:                     string | null
 }
+
+const LIVE_MODEL_REF_COLUMNS =
+  'year_from, year_to, base_price_sek, depreciation_rate, avg_mil_per_year, price_per_1000_extra_mil, reliability_base, resale_base, notes'
 
 export async function getLiveModelReference(
   brand: string,
@@ -420,7 +427,7 @@ export async function getLiveModelReference(
     // Try exact match first (brand + model + year within range)
     const { data: exact } = await supabase
       .from('model_references')
-      .select('base_price_sek, depreciation_rate, avg_mil_per_year, price_per_1000_extra_mil, reliability_base, resale_base, notes')
+      .select(LIVE_MODEL_REF_COLUMNS)
       .ilike('brand', brand)
       .ilike('model', model)
       .lte('year_from', year)
@@ -433,7 +440,7 @@ export async function getLiveModelReference(
     // Fallback: brand + model without year constraint
     const { data: brandModel } = await supabase
       .from('model_references')
-      .select('base_price_sek, depreciation_rate, avg_mil_per_year, price_per_1000_extra_mil, reliability_base, resale_base, notes')
+      .select(LIVE_MODEL_REF_COLUMNS)
       .ilike('brand', brand)
       .ilike('model', model)
       .order('year_to', { ascending: false })
@@ -444,9 +451,74 @@ export async function getLiveModelReference(
 
     return null
   } catch {
-    // Network error or table not seeded yet — scoring engine falls back to static data
+    // Network error or table not seeded yet — resolveModelReference() falls back to static data
     return null
   }
+}
+
+// ─── Resolved model reference (DB primary, static fallback) ──────────────────
+// The single entry point scoring code should use. SERVER-ONLY — this module
+// pulls in the Supabase service-role client, so it must never be imported by
+// client-bundled code (lib/scoring/ownershipCost.ts deliberately avoids this
+// import for exactly that reason — see the comment at the top of that file).
+// Callers that also run client-side (app/analysis/[id]/page.tsx) get the
+// resolved reference from the server via the analysis JSON payload instead
+// of calling this directly — see pages/api/analysis/[id].ts.
+//
+// In-process cache, keyed by brand|model|year: pages/api/cron/score-listings.ts
+// calls this once per row (up to ~1400/run) under a tight 60s Vercel maxDuration
+// — a previous session spent real effort parallelizing scoreVehicle()'s DB
+// lookups to fit that budget (see the comment block at the top of that cron
+// file). A given brand/model/year repeats across hundreds of rows in the same
+// run, so without caching this would add one Supabase round-trip PER ROW
+// instead of per distinct model — exactly the kind of per-row DB cost that
+// tuning effort was about eliminating. TTL is just a safety margin against a
+// long-lived warm serverless instance serving stale data indefinitely after
+// someone reseeds Supabase — model_references changes rarely, so this doesn't
+// need to be short.
+const MODEL_REF_CACHE_TTL_MS = 10 * 60 * 1000
+const modelRefCache = new Map<string, { value: { ref: ModelReference; isDefault: boolean; source: 'db' | 'static' }; expiresAt: number }>()
+
+export async function resolveModelReference(
+  brand: string,
+  model: string,
+  year: number,
+): Promise<{ ref: ModelReference; isDefault: boolean; source: 'db' | 'static' }> {
+  const cacheKey = `${brand}|${model}|${year}`
+  const cached = modelRefCache.get(cacheKey)
+  if (cached && cached.expiresAt > Date.now()) return cached.value
+
+  const resolved = await resolveModelReferenceUncached(brand, model, year)
+  modelRefCache.set(cacheKey, { value: resolved, expiresAt: Date.now() + MODEL_REF_CACHE_TTL_MS })
+  return resolved
+}
+
+async function resolveModelReferenceUncached(
+  brand: string,
+  model: string,
+  year: number,
+): Promise<{ ref: ModelReference; isDefault: boolean; source: 'db' | 'static' }> {
+  const live = await getLiveModelReference(brand, model, year)
+  if (live) {
+    return {
+      ref: {
+        brand, model,
+        yearFrom: live.year_from, yearTo: live.year_to,
+        basePrice: live.base_price_sek,
+        depreciation: live.depreciation_rate,
+        avgMilPerYear: live.avg_mil_per_year,
+        pricePer1000ExtraMil: live.price_per_1000_extra_mil,
+        reliabilityBase: live.reliability_base,
+        resaleBase: live.resale_base,
+        notes: live.notes ?? undefined,
+      },
+      isDefault: false,
+      source: 'db',
+    }
+  }
+
+  const { ref, isDefault } = lookupModelReference(brand, model, year)
+  return { ref, isDefault, source: 'static' }
 }
 
 // ─── Live known issues lookup ─────────────────────────────────────────────────
