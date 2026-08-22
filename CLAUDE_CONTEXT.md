@@ -807,6 +807,54 @@ befintlig, ofarlig React-hydreringsvarning på en SVG-cirkel i navbaren
 vidare, verkar vara ett förbefintligt kosmetiskt problem, inte relaterat
 till migreringen.
 
+## Onödig Chromium-uppstart gjorde Blocket-scrapning ~12x långsammare (2026-08-22)
+
+Uppföljning samma dag: användaren tyckte den nyss testade analysen kändes
+seg — spinnern satt kvar länge på sista steget ("AI-analys och
+riskbedömning") och "Tar lite längre tid än vanligt"-texten dök alltid
+upp.
+
+**Rotorsak:** `parseBlocket()` i `scraper-service/blocket.ts` tar en
+`page`-parameter men ignorerar den helt (`_: unknown`) — parsern pratar
+uteslutande med `blocket-api.se` via vanlig `fetch()`, precis som
+kommentaren i `pages/api/process.ts` redan påstod ("Playwright körs
+INTE här"). Trots det körde `scraper-service/parsers.ts`s
+`scrapeAndParse()` OVILLKORLIGEN `createStealthBrowser()` (full headless
+Chromium-launch + context + page) innan den routade till rätt
+sajt-parser — även för Blocket, som aldrig rörde webbläsaren. En hel
+webbläsarprocess startades och stängdes för ingenting, för varenda
+Blocket-analys.
+
+**Mätt effekt** (samma annons, `POST /scrape` direkt mot lokal
+scraper-service, kringgår analys-cachen): 8 521 ms → 692 ms, ~12x
+snabbare. Loggen från INNAN fixen visade `Klar: OK (8521ms)` för ett
+enda JSON-API-anrop som borde ta under en sekund — bekräftar att nästan
+hela tiden gick åt webbläsarlanseringen, inte själva datahämtningen.
+
+**Fixat:** `scrapeAndParse()` har nu en tidig retur för
+`site === 'blocket'` som anropar `parseBlocket()` direkt utan att röra
+`createStealthBrowser()`/`respectRateLimit()` — Wayke/Bytbil (som
+faktiskt använder Playwright för riktig sidladdning) är opåverkade,
+samma browser-väg som innan.
+
+**Även fixat, separat men relaterat fynd:** `LONGER_THAN_USUAL_MS` i
+`app/analysis/[id]/page.tsx` stod på 8000ms — men samma vy lovar
+"vanligtvis 10–20 sekunder", så meddelandet var garanterat att visas på
+i princip VARJE analys (8s < den egna utlovade normaltiden). Höjd till
+20000ms så den bara triggar när något faktiskt tar ovanligt lång tid.
+
+**Kräver Railway-omdeploy innan produktionen märker skillnaden** —
+scraper-service körs på Railway, inte lokalt; fixen är bara verifierad
+i den lokala devmiljön denna session. **Inte omtestat i produktion än.**
+
+**Öppen fråga, inte utredd:** hur mycket av de återstående ~692ms (och
+resten av den totala analystiden — AI-anropet, DB-sparningarna) som
+går att korta ytterligare är inte undersökt. Om användaren fortfarande
+tycker det känns segt efter Railway-deployen är nästa naturliga plats
+att mäta `analyzeWithAI()`s svarstid och de sekventiella
+DB-sparningarna i `process.ts` (`saveCarData`/`saveMarketListing` körs
+just nu efter varandra, inte parallellt — litet men enkelt vinstläge).
+
 ## Kända begränsningar / öppna trådar
 
 - **Carzi-designsystem (mörka kort) — försökt och REVERTERAT (2026-08-14).**

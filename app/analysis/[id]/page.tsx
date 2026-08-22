@@ -20,7 +20,10 @@ const LOAD_STEPS = [
 const STEP_INTERVALS_MS = [1200, 2600, 4000]
 const MIN_LOADING_MS = STEP_INTERVALS_MS[STEP_INTERVALS_MS.length - 1] + 900
 
-const LONGER_THAN_USUAL_MS = 8000
+// Måste ligga BORTOM det egna "vanligtvis 10–20 sekunder"-löftet ovan —
+// annars visas "tar längre tid än vanligt" på i princip varje analys,
+// eftersom den normala tiden redan överskrider en lägre tröskel.
+const LONGER_THAN_USUAL_MS = 20000
 
 function LoadingView() {
   const [step, setStep] = useState(0)

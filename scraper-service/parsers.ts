@@ -67,6 +67,20 @@ export async function scrapeAndParse(
   url: string,
   site: SupportedSite
 ): Promise<ScraperResult> {
+  // Blocket doesn't use Playwright at all — parseBlocket() talks to
+  // blocket-api.se (and blocket.se directly for sold-checks) via plain
+  // fetch(), its `page` param is unused. Launching/tearing down a full
+  // Chromium instance for it was pure wasted latency on every single
+  // Blocket analysis (measured ~8.5s round trip, most of it browser
+  // overhead for a call that never touches the page).
+  if (site === 'blocket') {
+    const result = await parseBlocket(undefined, url)
+    if (result.success && result.data) {
+      result.data = normalize(result.data, url, site)
+    }
+    return result
+  }
+
   // Respect rate limits before acquiring a browser
   await respectRateLimit(url)
 
@@ -76,7 +90,6 @@ export async function scrapeAndParse(
     let result: ScraperResult
 
     switch (site) {
-      case 'blocket': result = await parseBlocket(page, url); break
       case 'wayke':   result = await parseWayke(page, url);   break
       case 'bytbil':  result = await parseBytbil(page, url);  break
       default:        result = { success: false, error: 'Unknown site' }
