@@ -750,6 +750,63 @@ oavsett bilens ålder och alltså inte fångade den kända branta
   produktions-DB och bekräftat 2026-08-13** — `model_references` har nu
   57 rader, matchar `referenceData.ts` exakt. Betraktas som löst.
 
+## Lokal devmiljö återuppbyggd efter datormigrering (2026-08-22)
+
+Användaren gjorde en migrering på sin dator — repot, `node_modules`,
+Node.js och alla lokala `.env`-filer var borta. Klonade om från
+`github.com/stadion1/Autopilot` och byggde upp devmiljön från grunden.
+
+**Node.js saknades helt** (inte samma rättighetsproblem som tidigare
+noterat i "Carzi-designsystem"-avsnittet nedan — den gången var
+problemet att ingen körning alls var möjlig, den här gången var Node
+bara inte installerat). `winget install` misslyckades två gånger med
+en trasig källcache (`0x8a15000f`), och `winget source reset --force`
+kräver adminrättigheter som saknas på jobbdatorn — bekräftar att
+rättighetsbegränsningen från tidigare session fortfarande gäller för
+winget specifikt. Användaren installerade Node.js manuellt istället
+(v24.19.0/npm 11.17.0), vilket löste det. **Detta gör punkt 6d och 11 i
+prioriterade nästa steg görbara nästa gång** — själva `npm run build`/
+`tsc --noEmit`-körningen är dock ännu inte gjord, bara `npm install` +
+`next dev` + en riktig analys i webbläsaren.
+
+**Upptäckt: repot hade ALDRIG haft en `.gitignore`.** `node_modules` och
+lock-filerna låg som ospårade filer i `git status` sen tidigare (synligt
+redan i utgångsläget för den här sessionen). Skapade en root-`.gitignore`
+(`node_modules/`, `.env`, `.env.local`, `.env.*.local`, `.next/`, `dist/`)
+INNAN några `.env`-filer skapades, för att inte riskera att hemligheter
+råkar committas.
+
+**`.env.local` (huvudapp) och `scraper-service/.env` skapade** från
+värden användaren hämtade ur Railway. Ett verkligt fynd under processen:
+`SCRAPER_SECRET` skilde sig mellan de två inklistrade värdeuppsättningarna.
+Orsak: användaren hade kopierat värden från TVÅ olika Railway-tjänster —
+den ena från den faktiska `scraper-service` (kör `server.ts`, den enda
+som validerar `x-scraper-secret`-headern), den andra från `nightly-scraper`
+(kör `nightly.ts`, som ALDRIG läser `SCRAPER_SECRET` — den skrapar direkt
+utan HTTP-anrop). Det senare värdet var alltså en röd sill. Satte det
+verifierat rätta värdet (`server.ts`s) konsekvent på båda ställena.
+
+**`tsx` laddar inte `.env` automatiskt** trots att det såg ut så vid
+första anblick — kräver Node/tsx:s `--env-file`-flagga explicit.
+`scraper-service`s `dev`-script kraschade direkt med "Missing
+NEXT_PUBLIC_SUPABASE_URL..." tills `package.json`s `dev`-script
+uppdaterades till `tsx watch --env-file=.env server.ts`.
+
+**Playwright saknade nedladdade Chromium-binärer** — `npm install`
+installerar bara `npx`-paketet, inte själva webbläsaren. Första
+testanalysen gav 422 med "Executable doesn't exist..."; löst med
+`npx playwright install chromium` i `scraper-service/`.
+
+**Verifierat end-to-end i webbläsaren (2026-08-22):** en riktig
+Blocket-annons (`blocket.se/mobility/item/25764733`, Tesla Model 3 Long
+Range 2023) kördes genom hela kedjan lokalt — scraping, marknads-
+jämförelse, deal score (57/100), ägandekostnadsberäkning,
+AI-sammanfattning — allt fungerade. Enda konsolvarningen var en
+befintlig, ofarlig React-hydreringsvarning på en SVG-cirkel i navbaren
+(server/klient-mismatch på ett numeriskt attribut) — inte undersökt
+vidare, verkar vara ett förbefintligt kosmetiskt problem, inte relaterat
+till migreringen.
+
 ## Kända begränsningar / öppna trådar
 
 - **Carzi-designsystem (mörka kort) — försökt och REVERTERAT (2026-08-14).**
@@ -959,10 +1016,12 @@ oavsett bilens ålder och alltså inte fångade den kända branta
   `market_listings` har ackumulerat tillräckligt med
   sold/removed-historik. En påminnelse är schemalagd (cloud routine,
   ~en vecka efter att den sattes upp) för att kolla om datan räcker nu.
-- **Ingen Node.js lokalt tillgängligt** i den här miljön — alla
-  scraper-service/TypeScript-ändringar denna session har verifierats
-  via läsning + manuell brace-balansräkning, inte kompilering/körning.
-  Bra att köra en riktig typecheck/build vid nästa tillfälle det går.
+- **Node.js nu tillgängligt lokalt igen (fixat 2026-08-22, se egen
+  sektion ovan)** — men en riktig `npm run build`/`tsc --noEmit` är
+  fortfarande inte körd. Alla TypeScript-ändringar i tidigare sessioner
+  (modellutökningen, `model_references`-inkopplingen m.fl.) är fortfarande
+  bara manuellt brace-räknade, inte kompilerade. Bra att göra vid nästa
+  kodändring i de filerna.
 - **Bränsleförbrukning per modell — inte byggt, research påbörjad
   (2026-08-12).** `estimateAnnualFuelCost()` använder idag bara en platt
   schablon per drivmedelstyp (t.ex. 0,68 l/mil för ALL bensin oavsett
@@ -1088,9 +1147,9 @@ när det blir aktuellt att designa/bygga.
       catch-blocken (`process.ts`, cron-routes) så fel syns proaktivt
       istället för att kräva manuell loggläsning i Vercel-panelen.
    d. **Kör en riktig `npm run build`/typecheck** på scraper-service och
-      huvudappen nästa gång Node.js finns tillgängligt lokalt — den här
-      sessionens scraper-service-ändringar har bara verifierats via
-      läsning + manuell brace-räkning, aldrig kompilerats.
+      huvudappen — Node.js finns nu tillgängligt lokalt igen (fixat
+      2026-08-22), så det här är inte längre blockerat, bara inte gjort
+      än.
    e. (Lägre prioritet) Snabb mobilvy-/tvärwebbläsargenomgång — inte
       kontrollerad denna session.
 7. "Värdera min bil"-idén (se egen sektion ovan) — inget att göra
@@ -1110,8 +1169,9 @@ när det blir aktuellt att designa/bygga.
     preview-branch eller lokal `npm run dev`) innan kodning påbörjas.
 11. Verifiera den utökade `TRACKED_MODELS`/`MODEL_REFERENCES` (se
     "Utökad modelltäckning" ovan) mot en riktig `npm run build`/
-    `tsc --noEmit` nästa gång Node.js finns tillgängligt lokalt — bara
-    manuellt brace-räknad denna session. Kolla även Railway-loggarna
+    `tsc --noEmit` — Node.js finns nu tillgängligt lokalt igen (fixat
+    2026-08-22), fortfarande bara manuellt brace-räknad, inte kompilerad.
+    Kolla även Railway-loggarna
     efter några nätters `nightly.ts`-körning för att se om
     `matchTrackedModel()` faktiskt får träffar på de nya modellerna
     (samma modellnamn-matchningsosäkerhet som redan gäller BMW/Mercedes
